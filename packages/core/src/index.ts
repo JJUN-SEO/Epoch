@@ -13,3 +13,4 @@ export * from "./graph/scc.js";
 export type * from "./interfaces/adapter.js";
 export type * from "./interfaces/services.js";
 export type * from "./interfaces/api.js";
+export * from "./graph/build.js";
