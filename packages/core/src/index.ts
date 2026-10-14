@@ -7,3 +7,6 @@
  */
 export * from "./schemas/index.js";
 export * from "./canonical.js";
+export * from "./policy.js";
+export * from "./graph/reachability.js";
+export * from "./graph/scc.js";

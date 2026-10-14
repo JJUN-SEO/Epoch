@@ -21,10 +21,13 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "eslint": "catalog:",
+    "graphology-types": "0.24.8",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {
+    "graphology": "0.26.0",
+    "graphology-components": "1.5.4",
     "zod": "4.6.7"
   }
 }
