@@ -64,8 +64,13 @@ jobs:
         env:
           TURBO_TELEMETRY_DISABLED: ""
           DO_NOT_TRACK: ""
+        # Capture first, then match: piping into `grep -q` can close the pipe
+        # while turbo is still writing, and under pipefail turbo's broken-pipe
+        # exit fails the step at random.
         run: |
-          node scripts/turbo.mjs telemetry status | grep -q "Status: Disabled"
+          status="$(node scripts/turbo.mjs telemetry status)"
+          echo "$status"
+          grep -q "Status: Disabled" <<< "$status"
 
       - name: The run left the tree clean
         run: |
