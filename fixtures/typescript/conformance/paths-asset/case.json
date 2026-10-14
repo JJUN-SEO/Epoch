@@ -1,0 +1,6 @@
+{
+  "description": "A tsconfig paths alias that points at an existing non-source file (an image) links to it; a missing one stays unresolved.",
+  "adapters": [
+    "typescript"
+  ]
+}

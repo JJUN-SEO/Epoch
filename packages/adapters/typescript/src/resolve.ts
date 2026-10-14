@@ -70,6 +70,8 @@ class Resolver {
   private readonly virtual: readonly (readonly [string, string])[];
   private readonly virtualDirs: ReadonlySet<string>;
   private readonly workspaceNames: ReadonlySet<string>;
+  /** Workspace package name -> repo-relative directory. */
+  private readonly workspaceDirs: ReadonlyMap<string, string>;
   private readonly tsconfigFiles: ReadonlySet<string>;
   private readonly configs = new Map<string, ConfigInfo | null>();
   private readonly governingCache = new Map<string, ConfigInfo>();
@@ -89,6 +91,9 @@ class Resolver {
     );
     this.workspaceNames = new Set(
       workspace.flatMap((r) => (r.name ? [r.name] : [])),
+    );
+    this.workspaceDirs = new Map(
+      workspace.flatMap((r) => (r.name ? [[r.name, r.dir] as const] : [])),
     );
     this.virtual = workspace
       .flatMap((r) =>
@@ -385,26 +390,20 @@ class Resolver {
       mode,
     ).resolvedModule;
 
-    if (resolved) {
-      const mapped = this.vmap(resolved.resolvedFileName);
-      const real =
-        this.host.realpath?.(this.toSource(mapped) ?? mapped) ?? mapped;
-      const rel = this.rel(real);
-      if (rel !== undefined && !rel.split("/").includes("node_modules"))
-        return this.fileTarget(rel);
-      if (rel === undefined && !real.split("/").includes("node_modules")) {
-        return { kind: "unresolved", reason: "outside-project" };
-      }
-      return {
-        kind: "external",
-        name: resolved.packageId?.name ?? packageName(spec),
-      };
-    }
+    if (resolved) return this.fromResolved(resolved, spec);
 
     if (spec.startsWith("node:") || BUILTINS.has(spec)) {
       return { kind: "external", name: `node:${spec.replace(/^node:/, "")}` };
     }
     if (isRelative(spec) || isAbsolute(spec)) {
+      // Bundler query suffixes (./x?raw, ./w?worker): the file is the path part.
+      const pathPart = spec.replace(/(.)[?#].*$/, "$1");
+      if (pathPart !== spec) {
+        const viaPath = this.resolve({ ...imp, specifier: pathPart }, fromRel);
+        return viaPath.kind === "file"
+          ? viaPath
+          : { kind: "unresolved", reason: "not-found" };
+      }
       const target = isAbsolute(spec) ? posix(spec) : joinFrom(fromAbs, spec);
       const rel = this.rel(target);
       if (rel === undefined)
@@ -415,13 +414,117 @@ class Resolver {
         return { kind: "unresolved", reason: "outside-project" };
       return { kind: "unresolved", reason: "not-found" };
     }
-    if (
-      this.matchesPaths(spec, cfg.options) ||
-      this.workspaceNames.has(packageName(spec))
-    ) {
+    const viaSource = this.workspaceSource(spec, fromAbs, mode);
+    if (viaSource) return viaSource;
+    if (this.matchesPaths(spec, cfg.options)) {
+      return (
+        this.pathsAsset(spec, cfg.options) ?? {
+          kind: "unresolved",
+          reason: "not-found",
+        }
+      );
+    }
+    if (this.workspaceNames.has(packageName(spec))) {
       return { kind: "unresolved", reason: "not-found" };
     }
     return { kind: "external", name: packageName(spec) };
+  }
+
+  /** Classifies a module TypeScript resolved: a repo file, an external package, or outside the project. */
+  private fromResolved(
+    resolved: ts.ResolvedModuleFull,
+    spec: string,
+  ): Resolution {
+    const mapped = this.vmap(resolved.resolvedFileName);
+    const real =
+      this.host.realpath?.(this.toSource(mapped) ?? mapped) ?? mapped;
+    const rel = this.rel(real);
+    if (rel !== undefined && !rel.split("/").includes("node_modules"))
+      return this.fileTarget(rel);
+    if (rel === undefined && !real.split("/").includes("node_modules")) {
+      return { kind: "unresolved", reason: "outside-project" };
+    }
+    return {
+      kind: "external",
+      name: resolved.packageId?.name ?? packageName(spec),
+    };
+  }
+
+  /**
+   * A workspace package whose exports point at an unbuilt dist/ resolves the
+   * way the package resolves itself: with the export conditions its own
+   * governing tsconfig declares (customConditions, e.g. vitest's
+   * __vitest_source__). A package that declares none stays unresolved:
+   * Epoch never guesses where the source is.
+   */
+  private workspaceSource(
+    spec: string,
+    fromAbs: string,
+    mode: ts.ResolutionMode,
+  ): Resolution | undefined {
+    const dir = this.workspaceDirs.get(packageName(spec));
+    if (dir === undefined) return undefined;
+    const own = this.governing(
+      dir === "" ? "package.json" : `${dir}/package.json`,
+    );
+    if (!own.options.customConditions?.length) return undefined;
+    const resolved = ts.resolveModuleName(
+      spec,
+      fromAbs,
+      own.options,
+      this.host,
+      own.cache,
+      undefined,
+      mode,
+    ).resolvedModule;
+    if (!resolved) return undefined;
+    const res = this.fromResolved(resolved, spec);
+    return res.kind === "file" ? res : undefined;
+  }
+
+  /**
+   * A tsconfig `paths` alias that maps onto an existing non-source file (an
+   * image, a stylesheet): TypeScript reports no module, but the file is the
+   * dependency. Longest matching prefix first, as TypeScript orders patterns.
+   */
+  private pathsAsset(
+    spec: string,
+    options: ts.CompilerOptions,
+  ): Resolution | undefined {
+    // Patterns resolve against baseUrl when set, else the declaring tsconfig's
+    // directory (pathsBasePath, which TypeScript records while parsing).
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- deprecated in TS 6, still honoured by its resolver
+    const baseUrl = options.baseUrl;
+    const base =
+      baseUrl ??
+      (typeof options.pathsBasePath === "string"
+        ? options.pathsBasePath
+        : undefined);
+    if (base === undefined) return undefined;
+    const patterns = Object.entries(options.paths ?? {}).sort(
+      ([a], [b]) => b.indexOf("*") - a.indexOf("*") || b.length - a.length,
+    );
+    for (const [pattern, targets] of patterns) {
+      const star = pattern.indexOf("*");
+      let captured: string;
+      if (star === -1) {
+        if (spec !== pattern) continue;
+        captured = "";
+      } else {
+        const prefix = pattern.slice(0, star);
+        const suffix = pattern.slice(star + 1);
+        if (!spec.startsWith(prefix) || !spec.endsWith(suffix)) continue;
+        captured = spec.slice(prefix.length, spec.length - suffix.length);
+      }
+      for (const target of targets) {
+        const rel = this.rel(
+          path.posix.join(posix(base), target.replace("*", captured)),
+        );
+        if (rel !== undefined && this.files.has(key(rel)))
+          return this.fileTarget(rel);
+      }
+    }
+    return undefined;
   }
 }
 

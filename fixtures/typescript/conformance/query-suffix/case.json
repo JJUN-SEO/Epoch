@@ -1,0 +1,6 @@
+{
+  "description": "Bundler query suffixes (?raw, ?worker) resolve to the file the path part names; a missing file stays unresolved.",
+  "adapters": [
+    "typescript"
+  ]
+}

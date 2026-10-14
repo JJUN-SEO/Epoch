@@ -18,7 +18,7 @@ import { analyze } from "./analyze.js";
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REGISTERED_ADAPTERS = new Set(["typescript"]);
-const REQUIRED_CASES: Readonly<Record<string, number>> = { typescript: 16 };
+const REQUIRED_CASES: Readonly<Record<string, number>> = { typescript: 19 };
 
 interface Expected {
   nodes: string[];
