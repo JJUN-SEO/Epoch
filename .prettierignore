@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+dist
+coverage
+.turbo
+
+# Specs keep their exact wording (edited only with an ADR).
+CLAUDE.md
+PLAN.md

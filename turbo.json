@@ -4,7 +4,11 @@
   "noUpdateNotifier": true,
   "agentGuidance": false,
   "remoteCache": { "enabled": false },
-  "globalDependencies": ["tsconfig.base.json", "eslint.config.mjs", ".node-version"],
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "eslint.config.mjs",
+    ".node-version"
+  ],
   "tasks": {
     "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
     "typecheck": { "dependsOn": ["^build"] },

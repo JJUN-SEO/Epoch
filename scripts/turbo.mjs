@@ -14,9 +14,13 @@ import { createRequire } from "node:module";
 import process from "node:process";
 
 const launcher = createRequire(import.meta.url).resolve("turbo/bin/turbo");
-const result = spawnSync(process.execPath, [launcher, ...process.argv.slice(2)], {
-  stdio: "inherit",
-  env: { ...process.env, TURBO_TELEMETRY_DISABLED: "1", DO_NOT_TRACK: "1" },
-});
+const result = spawnSync(
+  process.execPath,
+  [launcher, ...process.argv.slice(2)],
+  {
+    stdio: "inherit",
+    env: { ...process.env, TURBO_TELEMETRY_DISABLED: "1", DO_NOT_TRACK: "1" },
+  },
+);
 if (result.error) throw result.error;
 process.exitCode = result.status ?? 1;
