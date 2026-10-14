@@ -54,7 +54,8 @@ describe(`${EXPECTED_NAME} package`, () => {
       recursive: true,
       encoding: "utf8",
     });
-    expect(emitted.filter((file) => file.includes(".test."))).toEqual([]);
+    // Vitest's default include matches both *.test.* and *.spec.* files.
+    expect(emitted.filter((file) => /\.(test|spec)\./.test(file))).toEqual([]);
   });
 
   it("emits an entry point that Node's own ESM loader accepts", () => {
