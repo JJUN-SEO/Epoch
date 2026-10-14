@@ -1,6 +1,6 @@
-# PLAN.md: build plan for Axon
+# PLAN.md: build plan for Epoch
 
-`CLAUDE.md` says WHAT Axon is, the rules, and the data contracts. This file says HOW to build it, in what order, and how to prove each step is correct. Precedence: CLAUDE.md > ADRs > this file. If something here conflicts with CLAUDE.md, stop and ask. Never silently diverge: if a rule or contract must change, propose the CLAUDE.md edit and its ADR together, get my approval, and commit them together.
+`CLAUDE.md` says WHAT Epoch is, the rules, and the data contracts. This file says HOW to build it, in what order, and how to prove each step is correct. Precedence: CLAUDE.md > ADRs > this file. If something here conflicts with CLAUDE.md, stop and ask. Never silently diverge: if a rule or contract must change, propose the CLAUDE.md edit and its ADR together, get my approval, and commit them together.
 
 ## How to use this file (read first)
 
@@ -64,7 +64,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 ## Questions to ask me
 
 **Before M0:**
-1. Final project name (check npm, GitHub, and the web for collisions; "Axon" is a working title).
+1. Final project name: resolved, Epoch (ADR-001); "Axon" was the working title.
 2. License (MIT? Apache-2.0? other).
 3. Which OS am I developing on? (Affects native-module and packaging testing.)
 4. Do I have Jev early access yet? If not, build the interface and mark Jev benchmarks "not run".
@@ -103,20 +103,20 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 
 ## M1: Core model, TS/JS adapter, headless CLI
 
-**Goal:** `axon analyze <path> --json` produces a correct file-level dependency graph for TS/JS repos.
+**Goal:** `epoch analyze <path> --json` produces a correct file-level dependency graph for TS/JS repos.
 **Spec refs:** Data contracts, Edge traversal policy, Barrel transparency rule, Language adapter interface, Known hard problems (TS/JS).
 
 **Tasks**
 - [ ] **Schemas:** zod schemas in `core` for every type in CLAUDE.md "Data contracts" (types via `z.infer`), plus a canonicalization function (sorted arrays, forward-slash ids, no timestamps or absolute paths) with tests. A `Graph` is validated before it is written or sent.
-- [ ] **Interfaces (types only):** `LanguageAdapter`, `CacheStore`, `SecretStore`, `RelationScorer`, `GitHistoryProvider`, `AxonApi`.
+- [ ] **Interfaces (types only):** `LanguageAdapter`, `CacheStore`, `SecretStore`, `RelationScorer`, `GitHistoryProvider`, `EpochApi`.
 - [ ] **Graph helpers in `core`:** the edge traversal policy as constants, `reverseReachable(graph, nodeId, edgeKinds)`, and strongly connected components. (The full blast radius result comes in M4.)
-- [ ] **Discover:** walk the repo honoring `.gitignore` (the `ignore` package) and `.axonignore`; skip `node_modules`, `.git`, and build output by default; detect language by extension; detect project roots (`tsconfig.json`, `package.json`, workspaces). Cap file size and record skipped files.
+- [ ] **Discover:** walk the repo honoring `.gitignore` (the `ignore` package) and `.epochignore`; skip `node_modules`, `.git`, and build output by default; detect language by extension; detect project roots (`tsconfig.json`, `package.json`, workspaces). Cap file size and record skipped files.
 - [ ] **Parse:** initialize `web-tree-sitter`; load TS, TSX, and JS grammars. ADR-002. Pitfall: a grammar WASM's ABI must be supported by the runtime; pin both together and add a startup self-test.
 - [ ] **TS adapter `extract`:** static imports, `import type`, `export ... from`, `export * from`, dynamic `import("literal")`, `import(\`prefix/${x}\`)` (record `dynamicPrefix`), `require("literal")`, side-effect imports; exports; `loc`; `isGenerated`. `flagUsages` and `constantConditions` return `[]` until M5; `detectEntryPoints` returns `[]` until M5; `isTestFile` implemented now.
 - [ ] **TS adapter `resolveImport`:** TypeScript's module resolution API (`ts.resolveModuleName` with a parsed tsconfig and read-only file access). Handle relative paths, `paths`/`baseUrl`, directory `index`, `.js`-to-`.ts` mapping in ESM TS projects, `package.json` `exports`, `node_modules` packages as `external` (recorded in `externals`, not materialized as nodes), and workspace packages (monorepo siblings are internal). Read tsconfig as data only; never execute project config.
 - [ ] **Barrel tracing and graph stage:** implement the Barrel transparency rule exactly (edges A→C `import` with evidence `via barrel B`, B→C `reexport`, A→B `via-barrel`; conservative `import` A→B for namespace, side-effect, or untraceable re-exports). Compute fan-in/out and cycles. ADR-003.
 - [ ] **Conformance harness:** each case is a folder `fixtures/<lang>/conformance/<case>/` with sources and `expected.json` (canonical `Graph` subset). Any adapter must pass the shared cases that apply.
-- [ ] **CLI:** `axon analyze <path> [--json]`. Output validates against the schema; progress and warnings to stderr, JSON to stdout; includes the `unresolved` list with reasons.
+- [ ] **CLI:** `epoch analyze <path> [--json]`. Output validates against the schema; progress and warnings to stderr, JSON to stdout; includes the `unresolved` list with reasons.
 
 **Required conformance cases (TS/JS):** relative import; `paths` alias; `baseUrl`; directory `index`; barrel with named re-exports; `export *` barrel; namespace import through a barrel (conservative edge); cycle; external package; monorepo workspace import; dynamic import with literal; dynamic import with variable (`unresolved`, `dynamic-specifier`); dynamic import with literal prefix (`pathPrefix` recorded); `import type` (`type-only`); `.js` extension mapping; `via-barrel` edge present.
 
@@ -124,7 +124,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - All conformance cases pass.
 - Barrel test (automated): A imports `{Card}` from `components/index.ts`, which re-exports `Button` and `Card`. `reverseReachable` from `Button.ts` using the certain-mode edge kinds does NOT include A. A reachability traversal using all fact kinds DOES reach `components/index.ts` from A.
 - Canonicalization test: shuffling input order yields byte-identical canonical JSON.
-- `axon analyze` on the monorepo fixture validates against the schema.
+- `epoch analyze` on the monorepo fixture validates against the schema.
 - The CLI runs on one real mid-size TS repo without crashing; report node, edge, and unresolved counts. Do NOT claim accuracy yet.
 
 **Pitfalls:** case-insensitive file systems (macOS/Windows) vs Linux CI path casing; symlink cycles in the walker; `.d.ts` handling; path normalization to forward slashes in node ids; tsconfig `extends` chains.
@@ -145,7 +145,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - [ ] **Cache `FileFacts`** keyed by hash(contents + adapter id + adapter version + `extractorConfigHash`). Plumb `extractorConfigHash` now (constant until M5 gives it content). **Recompute resolution, graph, and findings every run** from cached facts. Never store file contents or code excerpts.
 - [ ] **Incremental:** change detection via `git diff` against the last analyzed commit, with a content-hash fallback for non-git folders; per-repo index stores the manifest and last commit; handle uncommitted changes.
 - [ ] **Early cutoff mechanism** for downstream outputs (used by M6/M7 scores and summaries): generic "if the recomputed input equals the previous one, stop propagating", tested with a stub.
-- [ ] CLI: `--since <commit>`, `axon cache stats|clear|prune`, size cap with LRU eviction.
+- [ ] CLI: `--since <commit>`, `epoch cache stats|clear|prune`, size cap with LRU eviction.
 - [ ] **`pnpm bench`:** copies a repo to a temp dir, applies 1, 5, and 50-file edits, and reports cold full, warm unchanged, and incremental times, including how long resolution takes (ADR-004 uses this to decide whether resolution caching is ever needed). Median of at least 5 runs, hardware recorded. Results to `docs/benchmarks/`.
 
 **Acceptance**
@@ -163,12 +163,12 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 ## M3: Electron shell, UI, Python adapter
 
 **Goal:** a secure desktop app that opens a folder and shows the graph; Python is the second adapter.
-**Spec refs:** Architecture, `AxonApi`, Electron security, App UX basics, Known hard problems (Python).
+**Spec refs:** Architecture, `EpochApi`, Electron security, App UX basics, Known hard problems (Python).
 
 **Tasks**
 - [ ] ADR-005 (Electron vs Tauri) and ADR-006 (precision upgrades; before writing the Python adapter).
 - [ ] Electron via `electron-vite`: main, preload, renderer. The analysis host is a `utilityProcess` using a `piscina` worker pool. Heavy work never runs in main or renderer.
-- [ ] `AxonApi` implemented over IPC (zod-validated payloads, sender verification, no generic channels) plus a static-JSON stub for the future demo site.
+- [ ] `EpochApi` implemented over IPC (zod-validated payloads, sender verification, no generic channels) plus a static-JSON stub for the future demo site.
 - [ ] **Security config and tests first**, before feature work: `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content, navigation and `window.open` denied, external links via allowlist to the default browser, path checks restricted to the opened folder (including symlink escape).
 - [ ] **UI:** open-folder (dialog, drag-drop, recent list), streaming progress, Cytoscape graph with directory compound nodes (collapsed by default for large graphs), layout (fcose or ELK) in a Web Worker, search, node details panel, solid edges for facts and dashed for hints, toggle for `via-barrel` edges (hidden by default).
 - [ ] **Python adapter** (`extract`, `resolveImport`, `isTestFile`; flags, constants, and entry points come in M5): absolute and relative imports, `__init__.py` packages, namespace packages, src layouts and `pyproject.toml` roots, stdlib vs third-party vs internal (bundle a stdlib module list; `sys.stdlib_module_names` exists only on Python 3.10+, so don't depend on a runtime Python), `from . import x` ambiguity (submodule vs name). Conformance cases for each.
@@ -213,19 +213,19 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 ## M5: Dead-feature detection and alerts
 
 **Goal:** a correct, honest, alert-first dead-feature report for TS/JS, Python, and Go.
-**Spec refs:** Dead-feature detection (all subsections), Confidence rubric, `axon.config.json`, Alerts and review, Data contracts (`FileFacts`, `FlagUsage`, `ConstantCondition`, `Finding`, `FlagPattern`, `GitHistoryProvider`), Edge traversal policy (reachability row).
+**Spec refs:** Dead-feature detection (all subsections), Confidence rubric, `epoch.config.json`, Alerts and review, Data contracts (`FileFacts`, `FlagUsage`, `ConstantCondition`, `Finding`, `FlagPattern`, `GitHistoryProvider`), Edge traversal policy (reachability row).
 
 **Tasks**
 - [ ] **ADR-007** (flag pattern sources, entry-point rules, framework list, history strategy and measured cost, `staleAfterDays` default, rubric tuning). Ask the M5 questions first.
-- [ ] **Config loader** in `engine` for `axon.config.json`: zod validation, size cap, unknown keys warn, JSON only, never written. Globs through a glob matcher; `envPrefixes` are plain prefix matches. Feeds `ExtractorConfig` and its hash.
+- [ ] **Config loader** in `engine` for `epoch.config.json`: zod validation, size cap, unknown keys warn, JSON only, never written. Globs through a glob matcher; `envPrefixes` are plain prefix matches. Feeds `ExtractorConfig` and its hash.
 - [ ] **Pattern packs** in `packages/findings/packs/` (data, zod-validated; every entry requires a `source` docs URL). Start with OpenFeature plus the vendor SDKs I choose, for each supported language. Read the official docs for each; do not use memory.
 - [ ] **Adapters (TS/JS, Python, Go):** implement `extract` for `flagUsages` (pattern match with `strong`/`weak` by import evidence; user wrappers and env reads are `strong`; non-literal keys give `flagName: null`) and `constantConditions` (literal conditions; never-reassigned boolean constants at local, module, and exported scope used as conditions; exclusion of typing-only guards and environment-derived values), and `isGenerated`. `detectEntryPoints` per language: TS (`package.json` `main`/`module`/`bin`/`exports` mapped from build output back to source using tsconfig `outDir`/`rootDir`, files referenced by `scripts`, config files, conventions, `entryPoints` from config), Python (`__main__.py`, `if __name__ == "__main__"`, console-script entries in `pyproject.toml`, `manage.py`/`wsgi.py`/`asgi.py`), Go (`package main`). Test files are roots. If a manifest entry cannot be mapped to source, record it as unmapped (this triggers the Medium cap).
 - [ ] **Framework detection** (data list from ADR-007): mark convention directories; show the notice.
 - [ ] **`GitHistoryProvider` in `engine`:** report `usable`/`reason` (not a repo, shallow, history shorter than `staleAfterDays`); `firstIntroduced` and `lastTouched` scoped to the files that contain the flag; uncommitted lines count as "now"; honor a `.git-blame-ignore-revs` file if present (verify the flag in git's docs); cache lookups by path and blob hash; measure cost on a real repo and record it in ADR-007.
 - [ ] **Detectors in `findings`** (pure; take `Graph`, `FileFacts`, `GitHistoryProvider`, config): `dead-branch`, `stale-flag`, `unreachable-file`, exactly per the CLAUDE.md rubric. Stable ids with no line numbers. Evidence, caveats, suggested action text, and `caps` recorded on every finding. Run as the last pipeline stage.
-- [ ] **Dismissals store** in `engine` (Axon app data, per project, keyed by finding id, optional note).
+- [ ] **Dismissals store** in `engine` (Epoch app data, per project, keyed by finding id, optional note).
 - [ ] **UI:** non-modal alert banner, Findings panel (filters, sorting, dismiss/undismiss), node badges and graph filter, node panel evidence/caveats/suggested action with a read-only code preview (via `getCodePreview`, inside the project root), notices for unusable history and for detected convention frameworks, and the "unassessable flag usages" count.
-- [ ] **CLI:** `axon findings` with `--json`, `--min-confidence`, `--fail-on`, `--include-dismissed`, and exit codes 0/1/2.
+- [ ] **CLI:** `epoch findings` with `--json`, `--min-confidence`, `--fail-on`, `--include-dismissed`, and exit codes 0/1/2.
 - [ ] **Docs:** `docs/findings.md` (kinds, rubric, configuration, limits, how to reduce false positives).
 - [ ] **Evaluation, `pnpm bench:findings <repo>`** (protocol below).
 - [ ] Extend the equivalence property test to include findings.
@@ -240,7 +240,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - All findings fixtures pass in TS/JS, Python, and Go, including every cap in the rubric, and no `stale-flag` finding ever has High confidence (property test).
 - Finding ids are stable across edits that only move lines (test); dismissals persist across restarts.
 - No finding is emitted without evidence and at least one caveat; UI strings never describe a finding as certain (test on the strings).
-- The banner appears only for non-dismissed High/Medium findings; `axon findings --fail-on high` exits 2 on a fixture with a High finding and 0 otherwise.
+- The banner appears only for non-dismissed High/Medium findings; `epoch findings --fail-on high` exits 2 on a fixture with a High finding and 0 otherwise.
 - `bench:findings` produces `docs/benchmarks/findings.md` with every limit stated.
 - The equivalence property test still passes with findings included.
 
@@ -311,7 +311,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - [ ] GitHub Actions release matrix (one runner per OS so native modules build correctly); tagged releases publish to GitHub Releases.
 - [ ] Auto-update with opt-out, listed in the data-flow table.
 - [ ] Signing: ship unsigned early builds with first-run instructions; document the status. Ask me before spending money on signing.
-- [ ] **Site** (`apps/site`): landing page, downloads, and an in-browser demo viewer using the static `AxonApi`, with graphs and findings precomputed by the CLI for public OSS repos (record repo, SHA, and license/attribution). No backend, no model features.
+- [ ] **Site** (`apps/site`): landing page, downloads, and an in-browser demo viewer using the static `EpochApi`, with graphs and findings precomputed by the CLI for public OSS repos (record repo, SHA, and license/attribution). No backend, no model features.
 - [ ] **README:** problem, demo GIF, architecture diagram, privacy model and data-flow table, how findings work with their limits and measured precision, tradeoffs, signing status, and benchmark tables copied from `docs/benchmarks/` (never retyped).
 - [ ] Final smoke test on a clean machine or VM per OS: install, open a real repo, blast radius, findings banner, offline mode.
 

@@ -1,14 +1,14 @@
-# Axon (working title)
+# Epoch
 
 A local-first desktop app (macOS, Windows, Linux) that parses a codebase in most major languages into an interactive dependency graph (nodes connecting like neurons), scores each file for risk, shows the blast radius of changing any file, alerts you to likely-dead features (constant branches, stale feature flags, unreachable files), and keeps itself up to date cheaply as the repo changes.
 
-Open a project folder in the app and it analyzes it. Your code never leaves your machine by default, and Axon never modifies your project.
+Open a project folder in the app and it analyzes it. Your code never leaves your machine by default, and Epoch never modifies your project.
 
 This is a portfolio project. Priorities: a working app on real open source repos; an architecture I can explain in an interview; measured results (parse time, incremental update time, edge accuracy, finding precision, token cost, scorer calibration). Never fabricate numbers. Measure them.
 
 ## Document map and precedence
 
-- **CLAUDE.md** (this file): what Axon is, the rules, and the data contracts. Source of truth.
+- **CLAUDE.md** (this file): what Epoch is, the rules, and the data contracts. Source of truth.
 - **PLAN.md**: build order, tasks, acceptance criteria, gates, and the ADR register. It implements this file.
 - `docs/decisions/` ADRs. `docs/privacy.md` data-flow table. `docs/findings.md` finding kinds, rubric, and configuration. `docs/benchmarks/` generated reports.
 
@@ -17,19 +17,19 @@ Precedence: CLAUDE.md > ADRs > PLAN.md. If they conflict, stop and ask. A change
 ## Core design principles
 
 1. **Local-first.** Source code, the graph, and the cache stay on the user's machine. No accounts, no hosted backend, no HTTP server, no telemetry, no uploading projects. The only network calls are the ones in the data-flow table, and every model call is opt-in.
-2. **Read-only on projects.** Axon never creates, edits, or deletes files inside an analyzed project. It writes only to its own cache and settings, and to files the user explicitly exports.
+2. **Read-only on projects.** Epoch never creates, edits, or deletes files inside an analyzed project. It writes only to its own cache and settings, and to files the user explicitly exports.
 3. **Facts vs hints.** Every edge has a provenance and a confidence. Resolver-proven edges are facts (solid lines in the UI). Everything inferred is a hint (dashed lines, with score and evidence).
 4. **Deterministic first.** Structure and findings come from parsers, resolvers, and git, not from models. Models never create fact edges or findings.
 5. **Models only where code can't answer.** Probabilistic scoring and prose summaries are the only model uses. Model-proposed relations are verified against something checkable or labeled as hints.
 6. **Candidates, not verdicts.** Dead-feature findings are "likely dead, please review", never "dead". Every finding carries evidence, caveats, and a confidence level from a fixed rubric. UI and docs use the words "candidate", "likely", or "stale", never "dead" as a fact.
 7. **Cache everything, incrementally.** Extraction results are content-addressed and cached locally. Updating after a change costs proportional to the diff, not the repo.
-8. **Parse, never execute.** Analyzing a repo must never run its code, scripts, or config. Treat every opened project as untrusted input, including `axon.config.json`.
+8. **Parse, never execute.** Analyzing a repo must never run its code, scripts, or config. Treat every opened project as untrusted input, including `epoch.config.json`.
 9. **Honest about coverage.** Each language adapter declares a support tier. The UI shows what is resolved precisely and what is best-effort. Do not claim more than tests prove.
 
 ## Scope
 
 ### MVP (each item is tagged with its milestone in PLAN.md)
-1. **[M1]** Language-agnostic core, adapter interface, TypeScript/JavaScript adapter, headless CLI (`axon analyze`).
+1. **[M1]** Language-agnostic core, adapter interface, TypeScript/JavaScript adapter, headless CLI (`epoch analyze`).
 2. **[M2]** Local content-addressed cache, incremental analysis, accuracy benchmarks.
 3. **[M3]** Electron desktop app: open folder, graph UI, secure IPC. Python adapter.
 4. **[M4]** File watcher, blast radius, git churn, coverage ingestion, risk score. Go adapter.
@@ -47,7 +47,7 @@ Precedence: CLAUDE.md > ADRs > PLAN.md. If they conflict, stop and ask. A change
 MVP target: Tier A for TS/JS, Python, Go. Others are v2. Adding a language must mean writing one adapter, not touching core.
 
 ### v2 (do NOT start until the MVP is shipped and I approve a CLAUDE.md update)
-- **Removal assistance:** for high-confidence mechanical findings (collapse a constant branch, delete an unreachable file), generate a unified diff the user saves via an export dialog and applies themselves (e.g. `git apply`). Axon still never writes into the project.
+- **Removal assistance:** for high-confidence mechanical findings (collapse a constant branch, delete an unreachable file), generate a unified diff the user saves via an export dialog and applies themselves (e.g. `git apply`). Epoch still never writes into the project.
 - Unused exports (symbol-level), and "reachable only from tests" findings.
 - Flag-provider integrations behind a `FlagSource` interface (compare code against provider state), any vendor.
 - Load testing: run k6 against a Dockerized copy of the user's app on their own machine, overlay latency and error rate on the graph. Runtime trace ingestion (OpenTelemetry).
@@ -70,7 +70,7 @@ MVP target: Tier A for TS/JS, Python, Go. Others are v2. Adding a language must 
 Electron app with three processes. There is no HTTP server; the UI talks to the backend over typed IPC.
 
 ```
-Axon (Electron)
+Epoch (Electron)
  ├─ Renderer (React + Cytoscape)   sandboxed, no Node access; talks to main only via a typed preload API
  ├─ Main process                   windows, menus, native dialogs, IPC router, secrets, auto-update
  └─ Analysis host (utilityProcess) pipeline + worker threads (piscina, web-tree-sitter),
@@ -78,10 +78,10 @@ Axon (Electron)
 Optional outbound: opt-in model providers, update check
 ```
 
-The UI is written against an `AxonApi` interface. Implementations: IPC (the app) and static JSON (the demo site, which supports only the read-only subset). Pure algorithms (blast radius, reachability, risk, finding rubric) live in `core`/`findings` so the analysis host, the CLI, and the static demo all run the same code. The CLI and the app share the `engine` package, so behavior is identical headless and in the UI.
+The UI is written against an `EpochApi` interface. Implementations: IPC (the app) and static JSON (the demo site, which supports only the read-only subset). Pure algorithms (blast radius, reachability, risk, finding rubric) live in `core`/`findings` so the analysis host, the CLI, and the static demo all run the same code. The CLI and the app share the `engine` package, so behavior is identical headless and in the UI.
 
 ```ts
-interface AxonApi {
+interface EpochApi {
   openProject(path: string): Promise<ProjectInfo>;
   getGraph(): Promise<Graph>;
   onProgress(cb: (p: Progress) => void): Unsubscribe;
@@ -104,7 +104,7 @@ Pipeline (each stage is a pure function of its inputs unless noted):
 Discover → Parse → Extract (cached) → Resolve → Graph → Enrich (hints) → Score → Findings → Store → Serve (IPC) → UI
 ```
 
-1. **Discover**: walk repo; detect languages and project roots (tsconfig.json, pyproject.toml, go.mod, etc.); respect `.gitignore`, `.axonignore`, and `axon.config.json` ignores.
+1. **Discover**: walk repo; detect languages and project roots (tsconfig.json, pyproject.toml, go.mod, etc.); respect `.gitignore`, `.epochignore`, and `epoch.config.json` ignores.
 2. **Parse**: tree-sitter parses each file (`web-tree-sitter` WASM grammars), in parallel across CPU cores.
 3. **Extract**: the language adapter turns the syntax tree into `FileFacts` (imports, exports, flag usages, constant conditions). **This is the cached unit.**
 4. **Resolve**: the adapter turns each `RawImport` into a `Resolution`. Recomputed on every run over cached `FileFacts`.
@@ -236,8 +236,8 @@ type FlagPattern = {
 
 type ExtractorConfig = {
   flagPatterns: FlagPattern[];
-  wrapperFunctions: string[];      // from axon.config.json
-  envPrefixes: string[];           // from axon.config.json; plain prefix match, never regex
+  wrapperFunctions: string[];      // from epoch.config.json
+  envPrefixes: string[];           // from epoch.config.json; plain prefix match, never regex
 };
 
 interface GitHistoryProvider {
@@ -309,7 +309,7 @@ Evaluate precision upgrades (SCIP indexers from Sourcegraph, language-native too
 
 ## Dead-feature detection (findings)
 
-Alert first. Axon surfaces candidates with evidence and caveats; it never edits the project (removal assistance is v2).
+Alert first. Epoch surfaces candidates with evidence and caveats; it never edits the project (removal assistance is v2).
 
 | Kind | Meaning | Needs git |
 |---|---|---|
@@ -320,11 +320,11 @@ Alert first. Axon surfaces candidates with evidence and caveats; it never edits 
 ### Flag detection
 - **Pattern packs** are data (validated by zod), per provider and language. Every entry must cite the official docs it was authored from (`source`). Never author patterns from memory. The vendor-neutral OpenFeature API comes first; vendor SDKs are added as needed.
 - A call-based match is `strong` only if the file imports a package listed in the pattern's `importHints`; otherwise it is `weak`.
-- `wrapperFunctions` and `envPrefixes` from `axon.config.json` are `strong`. Env-read detection recognizes each language's standard environment-read calls and matches key prefixes literally.
+- `wrapperFunctions` and `envPrefixes` from `epoch.config.json` are `strong`. Env-read detection recognizes each language's standard environment-read calls and matches key prefixes literally.
 - Non-literal flag keys are recorded with `flagName: null` and surfaced only as an "unassessable usages" count.
 
 ### Unreachable files
-- **Roots:** manifest entry points mapped to source files, files referenced by package scripts, `entryPoints` from `axon.config.json`, test files, and convention roots (e.g. `main.ts`, `cli.ts`, `bin/*`, Go `package main`, Python `__main__.py` and `if __name__ == "__main__"`, console-script entry points, `manage.py`/`wsgi.py`/`asgi.py`).
+- **Roots:** manifest entry points mapped to source files, files referenced by package scripts, `entryPoints` from `epoch.config.json`, test files, and convention roots (e.g. `main.ts`, `cli.ts`, `bin/*`, Go `package main`, Python `__main__.py` and `if __name__ == "__main__"`, console-script entry points, `manage.py`/`wsgi.py`/`asgi.py`).
 - Reachability follows all fact edges (see traversal policy). A cycle that no root reaches is reported as a group.
 - A dynamic import with a literal prefix marks files under that path as "possibly loaded dynamically".
 - Framework detection (a data list, e.g. file-system-routing meta-frameworks and Django, extended via ADR) identifies convention-loaded directories.
@@ -350,12 +350,12 @@ Alert first. Axon surfaces candidates with evidence and caveats; it never edits 
 ### Alerts and review
 - After analysis, if any non-dismissed High or Medium findings exist, show a non-modal banner (counts by kind, "Review" button). Never block, never use OS notifications by default. Counts update live as the watcher runs.
 - Findings panel: filter by kind and confidence, sort by confidence then removable size, dismiss and undismiss with an optional note. Graph overlay: node badges and a filter. Node panel: evidence, caveats, suggested action, and a read-only code preview (read through the analysis host, inside the project root).
-- Dismissals are stored per project in Axon's own app data, keyed by finding id. Never in the project.
+- Dismissals are stored per project in Epoch's own app data, keyed by finding id. Never in the project.
 - If git history is unusable, say so in the UI (shallow clone, not a repo, history too short) and skip `stale-flag`.
 - If a meta-framework with convention-based loading is detected, show a notice suggesting `entryPoints` configuration.
 
-### `axon.config.json` (optional, user-written, read-only to Axon)
-JSON at the project root, validated by zod (size-capped, unknown keys produce a warning). Glob patterns use a glob matcher, never regexes from repo files (ReDoS). Axon never writes this file; the UI may show a snippet for the user to copy.
+### `epoch.config.json` (optional, user-written, read-only to Epoch)
+JSON at the project root, validated by zod (size-capped, unknown keys produce a warning). Glob patterns use a glob matcher, never regexes from repo files (ReDoS). Epoch never writes this file; the UI may show a snippet for the user to copy.
 
 ```json
 {
@@ -374,13 +374,13 @@ JSON at the project root, validated by zod (size-capped, unknown keys produce a 
 `ignore` removes paths from analysis entirely. `findings.ignore` only suppresses findings. `staleAfterDays` defaults to 90 (a default to tune with evidence in M5, not a claim). `findings.minConfidence` defaults to `medium` for the banner, panel default, and CLI.
 
 ### CI use
-`axon findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]`. Exit codes: 0 success, 1 error, 2 findings at or above `--fail-on`.
+`epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]`. Exit codes: 0 success, 1 error, 2 findings at or above `--fail-on`.
 
 ## Local cache
 
 Everything is cached locally. The cache is derived data and always safe to delete.
 
-- **Location:** one per-user cache directory resolved in `core` (e.g. via `env-paths`, app name `axon`) so the app and the CLI share it. Owner-only permissions. Never inside the analyzed repo.
+- **Location:** one per-user cache directory resolved in `core` (e.g. via `env-paths`, app name `epoch`) so the app and the CLI share it. Owner-only permissions. Never inside the analyzed repo.
 - **What is cached:** `FileFacts` per file, keyed by hash(file contents + adapter id + adapter version + `extractorConfigHash`). `extractorConfigHash` covers the flag patterns, wrapper functions, and env prefixes, so changing them re-extracts. Also cached: embeddings (M6), summaries (M7), and git history lookups (M5, keyed by path and blob hash; approximate by design, see the findings ADR).
 - **What is NOT cached:** resolved edges, the graph, and findings. They are recomputed on every run from cached `FileFacts`, because adding or removing a file elsewhere, or editing tsconfig/go.mod/pyproject, can change how an unchanged file's imports resolve. Add resolution caching only if profiling shows it is the bottleneck, with explicit dependency tracking (ADR).
 - **No source stored.** The cache never stores file contents or code excerpts. Only short identifiers and literals that are part of the facts (specifiers, export names, flag keys) and derived values (hashes, metrics, scores, summaries). Display snippets are read from disk on demand.
@@ -389,7 +389,7 @@ Everything is cached locally. The cache is derived data and always safe to delet
 - **Early cutoff.** For downstream model-derived outputs (scores, summaries): if a recomputed input equals the previous one, stop propagating.
 - **Hierarchical summaries, bottom-up.** File summaries use the file's code plus dependency summaries; directory summaries use child summaries, not raw code.
 - **Lazy model work.** Generate a summary the first time a node is opened, then cache it.
-- **Housekeeping.** Schema-versioned; size cap with LRU eviction; Settings shows cache size with Clear; CLI `axon cache stats | clear | prune`.
+- **Housekeeping.** Schema-versioned; size cap with LRU eviction; Settings shows cache size with Clear; CLI `epoch cache stats | clear | prune`.
 - **Storage interface.** `core` defines `CacheStore`; SQLite (`better-sqlite3`) implements it in `engine`; an in-memory version is used in tests.
 - **Token accounting.** Every model call logs tokens and cost. Report full-run vs incremental-run cost in the README.
 
@@ -408,20 +408,20 @@ Document this table in `docs/privacy.md` and the README, and keep it accurate. A
 | LLM summaries / LLM scorer | File source and neighbor summaries sent to the model provider | Opt-in |
 | Update check | Request to the release host for the latest version. No project data | On; can be disabled |
 
-With no keys configured and update checks disabled, Axon makes no network requests.
+With no keys configured and update checks disabled, Epoch makes no network requests.
 
 Rules:
 - All remote model features are **off by default**. On first use, show exactly what will be sent and require explicit consent.
-- **Offline mode** (app setting and `axon --offline`) hard-blocks all outbound network, including update checks. Enforce it in main and the analysis host through a single network wrapper, and at the Electron session level. An automated test runs a full analysis with the network blocked and asserts zero outbound requests.
-- Respect `.gitignore` and `.axonignore`. Never send files matching secret patterns (`.env*`, keys, credentials) to any remote model, even if the user opts in.
+- **Offline mode** (app setting and `epoch --offline`) hard-blocks all outbound network, including update checks. Enforce it in main and the analysis host through a single network wrapper, and at the Electron session level. An automated test runs a full analysis with the network blocked and asserts zero outbound requests.
+- Respect `.gitignore` and `.epochignore`. Never send files matching secret patterns (`.env*`, keys, credentials) to any remote model, even if the user opts in.
 - No telemetry. No crash reporting that includes paths or code.
 - Sharing is explicit: Export writes a static HTML/JSON file locally that the user can share themselves.
 
 ### Bring your own keys
 
-Axon never pays for, proxies, or sees model usage. Users supply their own credentials: an LLM provider key (Anthropic first, behind a provider-agnostic interface) and a Jev key (early access, waitlist-gated). We operate no servers, so there is nothing to bill and nowhere for keys to go except the provider they belong to.
+Epoch never pays for, proxies, or sees model usage. Users supply their own credentials: an LLM provider key (Anthropic first, behind a provider-agnostic interface) and a Jev key (early access, waitlist-gated). We operate no servers, so there is nothing to bill and nowhere for keys to go except the provider they belong to.
 
-- **Entry:** Settings → Keys in the app (the renderer sends the key once to main over IPC), or `axon auth set <provider>` / env vars for the CLI. The UI shows only whether a key is configured, never the value.
+- **Entry:** Settings → Keys in the app (the renderer sends the key once to main over IPC), or `epoch auth set <provider>` / env vars for the CLI. The UI shows only whether a key is configured, never the value.
 - **Storage:** behind a `SecretStore` interface. In the app, use Electron `safeStorage` (OS-level encryption). On Linux, check which backend is in use and warn if it falls back to weak storage. In the CLI, use the OS keychain via a maintained library (ADR) or env vars. Never in the cache, the repo, logs, error messages, browser storage, or exports.
 - **Isolation:** keys live only in the main process and analysis host. The renderer never receives a key value. Model calls originate from main or the analysis host, never the renderer.
 - **Destination:** each key goes only to its own provider, directly from the user's machine.
@@ -494,8 +494,8 @@ If coverage is missing, drop that term and reweight (0.55 fanIn, 0.45 churn). Sh
 - **Installers:** macOS (dmg), Windows (NSIS), Linux (AppImage/deb), built in a GitHub Actions matrix (one runner per OS) and published on GitHub Releases.
 - **Auto-update:** via the release host (e.g. `electron-updater`), opt-out, listed in the data-flow table.
 - **Code signing:** macOS notarization needs a paid Apple Developer account and Windows signing needs a certificate. Ship early builds unsigned with documented first-run steps, and decide on signing before a public launch. Be upfront about this in the README.
-- **Static site:** landing page, download links, and an in-browser demo viewer with precomputed graphs and findings of well-known public OSS repos (reuses the UI via the static `AxonApi`). No backend, no user code, no model features.
-- **CLI:** also published to npm for headless and CI use (`axon analyze --json`, `axon findings`). We host nothing.
+- **Static site:** landing page, download links, and an in-browser demo viewer with precomputed graphs and findings of well-known public OSS repos (reuses the UI via the static `EpochApi`). No backend, no user code, no model features.
+- **CLI:** also published to npm for headless and CI use (`epoch analyze --json`, `epoch findings`). We host nothing.
 
 ## Tech stack (defaults, change via ADR)
 
@@ -515,7 +515,7 @@ If coverage is missing, drop that term and reweight (0.55 fanIn, 0.45 churn). Sh
 ## Repo layout
 
 ```
-axon/
+epoch/
   CLAUDE.md
   PLAN.md
   README.md
@@ -532,9 +532,9 @@ axon/
     findings/         # dead-feature detectors, confidence rubric, flag pattern packs (data). Pure
     scorers/          # heuristic, local, jev, llm implementations of RelationScorer
     engine/           # runs the pipeline: SQLite CacheStore, watcher, git (churn, history provider), worker pool, config loader, dismissals store
-    cli/              # headless `axon` bin (benchmarks, CI)
+    cli/              # headless `epoch` bin (benchmarks, CI)
     app/              # Electron: main process, preload, analysis-host entry, packaging config
-    ui/               # React + Cytoscape renderer, written against AxonApi
+    ui/               # React + Cytoscape renderer, written against EpochApi
   apps/
     site/             # landing page, downloads, static demo viewer + precomputed public-repo graphs
   queries/            # tree-sitter .scm queries per language (imports, calls, constants)
@@ -557,10 +557,10 @@ pnpm package                   # build installers for the current OS
 pnpm test                      # vitest across packages
 pnpm e2e                       # Playwright against the built app
 pnpm lint && pnpm typecheck
-axon analyze <path> [--json] [--since <commit>]    # headless CLI
-axon findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]
-axon cache stats | clear | prune
-axon --offline ...             # hard-block all outbound network
+epoch analyze <path> [--json] [--since <commit>]   # headless CLI
+epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]
+epoch cache stats | clear | prune
+epoch --offline ...            # hard-block all outbound network
 pnpm bench <path>              # parse time, incremental time
 pnpm bench:accuracy <repo>     # edge precision/recall vs ground truth
 pnpm bench:findings <repo>     # finding comparisons, hindsight test, review sheet
