@@ -293,6 +293,37 @@ function callImport(
 
 const GENERATED = /@generated\b|Code generated .* DO NOT EDIT/;
 
+const REFERENCE_PATH =
+  /^\/\/\/\s*<reference\s+path\s*=\s*(["'])([^"']+)\1\s*\/>/;
+
+/**
+ * `/// <reference path="…" />` directives: type-only dependencies on another
+ * file. TypeScript reads them only in the leading comments, and resolves the
+ * path relative to the file even without "./".
+ */
+function referencePaths(root: Node): Pending[] {
+  const out: Pending[] = [];
+  for (const c of root.children) {
+    if (c.type !== "comment" && c.type !== "hash_bang_line") break;
+    const m = REFERENCE_PATH.exec(c.text);
+    const raw = m?.[2];
+    if (raw === undefined) continue;
+    const specifier =
+      raw.startsWith("./") || raw.startsWith("../") || raw.startsWith("/")
+        ? raw
+        : `./${raw}`;
+    out.push({
+      kind: "static",
+      specifier,
+      typeOnly: true,
+      names: [],
+      line: lineOf(c),
+      column: c.startPosition.column,
+    });
+  }
+  return out;
+}
+
 /** Non-blank lines; CRLF, CR and LF line endings all count the same. */
 export function countLoc(text: string): number {
   let n = 0;
@@ -310,7 +341,7 @@ export function extract(
   _cfg: ExtractorConfig,
 ): FileFacts {
   const root = file.tree.rootNode;
-  const pending: Pending[] = [];
+  const pending: Pending[] = referencePaths(root);
   const exports: ExportInfo[] = [];
   const exportAllFrom: string[] = [];
 
