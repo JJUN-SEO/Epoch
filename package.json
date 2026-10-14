@@ -16,7 +16,9 @@
     "test": "node scripts/turbo.mjs run test",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "format": "prettier --write .",
-    "telemetry:off": "node scripts/turbo.mjs telemetry disable"
+    "telemetry:off": "node scripts/turbo.mjs telemetry disable",
+    "bench": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/perf.js",
+    "bench:accuracy": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/accuracy.js"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",

@@ -21,9 +21,7 @@ import {
   typescriptAdapter,
   typescriptRegistration,
 } from "@epoch-dev/adapter-typescript";
-import { analyze } from "../analyze.js";
-import { discover } from "../discover.js";
-import { FsReader } from "../reader.js";
+import { FsReader, analyze, discover } from "@epoch-dev/engine";
 
 /** A traced dependency: `from` imports names through barrel `barrel` that are declared in `target`. */
 interface Triple {

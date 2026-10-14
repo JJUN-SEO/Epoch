@@ -9,3 +9,6 @@ PLAN.md
 
 # Analyzed fixtures keep their exact bytes.
 fixtures
+
+# Benchmark reports keep the exact output of the scripts that generate them.
+docs/benchmarks/typescript*.md
