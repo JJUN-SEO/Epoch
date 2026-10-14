@@ -197,7 +197,11 @@ function exportStatement(
 ): Pending[] {
   const line = lineOf(n);
   const column = n.startPosition.column;
-  const typeOnly = hasToken(n, "type");
+  // The grammar has no rule for `export type * from` (TS 5.0) and wraps the
+  // `type` keyword in an ERROR node; the rest of the statement parses normally.
+  const typeOnly =
+    hasToken(n, "type") ||
+    n.children.some((c) => c.type === "ERROR" && c.text === "type");
   const specifier = stringValue(n.childForFieldName("source"));
 
   if (specifier !== undefined) {

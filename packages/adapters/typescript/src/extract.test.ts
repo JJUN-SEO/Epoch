@@ -265,6 +265,21 @@ describe("extract: exports and re-exports", () => {
     ]);
   });
 
+  it("reads `export type *` re-exports, which the grammar parses with an error node", () => {
+    const g = facts(
+      "src/types.ts",
+      'export type * from "./a";\nexport type * as ns from "./b";\n',
+    );
+    expect(g.exportAllFrom).toEqual(["./a"]);
+    expect(g.exports).toEqual([
+      { name: "ns", from: { specifier: "./b", imported: "*" } },
+    ]);
+    expect(g.imports.map((i) => [i.specifier, i.typeOnly])).toEqual([
+      ["./a", true],
+      ["./b", true],
+    ]);
+  });
+
   it("handles `export =` and ignores exports inside ambient module blocks", () => {
     const g = facts(
       "types/legacy.d.ts",
