@@ -49,6 +49,18 @@ export default defineConfig(
       "@eslint-community/eslint-comments/require-description": "error",
       "@eslint-community/eslint-comments/no-unlimited-disable": "error",
 
+      // Allow deliberately unused names when they start with "_" (interface
+      // parameters a stage does not use yet, discarded destructuring keys).
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+          ignoreRestSiblings: true,
+        },
+      ],
+
       "no-restricted-imports": [
         "error",
         {
