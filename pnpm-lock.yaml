@@ -77,6 +77,13 @@ importers:
         version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(yaml@2.9.1))
 
   packages/cli:
+    dependencies:
+      '@epoch-dev/core':
+        specifier: workspace:*
+        version: link:../core
+      '@epoch-dev/engine':
+        specifier: workspace:*
+        version: link:../engine
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
