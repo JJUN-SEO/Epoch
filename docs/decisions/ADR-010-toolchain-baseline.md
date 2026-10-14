@@ -8,7 +8,19 @@
 
 M0 builds an empty monorepo that must pass `pnpm install` then `pnpm check` on macOS, Windows and Linux, locally and in CI. CLAUDE.md fixes the stack in general terms: TypeScript strict, pnpm workspaces + Turborepo, Vitest, ESLint + Prettier, and later Electron. It also says to pin versions and never guess external APIs. Several version and configuration choices turned out to be real decisions with consequences for later milestones, so they are recorded here.
 
-Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-14. Documentation was read from each project's docs source at the pinned tag, because the planning environment's proxy blocked most doc sites; the canonical URLs are given. Claims marked **verified** were reproduced in a scratch workspace during planning or implementation.
+Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-14. Documentation was read from each project's docs source (at the pinned tag where the project tags its docs; pnpm's docs repository has no tags, so its current docs were read), because the planning environment's proxy blocked most doc sites. The canonical URLs are given. Where docs and observed behaviour disagree, this ADR says so and follows the observed behaviour. Claims marked **verified** were reproduced in a scratch workspace during planning or implementation.
+
+## Options considered
+
+| Area              | Chosen                                 | Rejected                                                               | Deciding evidence                                                 |
+| ----------------- | -------------------------------------- | ---------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Node              | 24.21.0, floor `^24.0.0 \|\| >=26.0.0` | Node 22 support                                                        | Electron 44's bundled Node is 24.21.0 (§1)                        |
+| Package manager   | pnpm 11.28.2                           | pnpm 12.11.2 (`latest`)                                                | pnpm 10 → 12 auto-switch breaks `turbo run` (§2, reproduced)      |
+| Task runner       | turbo 2.11.7                           | turbo 2.11.8                                                           | Under 24 h old at install time; release-age policy (§3)           |
+| Telemetry opt-out | Wrapper sets env vars                  | Per-machine `turbo telemetry disable` only; `.bin` shim; `shell: true` | Opt-out is per machine; Windows `.cmd` shim; DEP0190 (§4)         |
+| TypeScript        | 6.0.3                                  | 7.0.2 (`latest`)                                                       | 7.0 has no JS compiler API; typescript-eslint needs `<6.1.0` (§5) |
+| Internal packages | Compiled to `dist/`                    | Source-only packages; project references                               | Plain-Node CLI, published CLI, Turborepo guidance (§6)            |
+| CI                | ubuntu-24.04, macos-26, windows-2025   | Linux only (PLAN.md's original wording); `*-latest` labels             | Owner develops on macOS and Windows; labels move (§9)             |
 
 ## Decisions
 
@@ -17,7 +29,8 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
 - On 2026-10-14 Node 24 ("Krypton") is Active LTS. It enters Maintenance on 2026-10-20 and is supported to 2028-04-30. Node 22 is Maintenance LTS until 2027-04-30.
 - Electron 44.7.2, the latest stable Electron, bundles Node v24.21.0 (`node_version` in its `DEPS` file). Pinning dev and CI to the same Node means the CLI and the app's analysis host run on the same runtime.
 - The floor **excludes Node 22 on purpose**. The runtime target is Electron's Node 24, and supporting 22 would need its own CI leg. Every pinned tool accepts Node 24 (eslint `^20.19.0 || ^22.13.0 || >=24`, vitest `^22.12.0 || ^24.0.0 || >=26.0.0`, vite `^20.19.0 || >=22.12.0`, pnpm 11 `>=22.13`).
-- `engineStrict: true` in `pnpm-workspace.yaml`. **Verified:** without it, pnpm 11.28.2 installs on Node 22 despite the root `engines`; with it, install fails with `ERR_PNPM_UNSUPPORTED_ENGINE`.
+- `@types/node` 24.19.2 (the newest 24.x types; npm `latest` is 26.x) matches the runtime. It is required because `tsconfig.base.json` sets `types: ["node"]`.
+- `engineStrict: true` in `pnpm-workspace.yaml`. pnpm's docs say a mismatched root `engines` always fails the install, but **verified:** without `engineStrict`, pnpm 11.28.2 installs on a mismatched Node with only a warning; with it, install fails with `ERR_PNPM_UNSUPPORTED_ENGINE`.
 
 ### 2. pnpm 11.28.2, not 12.x
 
@@ -27,7 +40,7 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
 - Corepack is no longer distributed with Node from v25 ([nodejs/node#57617](https://github.com/nodejs/node/pull/57617)), so the version is pinned with `packageManager`, and contributors install pnpm with `npm i -g pnpm@11.28.2`.
 - **Verified** pnpm 11 behaviours the configuration relies on:
   - It reads `allowBuilds`: an unlisted dependency build script fails the install (`ERR_PNPM_IGNORED_BUILDS`), and a listed one passes.
-  - It **silently accepts unknown keys** in `pnpm-workspace.yaml`, so a misspelled key gives false confidence. Each key we use is cited to pnpm's docs, and `allowBuilds` and `engineStrict` were proven to work.
+  - It **accepts unknown keys** in `pnpm-workspace.yaml` with only a warning ("not recognized … did you mean …") and exit code 0, so a misspelled key is easy to miss. Each key we use is cited to pnpm's docs, and `allowBuilds` and `engineStrict` were proven to work.
 - pnpm's default `minimumReleaseAge` (1440 minutes) applies. All pins are older than 24 hours. CI checks that `pnpm install --frozen-lockfile` rewrote no tracked file.
 - Revisit pnpm 12 once the auto-switch problem is fixed or contributors' global pnpm is at least 11 (parked).
 
@@ -36,7 +49,8 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
 - 2.11.8 was less than 24 hours old at install time, so the release-age policy would have written exclude entries and failed frozen installs. 2.11.7 avoids that.
 - **`agentGuidance: false`.** The 2.11.7 configuration reference bundled in the package says "Default: `true`. When an AI coding agent is detected, `turbo` maintains a managed block in the repository-root `AGENTS.md`". **Verified:** in the planning container, which sets `CLAUDECODE` and `AI_AGENT`, a turbo 2.11.7 run created `AGENTS.md`. That file is not part of the repository layout, and contributors using AI tools would keep getting it.
 - `noUpdateNotifier: true`, `remoteCache.enabled: false`.
-- Tasks: `build` (after dependencies' builds, output `dist/**`); `typecheck` and `lint` (after dependencies' builds); `test` after the package's own build, so the package contract test can inspect its build output.
+- Tasks: `clean` (never cached) and `build` (after dependencies' builds and the package's `clean`, output `dist/**`); `typecheck` and `lint` (after dependencies' builds); `test` after the package's own build, so the package contract test can inspect its build output.
+- `clean` runs before every `build` because a cache hit restores outputs on top of whatever is already in `dist/` and skips the package's own build script. **Verified:** without it, a stray file in `dist/` survived a cache-hit build; with it, `dist/` matches the cached build exactly.
 
 ### 4. No Turborepo telemetry, without a per-machine step
 
@@ -44,6 +58,7 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
 - The root `build`, `typecheck`, `lint` and `test` scripts run turbo through `scripts/turbo.mjs`. The wrapper sets both variables and starts turbo as `node <turbo/bin/turbo>`:
   - not through the `node_modules/.bin` shim, which on Windows is a `.cmd` file that `child_process` refuses to spawn without a shell;
   - not with `shell: true`, because passing arguments with it is deprecated in Node 24 (DEP0190).
+- The wrapper forwards SIGTERM and SIGHUP to turbo and passes turbo's exit status on. SIGINT is not forwarded again, because Ctrl+C already reaches turbo through the process group. **Verified:** with a long-running task, a SIGTERM to the wrapper alone used to leave turbo's task processes running; now none are left.
 - **Verified:** on a machine whose saved turbo config has `"telemetry_enabled": true`, `node scripts/turbo.mjs telemetry status` reports `Disabled`. CI runs the same check with the workflow-level variables cleared.
 - `pnpm telemetry:off` (through the same wrapper, because `turbo telemetry disable` itself records an event while telemetry is on) is the per-machine opt-out for anyone who runs `turbo` directly.
 - pnpm's update notifier is off too (`updateNotifier: false`).
@@ -63,13 +78,13 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
   - The CLI and benchmarks run under plain Node.
   - The npm-published CLI must ship JavaScript (M8).
   - Turbo caches `dist/`.
-  - Turborepo advises against TypeScript project references ([internal packages](https://turborepo.dev/docs/core-concepts/internal-packages), [TypeScript guide](https://turborepo.dev/docs/guides/tools/typescript)).
+  - Turborepo's [TypeScript guide](https://turborepo.dev/docs/guides/tools/typescript) advises against TypeScript project references. Its [internal packages](https://turborepo.dev/docs/core-concepts/internal-packages) page describes the compiled-package strategy used here.
 - Strictness: `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` (the last two are not part of `strict`), `verbatimModuleSyntax`, `isolatedModules`, `erasableSyntaxOnly` (no enums or namespaces), `module: nodenext`.
 - Every package's M0 test checks this contract against the real manifest and build output, including that plain Node, not just Vite's more lenient module runner, can load the built entry point.
 
 ### 7. Lint and format
 
-- ESLint 10.12.0 with one root flat config, found by each package's `eslint .`.
+- ESLint 10.12.0 with one root flat config, found by each package's `eslint .`. `@eslint/js` 10.0.1 provides `js.configs.recommended`, which ESLint core no longer bundles.
 - typescript-eslint 8.71.2 `strictTypeChecked` and `stylisticTypeChecked` with the project service. `no-explicit-any` is an error.
 - `@eslint-community/eslint-plugin-eslint-comments` 4.8.1 `require-description` forces a `-- reason` on every disable directive, which is how "no `any` without a comment explaining why" (CLAUDE.md Conventions) is enforced. ESLint core has no equivalent rule.
 - **Network guard:** `no-restricted-imports` (`http`, `https`, `http2`, `net`, `tls`, `dgram`, `dns`, `dns/promises`, each with and without `node:`, plus `undici` and `undici/*`), `no-restricted-globals` (`fetch`, `WebSocket`, `EventSource`) and `no-restricted-properties` (those three on `globalThis` and `global`). This backs CLAUDE.md's rule that all network traffic goes through a single wrapper. Type-only imports are allowed, because they are erased under `verbatimModuleSyntax` and cannot make a call. **Limitation:** it is a backstop, not a proof. It cannot see dynamic `import()`, `require()`, computed property access, or third-party packages that open sockets themselves. M7's zero-network test is the real enforcement, and M7 adds the one allowed exception for the wrapper.
@@ -80,6 +95,7 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
 
 - Each package runs `vitest run --dir src`. Scanning only `src` stops stale `dist/*.test.js` files from running, since Vitest's default exclude is only `node_modules` and `.git`.
 - `passWithNoTests` defaults to false, so a package with no tests fails `pnpm test`.
+- Vitest's default include matches both `*.test.*` and `*.spec.*`, so every package's build excludes both, and the contract test fails if either kind of file reaches `dist/`.
 - Vitest resolves the `./x.js` specifiers that nodenext requires to `x.ts` sources (**verified** by a planning reviewer).
 
 ### 9. CI on all three OSes from M0
@@ -91,7 +107,7 @@ Every version below came from `npm view <pkg> dist-tags time --json` on 2026-10-
 - `permissions: contents: read`; `persist-credentials: false`; `fail-fast: false`; 20-minute timeout; superseded runs cancelled.
 - Every step runs in bash (Git Bash on Windows).
 - The job also checks that install rewrote no tracked file, that telemetry reports Disabled with the workflow variables cleared, and that the run left no `AGENTS.md` or other change in the tree.
-- **Risk:** pnpm/action-setup v6.1.0 bootstraps pnpm 12.3.4 and then switches to the pinned 11.28.2. That was not tested on Windows before the first run. Fallbacks, in order: `pnpm/setup` v3.1.1 (`a0881977cd8ea73b1ed212236c99ca10dcc80cf4`), then a plain `npm i -g pnpm@11.28.2` step.
+- **Risk:** for a pnpm 11 target, pnpm/action-setup v6.1.0 installs a bootstrap pnpm 11.25.0 (the JS package, or `@pnpm/exe` when the runner's system Node is older than 22.13) and then runs `pnpm self-update 11.28.2`. Its separate pnpm 12.3.4 bootstrap is used only for pnpm 12 targets (`src/install-pnpm/run.ts` and its bootstrap lockfiles at the pinned SHA). This path was not exercised on any runner before the first run. Fallbacks, in order: `pnpm/setup` v3.1.1 (`a0881977cd8ea73b1ed212236c99ca10dcc80cf4`), then a plain `npm i -g pnpm@11.28.2` step.
 
 ### 10. Line endings and editors
 

@@ -27,7 +27,7 @@ All registry checks were run on 2026-10-14 (`npm view <name>`, `https://registry
 
 Evidence for **Epoch**:
 
-- npm `epoch` (0.1.0, 2022) and `epoch-cli` (1.0.2, a Unix-epoch converter) are taken, and **both declare a global bin named `epoch`**. `epochjs` is taken.
+- npm `epoch` (0.1.0, published 2012) and `epoch-cli` (1.0.2, a Unix-epoch converter) are taken, and **both declare a global bin named `epoch`**. `epochjs` is taken.
 - The `@epoch` scope exists (the registry returns `{}`, no public packages). `@epoch-dev` returns "Scope not found", so it was free on 2026-10-14.
 - `epoch-graph`, `epoch-code`, `epoch-app`, `epochmap` and `getepoch` are free on npm.
 - A web search found no developer tool or dependency-graph tool named Epoch. The word is generic, though: Unix epoch time, machine-learning training epochs, and unrelated projects and organizations such as an Android time app on F-Droid and Epoch AI.
@@ -87,8 +87,16 @@ The owner chose MIT after comparing it with the license of OpenClaw ([LICENSE](h
 - **Anyone may fork, rebrand and sell Epoch, including as closed source,** as long as they keep the copyright and permission notice. This is accepted.
 - **Relicensing.** While the owner is the sole copyright holder, future versions can be released under any license. Versions already released remain available under MIT. MIT's inbound grant includes "sublicense", so outside contributions received under MIT can likely be carried into future versions under other terms with their notices kept (reading of the license text; not verified legally).
 - **Contributions.** Outside contributions arrive under the repository license by default (GitHub Terms of Service §D.6). The choice between a DCO (`Signed-off-by`) and a CLA is deferred until the first outside pull request.
-- **Dependencies.** All current and planned dependencies are permissive. Checked: electron, web-tree-sitter, better-sqlite3, cytoscape, graphology, chokidar, piscina, simple-git, zod, react, env-paths and ignore are MIT; typescript is Apache-2.0. No copyleft was found in their installed tree. The Electron app and any bundled CLI must ship the third-party notices those licenses require, including TypeScript's Apache-2.0 NOTICE. M3 and M8 verify that in packaged output.
+- **Dependencies.** All current and planned dependencies are permissive. Checked: electron, web-tree-sitter, better-sqlite3, cytoscape, graphology, chokidar, piscina, simple-git, zod, react, env-paths and ignore are MIT; typescript is Apache-2.0. No copyleft was found in their installed tree. The Electron app and any bundled CLI must ship the third-party notices those licenses require. TypeScript (Apache-2.0) ships no NOTICE file; it ships `LICENSE.txt` and `ThirdPartyNoticeText.txt`, and both must travel with it. M3 and M8 verify that in packaged output.
 - `LICENSE` and every `package.json` `license` field use the SPDX id `MIT`.
+
+## Other pre-M0 answers
+
+PLAN.md asks five questions before M0. Questions 1 and 2 are decided above. The other answers are recorded here so later milestones can find them in the repository:
+
+- **Development OS (Q3):** macOS and Windows. CI therefore runs on Linux, macOS and Windows from M0 (ADR-010).
+- **Jev early access (Q4):** yes. M6 builds `JevScorer` against TypeSafe AI's current docs with the owner's own key, instead of marking Jev benchmarks "not run".
+- **Repository visibility (Q5):** public (`JJUN-SEO/under-construction-` on GitHub). The specifications are published verbatim, apart from this rename; the owner confirmed there is no confidentiality restriction on their content.
 
 ## Sources
 

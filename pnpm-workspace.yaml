@@ -11,8 +11,9 @@ catalog:
   typescript: 6.0.3
   vitest: 5.0.4
 
-# Fail install when the running Node does not satisfy `engines`. pnpm 11 only
-# warns without this. https://pnpm.io/settings/cli#enginestrict
+# Fail install when the running Node does not satisfy `engines`. pnpm's docs say
+# a root mismatch always fails, but pnpm 11.28.2 only warns without this
+# (verified; ADR-010). https://pnpm.io/settings/cli#enginestrict
 engineStrict: true
 
 # No update checks from pnpm.
