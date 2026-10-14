@@ -3,16 +3,30 @@
   "ui": "stream",
   "noUpdateNotifier": true,
   "agentGuidance": false,
-  "remoteCache": { "enabled": false },
+  "remoteCache": {
+    "enabled": false
+  },
   "globalDependencies": [
     "tsconfig.base.json",
     "eslint.config.mjs",
     ".node-version"
   ],
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**"] },
-    "typecheck": { "dependsOn": ["^build"] },
-    "lint": { "dependsOn": ["^build"] },
-    "test": { "dependsOn": ["build"] }
+    "clean": {
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^build", "clean"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["build"]
+    }
   }
 }
