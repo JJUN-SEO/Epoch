@@ -153,8 +153,10 @@ describe("contract schemas", () => {
         externals: 0,
         unresolved: 0,
         skipped: 1,
+        parseErrors: 1,
       },
       skipped: [{ path: "big.js", reason: "too-large" }],
+      parseErrors: ["broken.ts"],
       cycles: [],
       host: { platform: "linux", arch: "x64", node: "24.21.0" },
     };

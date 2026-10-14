@@ -76,6 +76,8 @@ interface SourceFile {
   readonly reg: AdapterRegistration<Tree>;
   readonly contentHash: string;
   readonly facts: FileFacts;
+  /** The syntax tree had errors, so the facts are best-effort. */
+  readonly partial: boolean;
 }
 
 /**
@@ -83,7 +85,8 @@ interface SourceFile {
  * Resolve, Graph (CLAUDE.md "Pipeline", stages 1-5). Reads the project only
  * through a FsReader confined to the root, never writes into it, and never
  * executes its code or config. Returns the canonical Graph plus the run's
- * metadata (timings, counts, skipped files, cycles), which stays outside it.
+ * metadata (timings, counts, skipped files, files with syntax errors,
+ * cycles), which stays outside it.
  */
 export async function analyze(
   rootDir: string,
@@ -133,6 +136,7 @@ export async function analyze(
       }
       const text = bytes.toString("utf8").replace(/^\uFEFF/, "");
       const tree = parsers.parse(grammar, text);
+      const partial = tree.rootNode.hasError;
       let facts: FileFacts;
       try {
         facts = FileFacts.parse(
@@ -144,7 +148,7 @@ export async function analyze(
       } finally {
         tree.delete();
       }
-      sources.push({ rel, reg, contentHash: sha256(bytes), facts });
+      sources.push({ rel, reg, contentHash: sha256(bytes), facts, partial });
       progress("parse", i + 1, sourceRels.length);
     }
   } finally {
@@ -215,6 +219,7 @@ export async function analyze(
       contentHash: s.contentHash,
       facts: s.facts,
       resolutions,
+      partial: s.partial,
     });
     progress("resolve", i + 1, sources.length);
   }
@@ -229,6 +234,7 @@ export async function analyze(
   const t4 = performance.now();
 
   skipped.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  const parseErrors = sources.filter((s) => s.partial).map((s) => s.rel);
   const meta = AnalysisMeta.parse({
     epochVersion: EPOCH_VERSION,
     schemaVersion: GRAPH_SCHEMA_VERSION,
@@ -251,8 +257,10 @@ export async function analyze(
       externals: new Set(graph.nodes.flatMap((n) => n.externals)).size,
       unresolved: graph.unresolved.length,
       skipped: skipped.length,
+      parseErrors: parseErrors.length,
     },
     skipped,
+    parseErrors,
     cycles,
     host: {
       platform: process.platform,

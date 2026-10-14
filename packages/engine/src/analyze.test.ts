@@ -1,6 +1,7 @@
 import childProcess from "node:child_process";
 import { createHash } from "node:crypto";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -134,5 +135,29 @@ describe("analyze: monorepo fixture", async () => {
     expect(first.meta.adapters).toEqual([
       { id: "typescript", version: "1", tier: "A" },
     ]);
+  });
+});
+
+describe("analyze: syntax errors", () => {
+  it("reports files the parser had to recover and still analyzes them", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-parse-errors-"));
+    try {
+      fs.writeFileSync(
+        path.join(dir, "ok.ts"),
+        'import { b } from "./broken";\n',
+      );
+      fs.writeFileSync(
+        path.join(dir, "broken.ts"),
+        "export const b = ;\nexport const = 2\n",
+      );
+      const { graph, meta } = await analyze(dir);
+      expect(meta.parseErrors).toEqual(["broken.ts"]);
+      expect(meta.counts.parseErrors).toBe(1);
+      expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual([
+        "ok.ts>broken.ts",
+      ]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -39,9 +39,12 @@ export const AnalysisMeta = z.strictObject({
     externals: Count,
     unresolved: Count,
     skipped: Count,
+    parseErrors: Count,
   }),
   /** Files the walk saw but did not analyze (ignored directories are not listed). */
   skipped: z.array(z.strictObject({ path: z.string(), reason: SkipReason })),
+  /** Analyzed files whose syntax trees had errors; their facts are best-effort. */
+  parseErrors: z.array(z.string()),
   /** Strongly connected components over certain-mode edges (size > 1 or self-loop). */
   cycles: z.array(z.array(z.string())),
   host: z.strictObject({

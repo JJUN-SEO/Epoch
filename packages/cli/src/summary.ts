@@ -4,7 +4,7 @@ import type { AnalysisMeta, Graph, UnresolvedReason } from "@epoch-dev/core";
 export const SUMMARY_LIST_LIMIT = 20;
 
 const pad = (label: string, value: number) =>
-  `  ${label.padEnd(11)}${String(value).padStart(7)}`;
+  `  ${label.padEnd(13)}${String(value).padStart(7)}`;
 
 /**
  * The human-readable report `epoch analyze` prints without --json. Counts
@@ -36,6 +36,7 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
       (reasons === "" ? "" : `  (${reasons})`),
     pad("cycles", meta.cycles.length),
     pad("skipped", meta.counts.skipped),
+    pad("parse errors", meta.counts.parseErrors),
   );
 
   const list = <T>(
@@ -61,5 +62,10 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
   });
   list("Cycles", meta.cycles, (c) => c.join(" -> "));
   list("Skipped files", meta.skipped, (s) => `${s.path}  ${s.reason}`);
+  list(
+    "Files with syntax errors (facts from them are best-effort)",
+    meta.parseErrors,
+    (f) => f,
+  );
   return `${lines.join("\n")}\n`;
 }

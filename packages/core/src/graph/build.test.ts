@@ -318,6 +318,30 @@ describe("barrel tracing", () => {
     ).toEqual(["A.ts -> b.ts : import"]);
   });
 
+  it("never concludes a name is absent from a partly parsed file", () => {
+    // d.ts had syntax errors, so an X declared there may have been lost to
+    // error recovery: tracing X through b.ts's stars must stay conservative.
+    const files = (partial: boolean): FileInput[] => [
+      input("A.ts", { imports: [imp("static", "./b", file("b.ts"), ["X"])] }),
+      input("b.ts", {
+        stars: [
+          ["./c", "c.ts"],
+          ["./d", "d.ts"],
+        ],
+      }),
+      leaf("c.ts", "X"),
+      { ...leaf("d.ts", "Y"), partial },
+    ];
+    expect(edgesOf(files(false))).toContain(
+      "A.ts -> c.ts : import [via barrel b.ts]",
+    );
+    const conservative = edgesOf(files(true));
+    expect(conservative).toContain("A.ts -> b.ts : import");
+    expect(conservative.filter((e) => e.startsWith("A.ts"))).toEqual([
+      "A.ts -> b.ts : import",
+    ]);
+  });
+
   it("gives type-only imports through a barrel the type-only kind", () => {
     expect(
       edgesOf([

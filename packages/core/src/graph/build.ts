@@ -22,6 +22,11 @@ export interface FileInput {
   readonly facts: FileFacts;
   /** One entry per facts.imports element, re-exports included. */
   readonly resolutions: readonly { imp: RawImport; res: Resolution }[];
+  /**
+   * The parser recovered from syntax errors, so the facts may be incomplete.
+   * Lookups through such a file never conclude that a name is absent.
+   */
+  readonly partial?: boolean;
 }
 
 /** Result of looking an exported name up through re-exports. */
@@ -44,6 +49,7 @@ interface FileIndex {
   /** Re-export specifier -> resolved file id (absent if it did not resolve to a file). */
   readonly reexportTargets: ReadonlyMap<string, string>;
   readonly isBarrel: boolean;
+  readonly partial: boolean;
 }
 
 function indexFile(f: FileInput): FileIndex {
@@ -66,6 +72,7 @@ function indexFile(f: FileInput): FileIndex {
     stars: f.facts.exportAllFrom,
     reexportTargets,
     isBarrel: named.size > 0 || f.facts.exportAllFrom.length > 0,
+    partial: f.partial === true,
   };
 }
 
@@ -98,6 +105,8 @@ export function buildGraph(files: readonly FileInput[]): Graph {
       const r = lookup(target, reexport.imported, next);
       return r.kind === "found" ? r : UNKNOWN; // a broken re-export cannot be traced
     }
+    // A declaration lost to error recovery could shadow any star match.
+    if (ix.partial) return UNKNOWN;
     // `export *` never re-exports `default` (ECMAScript module semantics).
     if (name === "default") return ABSENT;
     const hits = new Set<string>();
