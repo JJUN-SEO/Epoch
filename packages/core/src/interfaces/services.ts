@@ -1,18 +1,58 @@
+import type { DerivedStore } from "../cache/early-cutoff.js";
 import type { FileFacts } from "../schemas/index.js";
+
+/** One file in a repo's manifest: what it looked like when it was last hashed. */
+export interface ManifestEntry {
+  /** Repo-relative path, forward slashes. */
+  readonly path: string;
+  readonly size: number;
+  /** Modification time in nanoseconds, as a decimal string (exceeds 2^53). */
+  readonly mtimeNs: string;
+  /** sha256 of the file's bytes. */
+  readonly contentHash: string;
+}
+
+/** CLAUDE.md "Per-repo index": the file manifest and the last analyzed commit. */
+export interface RepoIndex {
+  /** Absolute project root, forward slashes. */
+  readonly root: string;
+  readonly lastCommit: string | null;
+  /** When the scan that produced this manifest started (ns, decimal string); for the racy-mtime rule. */
+  readonly scanStartedNs: string;
+  readonly files: readonly ManifestEntry[];
+}
+
+export interface CacheStats {
+  /** Where the store lives, if on disk. */
+  readonly location?: string;
+  readonly bytes: number;
+  readonly facts: number;
+  readonly repos: number;
+  readonly manifestEntries: number;
+  readonly derived: number;
+}
 
 /**
  * CLAUDE.md "Local cache": `core` defines the store, SQLite implements it in
- * `engine` (M2), and tests use an in-memory version. Synchronous, matching
- * better-sqlite3. Keys are hash(contents + adapter id + adapter version +
- * extractorConfigHash). Values never contain file contents.
+ * `engine`, and tests use an in-memory version. Synchronous, matching
+ * better-sqlite3. Facts keys hash the file contents, adapter id and version,
+ * parser fingerprint and extractorConfigHash (ADR-004). Values never contain
+ * file contents or code excerpts.
  */
-export interface CacheStore {
+export interface CacheStore extends DerivedStore {
+  /** Cached facts, or undefined on a miss (or an entry that no longer validates). Marks the entry used. */
   getFacts(key: string): FileFacts | undefined;
   putFacts(key: string, facts: FileFacts): void;
-  stats(): { entries: number; bytes: number };
+  getRepoIndex(root: string): RepoIndex | undefined;
+  /** Replaces the repo's manifest and last commit. */
+  putRepoIndex(index: RepoIndex): void;
+  /** Runs fn atomically (batches writes on stores that support it). */
+  transaction<T>(fn: () => T): T;
+  stats(): CacheStats;
   clear(): void;
-  /** Evicts least-recently-used entries until under `maxBytes`; returns entries removed. */
+  /** Evicts least-recently-used facts and derived values until under `maxBytes`; returns entries removed. */
   prune(maxBytes: number): number;
+  close(): void;
 }
 
 /**
