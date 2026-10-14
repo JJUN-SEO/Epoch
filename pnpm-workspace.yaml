@@ -1,0 +1,24 @@
+# https://pnpm.io/workspaces
+packages:
+  - packages/*
+  - packages/adapters/*
+
+# Shared exact versions; packages reference them as "catalog:".
+# https://pnpm.io/catalogs
+catalog:
+  "@types/node": 24.19.2
+  eslint: 10.12.0
+  typescript: 6.0.3
+  vitest: 5.0.4
+
+# Fail install when the running Node does not satisfy `engines`. pnpm 11 only
+# warns without this. https://pnpm.io/settings/cli#enginestrict
+engineStrict: true
+
+# No update checks from pnpm.
+updateNotifier: false
+
+# Dependency install scripts run only when listed here (strictDepBuilds is on by
+# default). Add each one deliberately, with the reason in the commit message.
+# https://pnpm.io/settings/build#allowbuilds
+allowBuilds: {}

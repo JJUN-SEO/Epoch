@@ -1,0 +1,21 @@
+{
+  "name": "@epoch-dev/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Epoch: a local-first desktop app that turns a codebase into a dependency graph with blast radius, risk scores and dead-feature alerts.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.2",
+  "engines": {
+    "node": "^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/turbo.mjs run build",
+    "typecheck": "node scripts/turbo.mjs run typecheck",
+    "test": "node scripts/turbo.mjs run test",
+    "telemetry:off": "node scripts/turbo.mjs telemetry disable"
+  },
+  "devDependencies": {
+    "turbo": "2.11.7"
+  }
+}
