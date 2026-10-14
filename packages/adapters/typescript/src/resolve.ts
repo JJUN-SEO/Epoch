@@ -410,6 +410,13 @@ class Resolver {
         return { kind: "unresolved", reason: "outside-project" };
       // Imports of non-source files (JSON, CSS, images) that exist in the repo.
       if (this.files.has(key(rel))) return this.fileTarget(rel);
+      // Extensionless imports of .mjs/.cjs files resolve in bundlers (Vite's
+      // resolve.extensions), not in TypeScript's own extension list.
+      if (path.posix.extname(rel) === "") {
+        for (const ext of [".mjs", ".cjs"]) {
+          if (this.files.has(key(rel + ext))) return this.fileTarget(rel + ext);
+        }
+      }
       if (this.repo.reader.fileExists(target))
         return { kind: "unresolved", reason: "outside-project" };
       return { kind: "unresolved", reason: "not-found" };

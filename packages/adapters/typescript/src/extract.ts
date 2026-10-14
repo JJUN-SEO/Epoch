@@ -293,28 +293,28 @@ function callImport(
 
 const GENERATED = /@generated\b|Code generated .* DO NOT EDIT/;
 
-const REFERENCE_PATH =
-  /^\/\/\/\s*<reference\s+path\s*=\s*(["'])([^"']+)\1\s*\/>/;
+const REFERENCE =
+  /^\/\/\/\s*<reference\s+(path|types)\s*=\s*(["'])([^"']+)\2\s*\/>/;
+const isRelativePath = (p: string) =>
+  p.startsWith("./") || p.startsWith("../") || p.startsWith("/");
 
 /**
- * `/// <reference path="…" />` directives: type-only dependencies on another
- * file. TypeScript reads them only in the leading comments, and resolves the
- * path relative to the file even without "./".
+ * Triple-slash references to files, as type-only dependencies. TypeScript
+ * reads them only in the leading comments. `path` is relative to the file
+ * even without "./"; `types` names a file only when it is a relative path (a
+ * package name, like "node", is a type package, not a file).
  */
 function referencePaths(root: Node): Pending[] {
   const out: Pending[] = [];
   for (const c of root.children) {
     if (c.type !== "comment" && c.type !== "hash_bang_line") break;
-    const m = REFERENCE_PATH.exec(c.text);
-    const raw = m?.[2];
+    const m = REFERENCE.exec(c.text);
+    const raw = m?.[3];
     if (raw === undefined) continue;
-    const specifier =
-      raw.startsWith("./") || raw.startsWith("../") || raw.startsWith("/")
-        ? raw
-        : `./${raw}`;
+    if (m?.[1] === "types" && !isRelativePath(raw)) continue;
     out.push({
       kind: "static",
-      specifier,
+      specifier: isRelativePath(raw) ? raw : `./${raw}`,
       typeOnly: true,
       names: [],
       line: lineOf(c),

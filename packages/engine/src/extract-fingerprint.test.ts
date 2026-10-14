@@ -16,6 +16,7 @@ import { Parsers } from "./parse.js";
  */
 const FINGERPRINTS: Readonly<Record<string, string>> = {
   "2": "7b4596afcf409ec576fad84df17053c121e887132cd73fb53b93dbf03909d17c",
+  "3": "96f756fc7ab66755421042464d1f368f10c85b7867149da9c4717af684dbc240",
 };
 
 const FIXTURES = fileURLToPath(

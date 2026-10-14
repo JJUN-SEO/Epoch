@@ -2,6 +2,7 @@
   "nodes": [
     "src/a.ts",
     "src/globals.d.ts",
+    "src/types/env.d.ts",
     "src/types/shim.d.ts"
   ],
   "edges": [
@@ -14,6 +15,12 @@
     {
       "source": "src/a.ts",
       "target": "src/types/shim.d.ts",
+      "kind": "type-only",
+      "evidence": []
+    },
+    {
+      "source": "src/a.ts",
+      "target": "src/types/env.d.ts",
       "kind": "type-only",
       "evidence": []
     }

@@ -1,0 +1,30 @@
+{
+  "nodes": [
+    "src/a.ts",
+    "src/helper.cjs",
+    "src/util.mjs"
+  ],
+  "edges": [
+    {
+      "source": "src/a.ts",
+      "target": "src/helper.cjs",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "src/a.ts",
+      "target": "src/util.mjs",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "src/a.ts",
+      "specifier": "./missing",
+      "reason": "not-found",
+      "line": 3
+    }
+  ]
+}

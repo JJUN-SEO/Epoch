@@ -1,0 +1,6 @@
+{
+  "description": "An extensionless relative import of a .mjs or .cjs file resolves as bundlers do (TypeScript alone does not try those extensions); a missing file stays unresolved.",
+  "adapters": [
+    "typescript"
+  ]
+}
