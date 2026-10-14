@@ -61,6 +61,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-008 | M6 | Local embedding model and the default hint threshold for "likely" mode |
 | ADR-009 | M7 | Keychain library for the CLI |
 | ADR-010 | M0 | Toolchain baseline: Node 24, pnpm 11, TypeScript 6 (not 7), Turborepo settings and telemetry off, compiled packages, CI on Linux, macOS and Windows |
+| ADR-011 | M1 | `churn90d` and `riskScore` are optional and absent until computed (M4), like `coverage` |
 
 ## Questions to ask me
 

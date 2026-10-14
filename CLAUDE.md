@@ -188,7 +188,7 @@ type GraphNode = {
   externals: string[];             // third-party packages this node imports
   flags: FlagUsage[];
   role?: { label: string; confidence: number };   // from scorer, e.g. controller/model/util/test/config
-  metrics: { fanIn: number; fanOut: number; churn90d: number; coverage?: number; riskScore: number };
+  metrics: { fanIn: number; fanOut: number; churn90d?: number; coverage?: number; riskScore?: number }; // absent until computed (ADR-011)
 };
 
 type GraphEdge = {
