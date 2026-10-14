@@ -26,6 +26,8 @@
   },
   "dependencies": {
     "@epoch-dev/core": "workspace:*",
-    "ignore": "7.0.12"
+    "@vscode/tree-sitter-wasm": "0.3.1",
+    "ignore": "7.0.12",
+    "web-tree-sitter": "0.27.1"
   }
 }
