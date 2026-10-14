@@ -1,0 +1,7 @@
+{
+  "name": "@mono/core",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

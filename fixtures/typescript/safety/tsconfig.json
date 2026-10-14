@@ -1,0 +1,13 @@
+{
+  "extends": "./evil.js",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "evil-plugin"
+      }
+    ]
+  },
+  "include": [
+    "src"
+  ]
+}

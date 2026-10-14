@@ -1,0 +1,14 @@
+{
+  "nodes": [
+    "src/a.ts"
+  ],
+  "edges": [],
+  "externals": {
+    "src/a.ts": [
+      "lodash",
+      "node:path",
+      "react"
+    ]
+  },
+  "unresolved": []
+}

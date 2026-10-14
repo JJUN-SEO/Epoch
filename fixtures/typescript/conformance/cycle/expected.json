@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    "src/a.ts",
+    "src/b.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/a.ts",
+      "target": "src/b.ts",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "src/b.ts",
+      "target": "src/a.ts",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

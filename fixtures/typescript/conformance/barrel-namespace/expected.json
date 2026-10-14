@@ -1,0 +1,30 @@
+{
+  "nodes": [
+    "src/app.ts",
+    "src/components/Button.ts",
+    "src/components/Card.ts",
+    "src/components/index.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/app.ts",
+      "target": "src/components/index.ts",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "src/components/index.ts",
+      "target": "src/components/Button.ts",
+      "kind": "reexport",
+      "evidence": []
+    },
+    {
+      "source": "src/components/index.ts",
+      "target": "src/components/Card.ts",
+      "kind": "reexport",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

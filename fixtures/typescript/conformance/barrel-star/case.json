@@ -1,0 +1,6 @@
+{
+  "description": "Named imports through an `export *` barrel point at the declaring file.",
+  "adapters": [
+    "typescript"
+  ]
+}

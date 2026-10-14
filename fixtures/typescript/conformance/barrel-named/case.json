@@ -1,0 +1,6 @@
+{
+  "description": "Named imports through a barrel of named re-exports point at the declaring file (Barrel transparency rule).",
+  "adapters": [
+    "typescript"
+  ]
+}

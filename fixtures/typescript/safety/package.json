@@ -1,0 +1,9 @@
+{
+  "name": "evil",
+  "private": true,
+  "scripts": {
+    "preinstall": "node evil.js",
+    "postinstall": "node evil.js",
+    "prepare": "node evil.js"
+  }
+}

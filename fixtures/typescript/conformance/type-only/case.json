@@ -1,0 +1,6 @@
+{
+  "description": "`import type` and inline `type` specifiers produce type-only edges.",
+  "adapters": [
+    "typescript"
+  ]
+}

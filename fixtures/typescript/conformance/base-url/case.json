@@ -1,0 +1,6 @@
+{
+  "description": "A bare specifier resolves against tsconfig `baseUrl` (deprecated in TS 6 but still honoured).",
+  "adapters": [
+    "typescript"
+  ]
+}

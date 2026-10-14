@@ -6,3 +6,6 @@ coverage
 # Specs keep their exact wording (edited only with an ADR).
 CLAUDE.md
 PLAN.md
+
+# Analyzed fixtures keep their exact bytes.
+fixtures

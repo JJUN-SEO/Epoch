@@ -1,0 +1,6 @@
+{
+  "description": "A relative import resolves to the file it names.",
+  "adapters": [
+    "typescript"
+  ]
+}

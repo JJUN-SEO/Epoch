@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    "src/a.ts",
+    "src/lazy.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/a.ts",
+      "target": "src/lazy.ts",
+      "kind": "dynamic-import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Third-party and builtin modules are recorded as externals by package name, never as nodes.",
+  "adapters": [
+    "typescript"
+  ]
+}

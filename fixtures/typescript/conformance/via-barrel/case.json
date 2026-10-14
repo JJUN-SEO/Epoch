@@ -1,0 +1,6 @@
+{
+  "description": "A default re-export through a barrel (`export { default as X }`) yields the declaring-file edge and a via-barrel edge.",
+  "adapters": [
+    "typescript"
+  ]
+}

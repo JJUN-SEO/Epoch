@@ -1,0 +1,31 @@
+{
+  "nodes": [
+    "src/page.tsx",
+    "src/ui/Button.tsx",
+    "src/ui/index.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/page.tsx",
+      "target": "src/ui/Button.tsx",
+      "kind": "import",
+      "evidence": [
+        "via barrel src/ui/index.ts"
+      ]
+    },
+    {
+      "source": "src/page.tsx",
+      "target": "src/ui/index.ts",
+      "kind": "via-barrel",
+      "evidence": []
+    },
+    {
+      "source": "src/ui/index.ts",
+      "target": "src/ui/Button.tsx",
+      "kind": "reexport",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}
