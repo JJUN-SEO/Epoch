@@ -47,6 +47,12 @@ export interface AnalyzeOptions {
   readonly cache?: CacheStore;
   /** Repo-relative files to re-read even if the manifest vouches for them (--since). */
   readonly forceReread?: ReadonlySet<string>;
+  /** Called with every import's resolution (benchmarks and debugging tools). */
+  readonly onResolution?: (
+    from: string,
+    imp: RawImport,
+    res: Resolution,
+  ) => void;
 }
 
 export interface AnalyzeResult {
@@ -308,6 +314,7 @@ export async function analyze(
         res = { kind: "unresolved", reason: "not-found" };
       }
       resolutions.push({ imp, res });
+      opts.onResolution?.(s.rel, imp, res);
     }
     inputs.push({
       id: s.rel,
