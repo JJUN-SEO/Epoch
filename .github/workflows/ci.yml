@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Turborepo telemetry is opt-out. Epoch's tooling sends none
+  # (CLAUDE.md: no telemetry); scripts/turbo.mjs sets these too.
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+
+defaults:
+  run:
+    # Git Bash on Windows, so every step runs the same on all three OSes.
+    shell: bash
+
+jobs:
+  check:
+    name: check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Installs the pnpm version named in package.json "packageManager".
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - name: Tool versions
+        run: |
+          node -v
+          pnpm -v
+          command -v pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Install rewrote no tracked file
+        run: git diff --exit-code
+
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+      - run: pnpm test
+
+      - name: Telemetry stays off without the workflow env
+        env:
+          TURBO_TELEMETRY_DISABLED: ""
+          DO_NOT_TRACK: ""
+        # Capture first, then match: piping into `grep -q` can close the pipe
+        # while turbo is still writing, and under pipefail turbo's broken-pipe
+        # exit fails the step at random.
+        run: |
+          status="$(node scripts/turbo.mjs telemetry status)"
+          echo "$status"
+          grep -q "Status: Disabled" <<< "$status"
+
+      - name: The run left the tree clean
+        run: |
+          test ! -e AGENTS.md
+          test -z "$(git status --porcelain)"

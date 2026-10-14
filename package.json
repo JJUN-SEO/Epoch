@@ -1,0 +1,31 @@
+{
+  "name": "@epoch-dev/workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Epoch: a local-first desktop app that turns a codebase into a dependency graph with blast radius, risk scores and dead-feature alerts.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@11.28.2",
+  "engines": {
+    "node": "^24.0.0 || >=26.0.0"
+  },
+  "scripts": {
+    "build": "node scripts/turbo.mjs run build",
+    "typecheck": "node scripts/turbo.mjs run typecheck",
+    "lint": "prettier --check . && eslint eslint.config.mjs scripts && node scripts/turbo.mjs run lint",
+    "test": "node scripts/turbo.mjs run test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test",
+    "format": "prettier --write .",
+    "telemetry:off": "node scripts/turbo.mjs telemetry disable"
+  },
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
+    "@eslint/js": "10.0.1",
+    "eslint": "catalog:",
+    "eslint-config-prettier": "10.1.8",
+    "prettier": "3.9.10",
+    "turbo": "2.11.7",
+    "typescript": "catalog:",
+    "typescript-eslint": "8.71.2"
+  }
+}

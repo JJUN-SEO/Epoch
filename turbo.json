@@ -1,0 +1,32 @@
+{
+  "$schema": "./node_modules/turbo/schema.json",
+  "ui": "stream",
+  "noUpdateNotifier": true,
+  "agentGuidance": false,
+  "remoteCache": {
+    "enabled": false
+  },
+  "globalDependencies": [
+    "tsconfig.base.json",
+    "eslint.config.mjs",
+    ".node-version"
+  ],
+  "tasks": {
+    "clean": {
+      "cache": false
+    },
+    "build": {
+      "dependsOn": ["^build", "clean"],
+      "outputs": ["dist/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"]
+    },
+    "lint": {
+      "dependsOn": ["^build"]
+    },
+    "test": {
+      "dependsOn": ["build"]
+    }
+  }
+}

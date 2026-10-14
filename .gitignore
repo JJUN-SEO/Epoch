@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output and caches
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Secrets: never commit real environment files (CLAUDE.md Conventions)
+.env
+.env.*
+!.env.example
+
+# Local tool settings
+.claude/settings.local.json
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+*.log
