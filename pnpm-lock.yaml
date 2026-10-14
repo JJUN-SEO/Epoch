@@ -107,6 +107,13 @@ importers:
         version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2))
 
   packages/engine:
+    dependencies:
+      '@epoch-dev/core':
+        specifier: workspace:*
+        version: link:../core
+      ignore:
+        specifier: 7.0.12
+        version: 7.0.12
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
