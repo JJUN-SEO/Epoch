@@ -44,6 +44,10 @@ These are single measurements on one machine to show the order of magnitude, not
 
 - No native code and no install scripts in the parsing path, so `allowBuilds` stays empty and installs behave the same on all three OSes.
 - The VS Code package's WASMs do not embed the upstream grammar versions (`Language.metadata` is null for the ABI 14 grammars). Provenance is the pinned package version. The self-test and the TS/JS conformance suite catch behaviour drift on an upgrade.
+- **Known grammar gaps.** Found on vitest (see `docs/benchmarks/m1-vitest-run.md`); `tree-sitter-typescript` 0.23.2, the latest official release, has the same gaps:
+  - `export type * from` (TS 5.0): the `type` keyword ends up in an ERROR node, and the extractor reads the rest of the statement.
+  - A generic call signature (`<T>(…)`) on the line after another interface member: error recovery can swallow the rest of the file.
+  - Files with syntax errors are reported in `AnalysisMeta.parseErrors`, and barrel tracing through them stays conservative (ADR-003).
 - Trees live in WASM memory: the engine deletes each tree after extraction.
 - Packaging (M3, M8): the `.wasm` files and the tree-sitter queries in `queries/` must ship unpacked (`asarUnpack` in Electron, copied for the npm CLI). Today they are found through package-relative paths.
 
