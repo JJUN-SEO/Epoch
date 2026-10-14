@@ -37,6 +37,8 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
     pad("cycles", meta.cycles.length),
     pad("skipped", meta.counts.skipped),
     pad("parse errors", meta.counts.parseErrors),
+    pad("cache hits", meta.counts.cacheHits),
+    pad("parsed", meta.counts.cacheMisses),
   );
 
   const list = <T>(

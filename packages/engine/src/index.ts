@@ -11,3 +11,4 @@ export * from "./discover.js";
 export * from "./parse.js";
 export * from "./reader.js";
 export * from "./cache/index.js";
+export * from "./git.js";
