@@ -60,6 +60,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-007 | M5 | Findings: flag pattern sources, entry-point rules, framework list, history strategy and cost, `staleAfterDays` default, any rubric tuning |
 | ADR-008 | M6 | Local embedding model and the default hint threshold for "likely" mode |
 | ADR-009 | M7 | Keychain library for the CLI |
+| ADR-010 | M0 | Toolchain baseline: Node 24, pnpm 11, TypeScript 6 (not 7), Turborepo settings and telemetry off, compiled packages, CI on Linux, macOS and Windows |
 
 ## Questions to ask me
 
@@ -88,12 +89,12 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Goal:** an empty but fully wired monorepo with green CI.
 **Spec refs:** Repo layout, Conventions.
 
-- [ ] Resolve the pre-M0 questions. ADR-001.
-- [ ] pnpm workspace + Turborepo. Base `tsconfig` with `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`.
-- [ ] ESLint + Prettier, Vitest, `.editorconfig`, `.gitignore`, `.env.example`.
-- [ ] Package skeletons: `packages/core`, `packages/adapters/typescript`, `packages/findings`, `packages/engine`, `packages/cli`. Each has build, test, and lint scripts.
-- [ ] GitHub Actions: lint, typecheck, test on push and PR (Linux first).
-- [ ] README stub stating the privacy principle and "work in progress". Copy `CLAUDE.md` and `PLAN.md` into the repo root.
+- [x] Resolve the pre-M0 questions. ADR-001.
+- [x] pnpm workspace + Turborepo. Base `tsconfig` with `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`.
+- [x] ESLint + Prettier, Vitest, `.editorconfig`, `.gitignore`, `.env.example`.
+- [x] Package skeletons: `packages/core`, `packages/adapters/typescript`, `packages/findings`, `packages/engine`, `packages/cli`. Each has build, test, and lint scripts.
+- [ ] GitHub Actions: lint, typecheck, test on push and PR (Linux, macOS, Windows).
+- [x] README stub stating the privacy principle and "work in progress". Copy `CLAUDE.md` and `PLAN.md` into the repo root.
 
 **Acceptance:** `pnpm install && pnpm lint && pnpm typecheck && pnpm test` passes locally and in CI, with at least one real test per package.
 
