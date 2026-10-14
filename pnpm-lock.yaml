@@ -121,6 +121,9 @@ importers:
 
   packages/engine:
     dependencies:
+      '@epoch-dev/adapter-typescript':
+        specifier: workspace:*
+        version: link:../adapters/typescript
       '@epoch-dev/core':
         specifier: workspace:*
         version: link:../core

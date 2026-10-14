@@ -25,6 +25,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
+    "@epoch-dev/adapter-typescript": "workspace:*",
     "@epoch-dev/core": "workspace:*",
     "@vscode/tree-sitter-wasm": "0.3.1",
     "ignore": "7.0.12",
