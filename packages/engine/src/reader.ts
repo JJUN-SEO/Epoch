@@ -55,6 +55,24 @@ export class FsReader implements FileReader {
     }
   }
 
+  /** Size and timestamps (ns) of a regular file inside the root, or undefined. */
+  statFile(
+    p: string,
+  ): { size: number; mtimeNs: bigint; ctimeNs: bigint } | undefined {
+    const abs = this.inside(p);
+    if (abs === undefined || !this.stat(p)?.isFile()) return undefined;
+    try {
+      const st = fs.statSync(abs, { bigint: true });
+      return {
+        size: Number(st.size),
+        mtimeNs: st.mtimeNs,
+        ctimeNs: st.ctimeNs,
+      };
+    } catch {
+      return undefined;
+    }
+  }
+
   readFile(p: string): string | undefined {
     if (!this.stat(p)?.isFile()) return undefined;
     try {

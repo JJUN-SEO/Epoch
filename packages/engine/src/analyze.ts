@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import fs from "node:fs";
 import { performance } from "node:perf_hooks";
 import type { Tree } from "web-tree-sitter";
@@ -13,7 +12,10 @@ import {
   buildGraph,
   stronglyConnectedComponents,
   type AdapterRegistration,
+  type CacheStore,
+  type CachedFacts,
   type FileInput,
+  type ManifestEntry,
   type Progress,
   type RawImport,
   type RepoView,
@@ -21,7 +23,15 @@ import {
   type SkipReason,
 } from "@epoch-dev/core";
 import { typescriptRegistration } from "@epoch-dev/adapter-typescript";
+import {
+  PARSER_FINGERPRINT,
+  extractorConfigHash,
+  factsKey,
+  sha256,
+} from "./cache/keys.js";
+import { nowNs, scanChanges } from "./changes.js";
 import { discover } from "./discover.js";
+import { readHeadCommit } from "./git.js";
 import { Parsers } from "./parse.js";
 import { FsReader } from "./reader.js";
 
@@ -30,6 +40,13 @@ export interface AnalyzeOptions {
   /** Adapters to run; defaults to every built-in adapter. */
   readonly registrations?: readonly AdapterRegistration<Tree>[];
   readonly maxFileBytes?: number;
+  /**
+   * FileFacts cache and per-repo index (ADR-004). Without one, every file is
+   * read and parsed. Resolution and the graph are recomputed either way.
+   */
+  readonly cache?: CacheStore;
+  /** Repo-relative files to re-read even if the manifest vouches for them (--since). */
+  readonly forceReread?: ReadonlySet<string>;
 }
 
 export interface AnalyzeResult {
@@ -51,9 +68,6 @@ const EPOCH_VERSION = ((): string => {
       : undefined;
   return typeof version === "string" ? version : "0.0.0";
 })();
-
-const sha256 = (bytes: Uint8Array): string =>
-  createHash("sha256").update(bytes).digest("hex");
 
 /** Non-blank lines, CRLF-safe; binary files (any NUL byte) count as 0. */
 function countBytesLoc(bytes: Buffer): number {
@@ -81,8 +95,10 @@ interface SourceFile {
 }
 
 /**
- * Runs the M1 pipeline on a project folder: Discover, Parse, Extract,
- * Resolve, Graph (CLAUDE.md "Pipeline", stages 1-5). Reads the project only
+ * Runs the pipeline on a project folder: Discover, Parse, Extract (cached),
+ * Resolve, Graph (CLAUDE.md "Pipeline", stages 1-5). With a cache, unchanged
+ * files are neither read nor parsed; resolution and the graph are recomputed
+ * every run from the (cached) facts (ADR-004). Reads the project only
  * through a FsReader confined to the root, never writes into it, and never
  * executes its code or config. Returns the canonical Graph plus the run's
  * metadata (timings, counts, skipped files, files with syntax errors,
@@ -114,47 +130,128 @@ export async function analyze(
   progress("discover", 1, 1);
   const t1 = performance.now();
 
-  // 2-3. Parse and Extract
+  // 2. Change detection: reuse manifest hashes, then cached facts
   const sourceRels = found.files.filter((rel) => regFor(rel) !== undefined);
-  const grammars = new Set<string>();
-  for (const rel of sourceRels) {
-    const g = regFor(rel)?.grammarFor(rel);
-    if (g !== undefined) grammars.add(g);
-  }
-  const parsers = await Parsers.load(grammars);
+  const cache = opts.cache;
+  const scanStartedNs = nowNs();
+  const scan = scanChanges(
+    reader,
+    found.root,
+    sourceRels,
+    cache?.getRepoIndex(found.root),
+    opts.forceReread,
+  );
+  for (const rel of scan.unreadable)
+    skipped.push({ path: rel, reason: "unreadable" });
+  const configHash = extractorConfigHash(EMPTY_EXTRACTOR_CONFIG);
+  const keyFor = (reg: AdapterRegistration<Tree>, contentHash: string) =>
+    factsKey({
+      contentHash,
+      adapterId: reg.adapter.id,
+      adapterVersion: reg.adapter.version,
+      parserFingerprint: PARSER_FINGERPRINT,
+      extractorConfigHash: configHash,
+    });
   const sources: SourceFile[] = [];
-  try {
-    progress("parse", 0, sourceRels.length);
-    for (const [i, rel] of sourceRels.entries()) {
+  const manifest: ManifestEntry[] = [];
+  const misses: {
+    rel: string;
+    reg: AdapterRegistration<Tree>;
+    entry: ManifestEntry;
+    bytes?: Buffer;
+  }[] = [];
+  const lookup = () => {
+    for (const [rel, state] of scan.files) {
       const reg = regFor(rel);
-      const grammar = reg?.grammarFor(rel);
-      const bytes = reader.readBytes(abs(rel));
-      if (reg === undefined || grammar === undefined) continue;
-      if (bytes === undefined) {
-        skipped.push({ path: rel, reason: "unreadable" });
-        continue;
+      if (reg === undefined) continue;
+      const cached = cache?.getFacts(keyFor(reg, state.entry.contentHash));
+      if (cached) {
+        sources.push({
+          rel,
+          reg,
+          contentHash: state.entry.contentHash,
+          facts: cached.facts,
+          partial: cached.syntaxErrors,
+        });
+        manifest.push(state.entry);
+      } else {
+        misses.push({
+          rel,
+          reg,
+          entry: state.entry,
+          ...(state.bytes ? { bytes: state.bytes } : {}),
+        });
       }
-      const text = bytes.toString("utf8").replace(/^\uFEFF/, "");
-      const tree = parsers.parse(grammar, text);
-      const partial = tree.rootNode.hasError;
-      let facts: FileFacts;
-      try {
-        facts = FileFacts.parse(
-          reg.adapter.extract(
-            { path: rel, text, tree },
-            EMPTY_EXTRACTOR_CONFIG,
-          ),
-        );
-      } finally {
-        tree.delete();
-      }
-      sources.push({ rel, reg, contentHash: sha256(bytes), facts, partial });
-      progress("parse", i + 1, sourceRels.length);
     }
-  } finally {
-    parsers.dispose();
-  }
+  };
+  if (cache) cache.transaction(lookup);
+  else lookup();
+  const cacheHits = sources.length;
   const t2 = performance.now();
+
+  // 3. Parse and Extract the misses only (grammars load only when needed)
+  const fresh: { key: string; value: CachedFacts }[] = [];
+  if (misses.length > 0) {
+    const grammars = new Set<string>();
+    for (const m of misses) {
+      const g = m.reg.grammarFor(m.rel);
+      if (g !== undefined) grammars.add(g);
+    }
+    const parsers = await Parsers.load(grammars);
+    try {
+      progress("parse", 0, misses.length);
+      for (const [i, m] of misses.entries()) {
+        const grammar = m.reg.grammarFor(m.rel);
+        const bytes = m.bytes ?? reader.readBytes(abs(m.rel));
+        if (grammar === undefined) continue;
+        if (bytes === undefined) {
+          skipped.push({ path: m.rel, reason: "unreadable" });
+          continue;
+        }
+        // Read late (an evicted entry): key by what was actually read.
+        const entry =
+          m.bytes === undefined
+            ? { ...m.entry, size: bytes.length, contentHash: sha256(bytes) }
+            : m.entry;
+        const text = bytes.toString("utf8").replace(/^\uFEFF/, "");
+        const tree = parsers.parse(grammar, text);
+        const partial = tree.rootNode.hasError;
+        let facts: FileFacts;
+        try {
+          facts = FileFacts.parse(
+            m.reg.adapter.extract(
+              { path: m.rel, text, tree },
+              EMPTY_EXTRACTOR_CONFIG,
+            ),
+          );
+        } finally {
+          tree.delete();
+        }
+        sources.push({
+          rel: m.rel,
+          reg: m.reg,
+          contentHash: entry.contentHash,
+          facts,
+          partial,
+        });
+        manifest.push(entry);
+        fresh.push({
+          key: keyFor(m.reg, entry.contentHash),
+          value: { facts, syntaxErrors: partial },
+        });
+        progress("parse", i + 1, misses.length);
+      }
+    } finally {
+      parsers.dispose();
+    }
+  }
+  if (cache && fresh.length > 0) {
+    cache.transaction(() => {
+      for (const f of fresh) cache.putFacts(f.key, f.value);
+    });
+  }
+  sources.sort((a, b) => (a.rel < b.rel ? -1 : a.rel > b.rel ? 1 : 0));
+  const t3 = performance.now();
 
   // 4. Resolve (recomputed every run: resolution depends on the whole repo)
   progress("resolve", 0, sources.length);
@@ -224,14 +321,24 @@ export async function analyze(
     progress("resolve", i + 1, sources.length);
   }
   for (const asset of assets.values()) if (asset) inputs.push(asset);
-  const t3 = performance.now();
+  const t4 = performance.now();
 
   // 5. Graph
   progress("graph", 0, 1);
   const graph = Graph.parse(buildGraph(inputs));
   const cycles = stronglyConnectedComponents(graph, CERTAIN_EDGE_KINDS);
   progress("graph", 1, 1);
-  const t4 = performance.now();
+  const t5 = performance.now();
+
+  if (cache) {
+    manifest.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+    cache.putRepoIndex({
+      root: found.root,
+      lastCommit: readHeadCommit(reader, found.root),
+      scanStartedNs: String(scanStartedNs),
+      files: manifest,
+    });
+  }
 
   skipped.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
   const parseErrors = sources.filter((s) => s.partial).map((s) => s.rel);
@@ -245,10 +352,11 @@ export async function analyze(
     })),
     timingsMs: {
       discover: t1 - t0,
-      parse: t2 - t1,
-      resolve: t3 - t2,
-      graph: t4 - t3,
-      total: t4 - t0,
+      changes: t2 - t1,
+      parse: t3 - t2,
+      resolve: t4 - t3,
+      graph: t5 - t4,
+      total: t5 - t0,
     },
     counts: {
       filesAnalyzed: sources.length,
@@ -258,6 +366,9 @@ export async function analyze(
       unresolved: graph.unresolved.length,
       skipped: skipped.length,
       parseErrors: parseErrors.length,
+      cacheHits,
+      cacheMisses: sources.length - cacheHits,
+      rehashed: scan.rehashed,
     },
     skipped,
     parseErrors,

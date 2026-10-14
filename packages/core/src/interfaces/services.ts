@@ -1,5 +1,5 @@
 import type { DerivedStore } from "../cache/early-cutoff.js";
-import type { FileFacts } from "../schemas/index.js";
+import type { CachedFacts } from "../schemas/index.js";
 
 /** One file in a repo's manifest: what it looked like when it was last hashed. */
 export interface ManifestEntry {
@@ -8,6 +8,8 @@ export interface ManifestEntry {
   readonly size: number;
   /** Modification time in nanoseconds, as a decimal string (exceeds 2^53). */
   readonly mtimeNs: string;
+  /** Status-change time in nanoseconds; catches tools that restore mtimes (tar, rsync -t). */
+  readonly ctimeNs: string;
   /** sha256 of the file's bytes. */
   readonly contentHash: string;
 }
@@ -41,8 +43,8 @@ export interface CacheStats {
  */
 export interface CacheStore extends DerivedStore {
   /** Cached facts, or undefined on a miss (or an entry that no longer validates). Marks the entry used. */
-  getFacts(key: string): FileFacts | undefined;
-  putFacts(key: string, facts: FileFacts): void;
+  getFacts(key: string): CachedFacts | undefined;
+  putFacts(key: string, value: CachedFacts): void;
   getRepoIndex(root: string): RepoIndex | undefined;
   /** Replaces the repo's manifest and last commit. */
   putRepoIndex(index: RepoIndex): void;

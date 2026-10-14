@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import {
-  FileFacts,
+  CachedFacts,
   type CacheStats,
   type CacheStore,
   type ManifestEntry,
@@ -39,6 +39,7 @@ const MIGRATIONS: readonly string[] = [
     path TEXT NOT NULL,
     size INTEGER NOT NULL,
     mtime_ns TEXT NOT NULL,
+    ctime_ns TEXT NOT NULL,
     content_hash TEXT NOT NULL,
     PRIMARY KEY (repo_id, path)
   ) WITHOUT ROWID;
@@ -150,18 +151,18 @@ export class SqliteCacheStore implements CacheStore {
     return new SqliteCacheStore(db, file);
   }
 
-  getFacts(key: string): FileFacts | undefined {
+  getFacts(key: string): CachedFacts | undefined {
     const row = this.db
       .prepare<[string], { value: string }>(
         "SELECT value FROM facts WHERE key = ?",
       )
       .get(key);
     if (!row) return undefined;
-    let parsed: ReturnType<typeof FileFacts.safeParse>;
+    let parsed: ReturnType<typeof CachedFacts.safeParse>;
     try {
-      parsed = FileFacts.safeParse(JSON.parse(row.value));
+      parsed = CachedFacts.safeParse(JSON.parse(row.value));
     } catch {
-      parsed = FileFacts.safeParse(undefined);
+      parsed = CachedFacts.safeParse(undefined);
     }
     if (!parsed.success) {
       this.db.prepare("DELETE FROM facts WHERE key = ?").run(key);
@@ -173,8 +174,8 @@ export class SqliteCacheStore implements CacheStore {
     return parsed.data;
   }
 
-  putFacts(key: string, facts: FileFacts): void {
-    const value = JSON.stringify(facts);
+  putFacts(key: string, cached: CachedFacts): void {
+    const value = JSON.stringify(cached);
     this.db
       .prepare(
         "INSERT OR REPLACE INTO facts (key, value, bytes, last_used) VALUES (?, ?, ?, ?)",
@@ -193,15 +194,22 @@ export class SqliteCacheStore implements CacheStore {
     const files = this.db
       .prepare<
         [number],
-        { path: string; size: number; mtime_ns: string; content_hash: string }
+        {
+          path: string;
+          size: number;
+          mtime_ns: string;
+          ctime_ns: string;
+          content_hash: string;
+        }
       >(
-        "SELECT path, size, mtime_ns, content_hash FROM manifest WHERE repo_id = ? ORDER BY path",
+        "SELECT path, size, mtime_ns, ctime_ns, content_hash FROM manifest WHERE repo_id = ? ORDER BY path",
       )
       .all(repo.id)
       .map((r): ManifestEntry => ({
         path: r.path,
         size: r.size,
         mtimeNs: r.mtime_ns,
+        ctimeNs: r.ctime_ns,
         contentHash: r.content_hash,
       }));
     return {
@@ -229,10 +237,17 @@ export class SqliteCacheStore implements CacheStore {
       if (!repo) throw new Error("repo row missing after upsert");
       this.db.prepare("DELETE FROM manifest WHERE repo_id = ?").run(repo.id);
       const insert = this.db.prepare(
-        "INSERT INTO manifest (repo_id, path, size, mtime_ns, content_hash) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO manifest (repo_id, path, size, mtime_ns, ctime_ns, content_hash) VALUES (?, ?, ?, ?, ?, ?)",
       );
       for (const f of index.files) {
-        insert.run(repo.id, f.path, f.size, f.mtimeNs, f.contentHash);
+        insert.run(
+          repo.id,
+          f.path,
+          f.size,
+          f.mtimeNs,
+          f.ctimeNs,
+          f.contentHash,
+        );
       }
     });
   }

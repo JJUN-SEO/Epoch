@@ -76,3 +76,14 @@ export const FileFacts = z.strictObject({
   loc: z.number().int().nonnegative(),
 });
 export type FileFacts = z.infer<typeof FileFacts>;
+
+/**
+ * What the cache keeps per file (CLAUDE.md "Local cache"): the facts plus
+ * whether the parser had to recover from syntax errors, which a warm run can
+ * no longer see. Validated on read, so a stale row is a miss, never bad facts.
+ */
+export const CachedFacts = z.strictObject({
+  facts: FileFacts,
+  syntaxErrors: z.boolean(),
+});
+export type CachedFacts = z.infer<typeof CachedFacts>;

@@ -1,5 +1,5 @@
 import {
-  FileFacts,
+  CachedFacts,
   type CacheStats,
   type CacheStore,
   type RepoIndex,
@@ -20,10 +20,10 @@ export class MemoryCacheStore implements CacheStore {
   private readonly repos = new Map<string, RepoIndex>();
   private clock = 0;
 
-  getFacts(key: string): FileFacts | undefined {
+  getFacts(key: string): CachedFacts | undefined {
     const row = this.facts.get(key);
     if (!row) return undefined;
-    const parsed = FileFacts.safeParse(JSON.parse(row.json));
+    const parsed = CachedFacts.safeParse(JSON.parse(row.json));
     if (!parsed.success) {
       this.facts.delete(key);
       return undefined;
@@ -32,7 +32,7 @@ export class MemoryCacheStore implements CacheStore {
     return parsed.data;
   }
 
-  putFacts(key: string, facts: FileFacts): void {
+  putFacts(key: string, facts: CachedFacts): void {
     this.facts.set(key, {
       json: JSON.stringify(facts),
       lastUsed: ++this.clock,

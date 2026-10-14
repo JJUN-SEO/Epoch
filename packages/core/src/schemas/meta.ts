@@ -27,6 +27,8 @@ export const AnalysisMeta = z.strictObject({
   ),
   timingsMs: z.strictObject({
     discover: Ms,
+    /** Change detection: stat, hashing and cache lookups. */
+    changes: Ms,
     parse: Ms,
     resolve: Ms,
     graph: Ms,
@@ -40,6 +42,12 @@ export const AnalysisMeta = z.strictObject({
     unresolved: Count,
     skipped: Count,
     parseErrors: Count,
+    /** Source files whose FileFacts came from the cache. */
+    cacheHits: Count,
+    /** Source files that were parsed and extracted this run. */
+    cacheMisses: Count,
+    /** Source files read and hashed because the manifest could not vouch for them. */
+    rehashed: Count,
   }),
   /** Files the walk saw but did not analyze (ignored directories are not listed). */
   skipped: z.array(z.strictObject({ path: z.string(), reason: SkipReason })),

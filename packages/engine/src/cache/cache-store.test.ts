@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
-import type { CacheStore, FileFacts, RepoIndex } from "@epoch-dev/core";
+import type { CachedFacts, CacheStore, RepoIndex } from "@epoch-dev/core";
 import { MemoryCacheStore } from "./memory-store.js";
 import {
   CACHE_FILE,
@@ -25,22 +25,25 @@ afterEach(() => {
     fs.rmSync(d, { recursive: true, force: true });
 });
 
-const facts = (n: number): FileFacts => ({
-  imports: [
-    {
-      kind: "static",
-      specifier: `./m${String(n)}`,
-      typeOnly: false,
-      names: [{ imported: "x" }],
-      line: 1,
-    },
-  ],
-  exports: [{ name: `e${String(n)}` }],
-  exportAllFrom: [],
-  flagUsages: [],
-  constantConditions: [],
-  isGenerated: false,
-  loc: n,
+const facts = (n: number): CachedFacts => ({
+  facts: {
+    imports: [
+      {
+        kind: "static",
+        specifier: `./m${String(n)}`,
+        typeOnly: false,
+        names: [{ imported: "x" }],
+        line: 1,
+      },
+    ],
+    exports: [{ name: `e${String(n)}` }],
+    exportAllFrom: [],
+    flagUsages: [],
+    constantConditions: [],
+    isGenerated: false,
+    loc: n,
+  },
+  syntaxErrors: n % 2 === 0,
 });
 
 const index: RepoIndex = {
@@ -52,12 +55,14 @@ const index: RepoIndex = {
       path: "a.ts",
       size: 10,
       mtimeNs: "1699999999000000000",
+      ctimeNs: "1699999999000000000",
       contentHash: "h1",
     },
     {
       path: "b.ts",
       size: 20,
       mtimeNs: "1699999999000000001",
+      ctimeNs: "1699999999000000002",
       contentHash: "h2",
     },
   ],
