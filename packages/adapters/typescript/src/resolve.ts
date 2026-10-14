@@ -32,6 +32,14 @@ const isRelative = (s: string): boolean =>
 const isAbsolute = (s: string): boolean =>
   s.startsWith("/") || /^[A-Za-z]:[\\/]/.test(s);
 const hasGlob = (s: string): boolean => /[*?]/.test(s);
+/**
+ * Resolves a relative specifier against the importing file. path.posix.join
+ * normalizes without consulting process.cwd(), unlike path.posix.resolve,
+ * which treats a Windows drive-letter root ("D:/repo") as relative. Like
+ * resolve, it drops a trailing slash.
+ */
+const joinFrom = (fromAbs: string, spec: string): string =>
+  path.posix.join(path.posix.dirname(fromAbs), spec).replace(/(.)\/+$/, "$1");
 
 /** "@scope/name/sub" -> "@scope/name"; "name/sub" -> "name". */
 export function packageName(specifier: string): string {
@@ -336,7 +344,7 @@ class Resolver {
       return undefined;
     const target = isAbsolute(prefix)
       ? posix(prefix)
-      : path.posix.resolve(path.posix.dirname(fromAbs), prefix);
+      : joinFrom(fromAbs, prefix);
     const rel = this.rel(target);
     if (rel === undefined) return undefined;
     return prefix.endsWith("/") && rel !== "" ? `${rel}/` : rel;
@@ -397,9 +405,7 @@ class Resolver {
       return { kind: "external", name: `node:${spec.replace(/^node:/, "")}` };
     }
     if (isRelative(spec) || isAbsolute(spec)) {
-      const target = isAbsolute(spec)
-        ? posix(spec)
-        : path.posix.resolve(path.posix.dirname(fromAbs), spec);
+      const target = isAbsolute(spec) ? posix(spec) : joinFrom(fromAbs, spec);
       const rel = this.rel(target);
       if (rel === undefined)
         return { kind: "unresolved", reason: "outside-project" };

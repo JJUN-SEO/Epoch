@@ -252,3 +252,37 @@ describe("detectProjectRoots", () => {
     ]);
   });
 });
+
+describe("resolveImport with a Windows drive-letter root", () => {
+  // Engine roots are forward-slash absolute paths, so on Windows they start
+  // with a drive letter; path.posix must never treat them as relative.
+  const repo = memoryRepo("C:/repo", {
+    "src/a.ts": "",
+    "src/b.ts": "",
+    "src/styles.css": "",
+  });
+  const ctx = ctxFor(repo);
+  const r = (spec: string | null, extra?: Partial<RawImport>) =>
+    resolveImport(imp(spec, extra), "src/a.ts", ctx);
+
+  it("resolves sources, existing assets and dynamic prefixes", () => {
+    expect(r("./b")).toEqual({ kind: "file", target: "src/b.ts" });
+    expect(r("./styles.css")).toEqual({
+      kind: "file",
+      target: "src/styles.css",
+    });
+    expect(r(null, { kind: "dynamic", dynamicPrefix: "./pages/" })).toEqual({
+      kind: "unresolved",
+      reason: "dynamic-specifier",
+      pathPrefix: "src/pages/",
+    });
+    expect(r("./missing.css")).toEqual({
+      kind: "unresolved",
+      reason: "not-found",
+    });
+    expect(r("../../outside")).toEqual({
+      kind: "unresolved",
+      reason: "outside-project",
+    });
+  });
+});
