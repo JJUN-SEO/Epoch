@@ -1,3 +1,4 @@
+import childProcess from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -124,5 +125,75 @@ describe("FsReader", () => {
     expect(reader.readFile(r("escape/secret.txt"))).toBeUndefined();
     expect(reader.fileExists(r("escape/secret.txt"))).toBe(false);
     expect(reader.realpath(r("escape"))).toBe(r("escape"));
+  });
+});
+
+describe("discover: files git tracks are never hidden by .gitignore", () => {
+  const git = (cwd: string, ...args: string[]) =>
+    childProcess.execFileSync(
+      "git",
+      ["-c", "user.email=t@example.com", "-c", "user.name=t", ...args],
+      {
+        cwd,
+        encoding: "utf8",
+        stdio: "pipe",
+      },
+    );
+
+  function trackedRepo(init: string[] = []) {
+    const root = tree({
+      ".gitignore": "*.js\nvendor-dir/\n",
+      ".epochignore": "secret.ts\n",
+      "src/a.ts": "",
+      "lib/vendor.js": "tracked despite *.js",
+      "lib/untracked.js": "",
+      "vendor-dir/kept.ts": "tracked inside an ignored directory",
+      "vendor-dir/other.ts": "",
+      "secret.ts": "tracked, but .epochignore is the user's explicit choice",
+    });
+    git(root, "init", "-q", ...init);
+    git(root, "add", ".gitignore", ".epochignore", "src/a.ts", "secret.ts");
+    git(root, "add", "-f", "lib/vendor.js", "vendor-dir/kept.ts");
+    git(root, "commit", "-q", "-m", "init");
+    return root;
+  }
+
+  const expected = [
+    ".epochignore",
+    ".gitignore",
+    "lib/vendor.js",
+    "src/a.ts",
+    "vendor-dir/kept.ts",
+  ];
+
+  it("keeps tracked files that match ignore rules, and only those", () => {
+    expect(discover(trackedRepo(), { isSource }).files).toEqual(expected);
+  });
+
+  it("reads index version 4 (prefix-compressed paths)", () => {
+    const root = trackedRepo();
+    git(root, "update-index", "--index-version", "4");
+    expect(discover(root, { isSource }).files).toEqual(expected);
+  });
+
+  it("reads SHA-256 repositories", (ctx) => {
+    let root: string;
+    try {
+      root = trackedRepo(["--object-format=sha256"]);
+    } catch {
+      ctx.skip(); // this git build has no SHA-256 support
+      return;
+    }
+    expect(discover(root, { isSource }).files).toEqual(expected);
+  });
+
+  it("falls back to plain .gitignore rules without a readable index", () => {
+    const root = trackedRepo();
+    fs.writeFileSync(path.join(root, ".git", "index"), "garbage");
+    expect(discover(root, { isSource }).files).toEqual([
+      ".epochignore",
+      ".gitignore",
+      "src/a.ts",
+    ]);
   });
 });

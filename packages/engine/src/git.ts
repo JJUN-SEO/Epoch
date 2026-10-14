@@ -4,6 +4,27 @@ import type { FsReader } from "./reader.js";
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
 
 /**
+ * The repository's git directory: `<root>/.git`, or the target of a `.git`
+ * file's `gitdir:` line. Reads go through the root-confined reader, so a
+ * gitdir outside the root (worktrees, submodules) reads as missing.
+ */
+export function resolveGitDir(
+  reader: FsReader,
+  root: string,
+): string | undefined {
+  const gitDir = `${root}/.git`;
+  if (reader.directoryExists(gitDir)) return gitDir;
+  const pointer = reader.readFile(gitDir)?.trim();
+  const target = pointer?.startsWith("gitdir: ")
+    ? pointer.slice(8).trim()
+    : undefined;
+  if (target === undefined) return undefined;
+  return target.startsWith("/") || /^[A-Za-z]:[\\/]/.test(target)
+    ? target
+    : `${root}/${target}`;
+}
+
+/**
  * The commit HEAD points at, read from `.git` as plain files (HEAD, loose refs,
  * packed-refs) through the root-confined reader. Runs no process, so a
  * repo-local git config can never execute anything. Returns null outside a
@@ -11,18 +32,8 @@ const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
  * layout it does not understand: the commit is bookkeeping, never required.
  */
 export function readHeadCommit(reader: FsReader, root: string): string | null {
-  let gitDir = `${root}/.git`;
-  if (!reader.directoryExists(gitDir)) {
-    const pointer = reader.readFile(gitDir)?.trim();
-    const target = pointer?.startsWith("gitdir: ")
-      ? pointer.slice(8).trim()
-      : undefined;
-    if (target === undefined) return null;
-    gitDir =
-      target.startsWith("/") || /^[A-Za-z]:[\\/]/.test(target)
-        ? target
-        : `${root}/${target}`;
-  }
+  const gitDir = resolveGitDir(reader, root);
+  if (gitDir === undefined) return null;
   const head = reader.readFile(`${gitDir}/HEAD`)?.trim();
   if (head === undefined) return null;
   if (OBJECT_ID.test(head)) return head; // detached HEAD

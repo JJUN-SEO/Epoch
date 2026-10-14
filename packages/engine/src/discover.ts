@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import ignore, { type Ignore } from "ignore";
 import type { SkipReason } from "@epoch-dev/core";
+import { readTrackedPaths, type TrackedPaths } from "./git-index.js";
+import { FsReader } from "./reader.js";
 
 /** Directories never walked, whatever the ignore files say (PLAN.md M1 Discover). */
 export const DEFAULT_SKIPPED_DIRS: ReadonlySet<string> = new Set([
@@ -18,7 +20,11 @@ export const DEFAULT_SKIPPED_DIRS: ReadonlySet<string> = new Set([
 /** Source files larger than this are skipped (minified bundles, generated blobs). */
 export const DEFAULT_MAX_FILE_BYTES = 1024 * 1024;
 
-const IGNORE_FILES = [".gitignore", ".epochignore"] as const;
+/** Ignore files, and whether git's "tracked files are never ignored" rule applies to them. */
+const IGNORE_FILES = [
+  { name: ".gitignore", git: true },
+  { name: ".epochignore", git: false },
+] as const;
 
 export interface DiscoverOptions {
   /** Whether a repo-relative path is a source file some adapter analyzes. */
@@ -43,6 +49,8 @@ export function toPosix(p: string): string {
 interface Scope {
   /** Repo-relative directory the rules apply to ("" for the root). */
   readonly dir: string;
+  /** A .gitignore (tracked files override it) rather than an .epochignore. */
+  readonly git: boolean;
   readonly ig: Ignore;
 }
 
@@ -54,9 +62,11 @@ function isIgnored(
   scopes: readonly Scope[],
   rel: string,
   isDir: boolean,
+  git: boolean,
 ): boolean {
   let ignored = false;
-  for (const { dir, ig } of scopes) {
+  for (const { dir, ig, git: isGit } of scopes) {
+    if (isGit !== git) continue;
     const local = dir === "" ? rel : rel.slice(dir.length + 1);
     const result = ig.test(isDir ? `${local}/` : local);
     if (result.ignored) ignored = true;
@@ -65,12 +75,32 @@ function isIgnored(
   return ignored;
 }
 
+/** Tracked-path lookups; git never applies ignore rules to tracked files. */
+function trackedLookup(tracked: TrackedPaths | undefined) {
+  const dirs = new Set<string>();
+  for (const f of tracked?.files ?? []) {
+    for (let i = f.indexOf("/"); i !== -1; i = f.indexOf("/", i + 1))
+      dirs.add(f.slice(0, i));
+  }
+  const sparse = tracked?.sparseDirs ?? [];
+  const inSparse = (rel: string) => sparse.some((d) => `${rel}/`.startsWith(d));
+  return {
+    file: (rel: string) => tracked?.files.has(rel) === true || inSparse(rel),
+    dir: (rel: string) =>
+      dirs.has(rel) ||
+      inSparse(rel) ||
+      sparse.some((d) => d.startsWith(`${rel}/`)),
+  };
+}
+
 /**
  * Walks the project (Discover stage). Honours the root and nested .gitignore
  * and .epochignore files, always skips DEFAULT_SKIPPED_DIRS, never follows
  * symlinks (no cycles, no escaping the root of an untrusted project), and
- * skips oversized source files. Reads only directory listings, ignore files
- * and file sizes; never writes.
+ * skips oversized source files. As in git, a file git tracks is never hidden
+ * by .gitignore (tracked paths come from .git/index, read as data);
+ * .epochignore, the user's explicit choice, hides it anyway. Reads only
+ * directory listings, ignore files, the git index and file sizes; never writes.
  */
 export function discover(
   rootDir: string,
@@ -78,10 +108,16 @@ export function discover(
 ): DiscoverResult {
   const root = toPosix(path.resolve(rootDir));
   const maxBytes = opts.maxFileBytes ?? DEFAULT_MAX_FILE_BYTES;
+  const tracked = trackedLookup(readTrackedPaths(new FsReader(root), root));
   const files: string[] = [];
   const skipped: { path: string; reason: SkipReason }[] = [];
 
-  const walk = (rel: string, scopes: readonly Scope[]): void => {
+  /** `gitIgnored`: an ancestor directory is gitignored, so only tracked files survive below it. */
+  const walk = (
+    rel: string,
+    scopes: readonly Scope[],
+    gitIgnored: boolean,
+  ): void => {
     const abs = rel === "" ? root : `${root}/${rel}`;
     let entries: fs.Dirent[];
     try {
@@ -91,11 +127,11 @@ export function discover(
       return;
     }
     let here = scopes;
-    for (const name of IGNORE_FILES) {
+    for (const { name, git } of IGNORE_FILES) {
       if (!entries.some((e) => e.name === name && e.isFile())) continue;
       try {
         const text = fs.readFileSync(`${abs}/${name}`, "utf8");
-        here = [...here, { dir: rel, ig: ignore().add(text) }];
+        here = [...here, { dir: rel, git, ig: ignore().add(text) }];
       } catch {
         skipped.push({
           path: rel === "" ? name : `${rel}/${name}`,
@@ -114,12 +150,19 @@ export function discover(
       }
       if (entry.isDirectory()) {
         if (DEFAULT_SKIPPED_DIRS.has(entry.name)) continue;
-        if (isIgnored(here, childRel, true)) continue;
-        walk(childRel, here);
+        if (isIgnored(here, childRel, true, false)) continue;
+        const ignoredHere = gitIgnored || isIgnored(here, childRel, true, true);
+        if (ignoredHere && !tracked.dir(childRel)) continue;
+        walk(childRel, here, ignoredHere);
         continue;
       }
       if (!entry.isFile()) continue; // sockets, FIFOs, devices
-      if (isIgnored(here, childRel, false)) continue;
+      if (isIgnored(here, childRel, false, false)) continue;
+      if (
+        (gitIgnored || isIgnored(here, childRel, false, true)) &&
+        !tracked.file(childRel)
+      )
+        continue;
       if (opts.isSource(childRel)) {
         let size: number;
         try {
@@ -137,7 +180,7 @@ export function discover(
     }
   };
 
-  walk("", []);
+  walk("", [], false);
   const byCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
   files.sort(byCodeUnits);
   skipped.sort((a, b) => byCodeUnits(a.path, b.path));
