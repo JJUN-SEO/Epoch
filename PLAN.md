@@ -141,14 +141,14 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Local cache, Testing and accuracy.
 
 **Tasks**
-- [ ] Run on 2 or 3 real TS repos (candidates below). Fix resolution gaps you find, each with a new fixture.
-- [ ] **Measure accuracy** with `pnpm bench:accuracy <repo>` against a ground-truth tool (table below): precision and recall for file-level import edges, with disagreements classified (tool wrong, we're wrong, ambiguous or dynamic). Write to `docs/benchmarks/typescript.md` with method, repo SHAs, and tool versions.
-- [ ] **CacheStore (SQLite, `better-sqlite3`)** in `engine`: WAL mode, schema versioning with migrations, owner-only permissions, location from the shared resolver in `core`. ADR-004.
-- [ ] **Cache `FileFacts`** keyed by hash(contents + adapter id + adapter version + `extractorConfigHash`). Plumb `extractorConfigHash` now (constant until M5 gives it content). **Recompute resolution, graph, and findings every run** from cached facts. Never store file contents or code excerpts.
-- [ ] **Incremental:** change detection via `git diff` against the last analyzed commit, with a content-hash fallback for non-git folders; per-repo index stores the manifest and last commit; handle uncommitted changes.
-- [ ] **Early cutoff mechanism** for downstream outputs (used by M6/M7 scores and summaries): generic "if the recomputed input equals the previous one, stop propagating", tested with a stub.
-- [ ] CLI: `--since <commit>`, `epoch cache stats|clear|prune`, size cap with LRU eviction.
-- [ ] **`pnpm bench`:** copies a repo to a temp dir, applies 1, 5, and 50-file edits, and reports cold full, warm unchanged, and incremental times, including how long resolution takes (ADR-004 uses this to decide whether resolution caching is ever needed). Median of at least 5 runs, hardware recorded. Results to `docs/benchmarks/`.
+- [x] Run on 2 or 3 real TS repos (candidates below). Fix resolution gaps you find, each with a new fixture.
+- [x] **Measure accuracy** with `pnpm bench:accuracy <repo>` against a ground-truth tool (table below): precision and recall for file-level import edges, with disagreements classified (tool wrong, we're wrong, ambiguous or dynamic). Write to `docs/benchmarks/typescript.md` with method, repo SHAs, and tool versions.
+- [x] **CacheStore (SQLite, `better-sqlite3`)** in `engine`: WAL mode, schema versioning with migrations, owner-only permissions, location from the shared resolver in `core`. ADR-004.
+- [x] **Cache `FileFacts`** keyed by hash(contents + adapter id + adapter version + `extractorConfigHash`). Plumb `extractorConfigHash` now (constant until M5 gives it content). **Recompute resolution, graph, and findings every run** from cached facts. Never store file contents or code excerpts.
+- [x] **Incremental:** change detection via `git diff` against the last analyzed commit, with a content-hash fallback for non-git folders; per-repo index stores the manifest and last commit; handle uncommitted changes.
+- [x] **Early cutoff mechanism** for downstream outputs (used by M6/M7 scores and summaries): generic "if the recomputed input equals the previous one, stop propagating", tested with a stub.
+- [x] CLI: `--since <commit>`, `epoch cache stats|clear|prune`, size cap with LRU eviction.
+- [x] **`pnpm bench`:** copies a repo to a temp dir, applies 1, 5, and 50-file edits, and reports cold full, warm unchanged, and incremental times, including how long resolution takes (ADR-004 uses this to decide whether resolution caching is ever needed). Median of at least 5 runs, hardware recorded. Results to `docs/benchmarks/`.
 
 **Acceptance**
 - Re-running on unchanged input is a 100% cache hit for `FileFacts`.
