@@ -93,7 +93,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - [x] pnpm workspace + Turborepo. Base `tsconfig` with `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`.
 - [x] ESLint + Prettier, Vitest, `.editorconfig`, `.gitignore`, `.env.example`.
 - [x] Package skeletons: `packages/core`, `packages/adapters/typescript`, `packages/findings`, `packages/engine`, `packages/cli`. Each has build, test, and lint scripts.
-- [ ] GitHub Actions: lint, typecheck, test on push and PR (Linux, macOS, Windows).
+- [x] GitHub Actions: lint, typecheck, test on push and PR (Linux, macOS, Windows).
 - [x] README stub stating the privacy principle and "work in progress". Copy `CLAUDE.md` and `PLAN.md` into the repo root.
 
 **Acceptance:** `pnpm install && pnpm lint && pnpm typecheck && pnpm test` passes locally and in CI, with at least one real test per package.
