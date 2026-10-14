@@ -8,12 +8,23 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 // Network guard. CLAUDE.md "Privacy and data flow": every network call goes
-// through a single network wrapper, and there is none before M7. Dynamic
-// import() and require() are not caught here; M7's zero-network test is the
-// real enforcement.
+// through a single network wrapper, and there is none before M7. This is a
+// backstop, not a proof: it cannot see dynamic import(), require(), computed
+// property access or other packages that open sockets. M7's zero-network test
+// is the real enforcement. Type-only imports are allowed: they are erased.
 const NETWORK_MESSAGE =
   "Epoch makes network calls only through its single network wrapper (CLAUDE.md, Privacy and data flow).";
-const NETWORK_MODULES = ["http", "https", "http2", "net", "tls", "dgram"];
+const NETWORK_MODULES = [
+  "http",
+  "https",
+  "http2",
+  "net",
+  "tls",
+  "dgram",
+  "dns",
+  "dns/promises",
+];
+const NETWORK_GLOBALS = ["fetch", "WebSocket", "EventSource"];
 
 export default defineConfig(
   globalIgnores(["**/dist/", "**/coverage/", "**/.turbo/"]),
@@ -47,19 +58,30 @@ export default defineConfig(
           ].map((name) => ({
             name,
             message: NETWORK_MESSAGE,
+            allowTypeImports: true,
           })),
+          patterns: [
+            {
+              group: ["undici/*"],
+              message: NETWORK_MESSAGE,
+              allowTypeImports: true,
+            },
+          ],
         },
       ],
       "no-restricted-globals": [
         "error",
-        ...["fetch", "WebSocket", "EventSource"].map((name) => ({
-          name,
-          message: NETWORK_MESSAGE,
-        })),
+        ...NETWORK_GLOBALS.map((name) => ({ name, message: NETWORK_MESSAGE })),
       ],
       "no-restricted-properties": [
         "error",
-        { object: "globalThis", property: "fetch", message: NETWORK_MESSAGE },
+        ...["globalThis", "global"].flatMap((object) =>
+          NETWORK_GLOBALS.map((property) => ({
+            object,
+            property,
+            message: NETWORK_MESSAGE,
+          })),
+        ),
       ],
     },
   },
