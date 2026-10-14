@@ -6,3 +6,4 @@
  * Pure: no I/O (CLAUDE.md, "Repo layout").
  */
 export * from "./schemas/index.js";
+export * from "./canonical.js";
