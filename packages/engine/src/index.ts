@@ -10,3 +10,4 @@ export * from "./analyze.js";
 export * from "./discover.js";
 export * from "./parse.js";
 export * from "./reader.js";
+export * from "./cache/index.js";
