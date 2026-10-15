@@ -1,0 +1,13 @@
+{
+  "description": "An environment read with a configured prefix: Medium.",
+  "adapters": [
+    "python"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01",
+    "introduced": {
+      "FEATURE_DARK_MODE": "2024-01-01"
+    }
+  }
+}

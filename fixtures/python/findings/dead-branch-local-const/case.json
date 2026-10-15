@@ -1,0 +1,6 @@
+{
+  "description": "A local name assigned once (High).",
+  "adapters": [
+    "python"
+  ]
+}

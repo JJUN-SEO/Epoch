@@ -9,6 +9,7 @@
  */
 import type { Tree } from "web-tree-sitter";
 import type { AdapterRegistration, LanguageAdapter } from "@epoch-dev/core";
+import { detectEntryPoints } from "./entry-points.js";
 import { extract } from "./extract.js";
 import { EXTENSIONS, grammarFor, isTestFile, languageFor } from "./files.js";
 import { resolveImport } from "./resolve.js";
@@ -18,11 +19,11 @@ export const typescriptAdapter: LanguageAdapter<Tree> = {
   id: "typescript",
   tier: "A",
   extensions: EXTENSIONS,
-  version: "3", // bump whenever extract output can change (cache keys include it)
+  version: "4", // bump whenever extract output can change (cache keys include it)
   detectProjectRoots,
   extract,
   resolveImport,
-  detectEntryPoints: () => [], // M5
+  detectEntryPoints,
   isTestFile,
 };
 

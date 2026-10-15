@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "FEATURE_DARK_MODE"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "app/core.py",
+          "line": 5,
+          "endLine": 5
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

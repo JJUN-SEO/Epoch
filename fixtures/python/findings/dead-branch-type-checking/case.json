@@ -1,0 +1,6 @@
+{
+  "description": "A TYPE_CHECKING guard is a typing-only import block: no finding.",
+  "adapters": [
+    "python"
+  ]
+}

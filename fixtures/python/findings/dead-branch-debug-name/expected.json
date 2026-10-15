@@ -1,0 +1,23 @@
+{
+  "findings": [
+    {
+      "kind": "dead-branch",
+      "subject": {
+        "type": "file",
+        "name": "app/core.py"
+      },
+      "confidence": "low",
+      "caps": [
+        "debug-name"
+      ],
+      "locations": [
+        {
+          "file": "app/core.py",
+          "line": 5,
+          "endLine": 6
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A never-reassigned local boolean constant (High).",
+  "adapters": [
+    "typescript"
+  ]
+}

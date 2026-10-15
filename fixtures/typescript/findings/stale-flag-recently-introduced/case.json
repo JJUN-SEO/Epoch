@@ -1,0 +1,13 @@
+{
+  "description": "A flag introduced within staleAfterDays: no finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01",
+    "introduced": {
+      "new-checkout": "2026-05-01"
+    }
+  }
+}

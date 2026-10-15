@@ -1,0 +1,6 @@
+{
+  "description": "A module constant true: the else-branch can never run (High).",
+  "adapters": [
+    "typescript"
+  ]
+}

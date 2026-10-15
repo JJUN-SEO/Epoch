@@ -1,0 +1,10 @@
+{
+  "description": "A file no entry point reaches, with a manifest root and old, usable history: High.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

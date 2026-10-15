@@ -1,0 +1,10 @@
+{
+  "description": "A module no root reaches; the only root is a __main__ guard (a convention), so capped at Medium. The package's __init__.py runs when app.used is imported, so it is reachable.",
+  "adapters": [
+    "python"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

@@ -6,6 +6,7 @@ import type {
   ParsedFile,
   RawImport,
 } from "@epoch-dev/core";
+import { findingsFacts } from "./findings-facts.js";
 import { IMPORTS_QUERY } from "./queries.generated.js";
 
 const queries = new WeakMap<Language, Query>();
@@ -114,13 +115,13 @@ function isGenerated(root: Node): boolean {
 
 /**
  * Extract stage for Go: package imports, package-level exported names and
- * the generated-file marker, from the syntax tree. Pure: the same text and
- * grammar always give the same facts. It never runs the go command
- * (ADR-006). Flag usages and constant conditions arrive in M5.
+ * the generated-file marker, flag usages and constant conditions, from the
+ * syntax tree. Pure: the same text, grammar and extractor config always give
+ * the same facts. It never runs the go command (ADR-006).
  */
 export function extract(
   file: ParsedFile<Tree>,
-  _cfg: ExtractorConfig,
+  cfg: ExtractorConfig,
 ): FileFacts {
   const root = file.tree.rootNode;
   const imports: RawImport[] = [];
@@ -133,12 +134,17 @@ export function extract(
   const exports: ExportInfo[] = [...new Set(declaredNames(root))]
     .filter(isExported)
     .map((name) => ({ name }));
+  const { flagUsages, constantConditions } = findingsFacts(
+    root,
+    imports.flatMap((i) => (i.specifier === null ? [] : [i.specifier])),
+    cfg,
+  );
   return {
     imports,
     exports,
     exportAllFrom: [],
-    flagUsages: [],
-    constantConditions: [],
+    flagUsages,
+    constantConditions,
     isGenerated: isGenerated(root),
     loc: countLoc(file.text),
   };

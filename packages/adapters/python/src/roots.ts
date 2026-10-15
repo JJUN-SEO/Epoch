@@ -17,19 +17,19 @@ const join = (...parts: string[]): string =>
 /** Config files are capped like any source file; a larger one is ignored. */
 const MAX_CONFIG_BYTES = 256 * 1024;
 
-function readConfig(repo: RepoView, rel: string): string | undefined {
+export function readConfig(repo: RepoView, rel: string): string | undefined {
   const text = repo.reader.readFile(`${repo.root}/${rel}`);
   return text !== undefined && text.length <= MAX_CONFIG_BYTES
     ? text
     : undefined;
 }
 
-type Table = Readonly<Record<string, unknown>>;
+export type Table = Readonly<Record<string, unknown>>;
 
-const isTable = (v: unknown): v is Table =>
+export const isTable = (v: unknown): v is Table =>
   typeof v === "object" && v !== null && !Array.isArray(v);
 
-function at(v: unknown, ...keys: string[]): unknown {
+export function at(v: unknown, ...keys: string[]): unknown {
   let cur = v;
   for (const k of keys) cur = isTable(cur) ? cur[k] : undefined;
   return cur;
@@ -39,7 +39,7 @@ const strings = (v: unknown): string[] =>
   Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : [];
 
 /** pyproject.toml as data (smol-toml); undefined if it does not parse. */
-function pyproject(repo: RepoView, rel: string): Table | undefined {
+export function pyproject(repo: RepoView, rel: string): Table | undefined {
   const text = readConfig(repo, rel);
   if (text === undefined) return undefined;
   try {

@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "beta-search"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "src/index.ts",
+          "line": 4,
+          "endLine": 4
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

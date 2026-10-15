@@ -25,6 +25,7 @@
     "vitest": "catalog:"
   },
   "dependencies": {
-    "@epoch-dev/core": "workspace:*"
+    "@epoch-dev/core": "workspace:*",
+    "zod": "catalog:"
   }
 }

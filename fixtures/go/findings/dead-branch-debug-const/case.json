@@ -1,0 +1,6 @@
+{
+  "description": "const debug = false: a debug toggle, capped at Low.",
+  "adapters": [
+    "go"
+  ]
+}

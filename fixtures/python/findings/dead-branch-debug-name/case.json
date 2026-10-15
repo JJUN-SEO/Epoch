@@ -1,0 +1,6 @@
+{
+  "description": "A debug-like name: capped at Low.",
+  "adapters": [
+    "python"
+  ]
+}

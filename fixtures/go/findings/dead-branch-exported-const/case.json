@@ -1,0 +1,6 @@
+{
+  "description": "An exported constant: capped at Medium.",
+  "adapters": [
+    "go"
+  ]
+}

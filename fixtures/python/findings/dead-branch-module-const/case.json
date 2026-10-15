@@ -1,0 +1,6 @@
+{
+  "description": "A private module name assigned once (High).",
+  "adapters": [
+    "python"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A literal false condition (High).",
+  "adapters": [
+    "go"
+  ]
+}

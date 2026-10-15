@@ -1,0 +1,6 @@
+{
+  "description": "An exported constant may be overridden at build time: capped at Medium.",
+  "adapters": [
+    "typescript"
+  ]
+}

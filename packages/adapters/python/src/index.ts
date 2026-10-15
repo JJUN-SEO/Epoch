@@ -18,17 +18,18 @@ import type { AdapterRegistration, LanguageAdapter } from "@epoch-dev/core";
 import { extract } from "./extract.js";
 import { EXTENSIONS, grammarFor, isTestFile, languageFor } from "./files.js";
 import { resolveImport } from "./resolve.js";
+import { detectEntryPoints } from "./entry-points.js";
 import { detectProjectRoots } from "./roots.js";
 
 export const pythonAdapter: LanguageAdapter<Tree> = {
   id: "python",
   tier: "A",
   extensions: EXTENSIONS,
-  version: "1", // bump whenever extract output can change (cache keys include it)
+  version: "2", // bump whenever extract output can change (cache keys include it)
   detectProjectRoots,
   extract,
   resolveImport,
-  detectEntryPoints: () => [], // M5
+  detectEntryPoints,
   isTestFile,
 };
 

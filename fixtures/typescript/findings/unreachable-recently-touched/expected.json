@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "src/orphan.ts"
+      },
+      "confidence": "medium",
+      "caps": [
+        "recently-touched"
+      ],
+      "locations": [
+        {
+          "file": "src/orphan.ts"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

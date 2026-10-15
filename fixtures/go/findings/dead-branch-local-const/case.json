@@ -1,0 +1,6 @@
+{
+  "description": "A local constant (High).",
+  "adapters": [
+    "go"
+  ]
+}

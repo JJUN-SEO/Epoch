@@ -1,0 +1,10 @@
+{
+  "description": "entryPoints globs from epoch.config.json are roots: no finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

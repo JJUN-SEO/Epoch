@@ -6,6 +6,7 @@ import type {
   ParsedFile,
   RawImport,
 } from "@epoch-dev/core";
+import { findingsFacts } from "./findings-facts.js";
 import { IMPORTS_QUERY } from "./queries.generated.js";
 
 const queries = new WeakMap<Language, Query>();
@@ -329,12 +330,13 @@ export function countLoc(text: string): number {
 /**
  * Extract stage for Python: imports (static, TYPE_CHECKING-only, dynamic via
  * importlib), __init__.py re-exports and module exports, from the syntax
- * tree. Pure: the same text and grammar always give the same facts. It never
- * runs Python (ADR-006). Flag usages and constant conditions arrive in M5.
+ * tree, plus flag usages and constant conditions. Pure: the same text,
+ * grammar and extractor config always give the same facts. It never runs
+ * Python (ADR-006).
  */
 export function extract(
   file: ParsedFile<Tree>,
-  _cfg: ExtractorConfig,
+  cfg: ExtractorConfig,
 ): FileFacts {
   const root = file.tree.rootNode;
   const isInit = /(?:^|\/)__init__\.pyi?$/.test(file.path);
@@ -366,12 +368,17 @@ export function extract(
       });
     } else if (call && args) dynamicCall(call, args, out);
   }
+  const { flagUsages, constantConditions } = findingsFacts(
+    root,
+    out.imports.flatMap((i) => (i.specifier === null ? [] : [i.specifier])),
+    cfg,
+  );
   return {
     imports: out.imports,
     exports: exportsOf(root, out.reexports),
     exportAllFrom: [...new Set(out.exportAllFrom)],
-    flagUsages: [],
-    constantConditions: [],
+    flagUsages,
+    constantConditions,
     isGenerated: GENERATED.test(file.text.slice(0, 2048)),
     loc: countLoc(file.text),
   };
