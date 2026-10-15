@@ -11,6 +11,7 @@ import {
   useState,
   type Ref,
 } from "react";
+import type { Confidence } from "@epoch-dev/core";
 import type { VisibleGraph } from "./aggregate";
 import type { NodeColors } from "./colors";
 import {
@@ -33,6 +34,10 @@ export interface GraphViewProps {
   readonly selected: string | undefined;
   /** Blast radius to draw: drawn node -> distance from the changed node. */
   readonly impact?: ReadonlyMap<string, number> | undefined;
+  /** Drawn node -> highest confidence of the open findings it holds. */
+  readonly findingRings?: ReadonlyMap<string, Confidence> | undefined;
+  /** Fade nodes without open findings. */
+  readonly findingsOnly?: boolean | undefined;
   /** Center the view on this node once it is laid out (a new object re-centers). */
   readonly reveal: { readonly id: string } | undefined;
   readonly onSelect: (id: string | undefined) => void;
@@ -237,7 +242,24 @@ export function GraphView(props: GraphViewProps) {
     if (props.selected !== undefined) cy.$id(props.selected).select();
     if (props.impact) highlightImpact(cy, props.impact);
     else highlightNeighbors(cy, props.selected);
-  }, [props.selected, props.impact, laidOut]);
+    const rings = props.findingRings;
+    cy.batch(() => {
+      cy.nodes().removeData("finding");
+      for (const [id, level] of rings ?? []) cy.$id(id).data("finding", level);
+      if (props.findingsOnly && !props.impact && props.selected === undefined) {
+        cy.nodes(":childless")
+          .filter((n) => rings?.has(n.id()) !== true)
+          .addClass("faded");
+        cy.edges().addClass("faded");
+      }
+    });
+  }, [
+    props.selected,
+    props.impact,
+    props.findingRings,
+    props.findingsOnly,
+    laidOut,
+  ]);
 
   useEffect(() => {
     const cy = cyRef.current;

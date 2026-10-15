@@ -1,6 +1,7 @@
 import {
   applyDelta,
   blastRadius,
+  filterFindings,
   type AnalysisInfo,
   type EpochApi,
   type Graph,
@@ -35,10 +36,6 @@ const unavailable = (what: string) => (): Promise<never> =>
 
 /** EpochApi methods that later milestones implement. */
 const later = {
-  getFindings: unavailable("Findings arrive in M5"),
-  dismissFinding: unavailable("Findings arrive in M5"),
-  undismissFinding: unavailable("Findings arrive in M5"),
-  getCodePreview: unavailable("Code preview arrives in M5"),
   getSettings: unavailable("Settings arrive in M7"),
   updateSettings: unavailable("Settings arrive in M7"),
   setKey: unavailable("Keys arrive in M7"),
@@ -71,6 +68,11 @@ export function createIpcApi(bridge: DesktopBridge): {
         blastRadius(current ?? (await graph()), nodeId, opts),
       onProgress: (cb) => bridge.onProgress(cb),
       onGraphDelta: (cb) => bridge.onGraphDelta(cb),
+      getFindings: (filter) => bridge.getFindings(filter),
+      dismissFinding: (id, note) => bridge.dismissFinding(id, note),
+      undismissFinding: (id) => bridge.undismissFinding(id),
+      getCodePreview: (file, start, end) =>
+        bridge.getCodePreview(file, start, end),
       ...later,
     },
     shell: {
@@ -101,7 +103,10 @@ export function createStaticApi(project: ProjectInfo, graph: Graph): EpochApi {
     onGraphDelta: () => () => undefined,
     getBlastRadius: (nodeId, opts) =>
       Promise.resolve(blastRadius(graph, nodeId, opts)),
-    ...later,
+    getFindings: (filter) =>
+      Promise.resolve(filterFindings(graph.findings, filter)),
+    dismissFinding: unavailable("The demo cannot dismiss findings"),
+    undismissFinding: unavailable("The demo cannot dismiss findings"),
     getCodePreview: unavailable("The demo includes no source code"),
     getSettings: unavailable("The demo has no settings"),
     updateSettings: unavailable("The demo has no settings"),

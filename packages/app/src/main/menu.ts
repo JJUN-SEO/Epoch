@@ -65,6 +65,7 @@ export function buildMenu(actions: MenuActions): Menu {
         { type: "separator" },
         command("Graph", "CmdOrCtrl+1", "view.graph"),
         command("Focus", "CmdOrCtrl+2", "view.focus"),
+        command("Findings", "CmdOrCtrl+3", "view.findings"),
         command("Back", "CmdOrCtrl+[", "nav.back"),
         command("Forward", "CmdOrCtrl+]", "nav.forward"),
         { type: "separator" },

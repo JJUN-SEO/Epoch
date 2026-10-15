@@ -12,6 +12,14 @@ export const CHANNELS = {
   getGraph: "epoch:get-graph",
   /** What the latest analysis used (git history, coverage report); no payload. */
   getAnalysisInfo: "epoch:get-analysis-info",
+  /** The open project's findings; payload: an optional FindingFilter. */
+  getFindings: "epoch:get-findings",
+  /** payload: finding id, optional note. */
+  dismissFinding: "epoch:dismiss-finding",
+  /** payload: finding id. */
+  undismissFinding: "epoch:undismiss-finding",
+  /** payload: repo-relative file, start line, end line. */
+  getCodePreview: "epoch:get-code-preview",
   /** Pops up the application menu (Windows, Linux: the title bar has no menu bar). */
   showAppMenu: "epoch:show-app-menu",
 } as const;
@@ -39,6 +47,7 @@ export const MENU_COMMANDS = [
   "palette",
   "view.graph",
   "view.focus",
+  "view.findings",
   "nav.back",
   "nav.forward",
   "panel.sidebar",

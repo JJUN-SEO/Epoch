@@ -45,7 +45,7 @@ export function packagedExecutable(): string {
 export interface Launched {
   readonly app: ElectronApplication;
   readonly page: Page;
-  /** Holds this run's user-data and cache directories. */
+  /** Holds this run's user-data, cache and data (dismissals) directories. */
   readonly home: string;
   close(): Promise<void>;
 }
@@ -69,6 +69,7 @@ export async function launch(
     env: {
       ...(process.env as Record<string, string>),
       EPOCH_CACHE_DIR: path.join(home, "cache"),
+      EPOCH_DATA_DIR: path.join(home, "data"),
       ...env,
     },
   };

@@ -6,6 +6,8 @@ import {
 } from "electron";
 import type {
   AnalysisInfo,
+  CodePreview,
+  Finding,
   Graph,
   Progress,
   ProjectInfo,
@@ -43,6 +45,17 @@ const bridge: DesktopBridge = {
   getGraph: () => invoke<Graph>(CHANNELS.getGraph),
   onGraphDelta: (cb) => on(EVENTS.graphDelta, cb),
   onWatchStatus: (cb) => on(EVENTS.watchStatus, cb),
+  getFindings: (filter) =>
+    filter === undefined
+      ? invoke<Finding[]>(CHANNELS.getFindings)
+      : invoke<Finding[]>(CHANNELS.getFindings, filter),
+  dismissFinding: (id, note) =>
+    note === undefined
+      ? invoke<undefined>(CHANNELS.dismissFinding, id)
+      : invoke<undefined>(CHANNELS.dismissFinding, id, note),
+  undismissFinding: (id) => invoke<undefined>(CHANNELS.undismissFinding, id),
+  getCodePreview: (file, startLine, endLine) =>
+    invoke<CodePreview>(CHANNELS.getCodePreview, file, startLine, endLine),
   getAnalysisInfo: () => invoke<AnalysisInfo | null>(CHANNELS.getAnalysisInfo),
   onAnalysisInfo: (cb) => on(EVENTS.analysisInfo, cb),
   onProgress: (cb) => {

@@ -159,6 +159,7 @@ export function App({ api, shell }: AppProps) {
       return (
         <Workspace
           key={view.project.root}
+          api={api}
           project={view.project}
           graph={view.graph}
           watch={watch}

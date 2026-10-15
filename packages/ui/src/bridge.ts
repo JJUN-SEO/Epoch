@@ -1,5 +1,8 @@
 import type {
   AnalysisInfo,
+  CodePreview,
+  Finding,
+  FindingFilter,
   Graph,
   GraphDelta,
   Progress,
@@ -23,6 +26,17 @@ export interface DesktopBridge {
   /** The file watcher changed the graph (already applied in main). */
   onGraphDelta(cb: (d: GraphDelta) => void): Unsubscribe;
   onWatchStatus(cb: (s: WatchStatus) => void): Unsubscribe;
+  /** The open project's findings; dismissed ones only when asked. */
+  getFindings(filter?: FindingFilter): Promise<Finding[]>;
+  /** Kept in Epoch's own data directory, never in the project. */
+  dismissFinding(id: string, note?: string): Promise<void>;
+  undismissFinding(id: string): Promise<void>;
+  /** Read-only lines of a file inside the open project (repo-relative path). */
+  getCodePreview(
+    file: string,
+    startLine: number,
+    endLine: number,
+  ): Promise<CodePreview>;
   /** What the latest analysis used; null until it finishes. */
   getAnalysisInfo(): Promise<AnalysisInfo | null>;
   onAnalysisInfo(cb: (info: AnalysisInfo) => void): Unsubscribe;

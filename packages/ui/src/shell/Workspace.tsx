@@ -3,6 +3,7 @@ import {
   ChevronRight,
   Crosshair,
   FolderOpen,
+  Lightbulb,
   Network,
   PanelLeft,
   PanelRight,
@@ -18,8 +19,11 @@ import {
   useState,
 } from "react";
 import {
+  atLeast,
   blastRadius,
   type AnalysisInfo,
+  type Confidence,
+  type EpochApi,
   type Graph,
   type ProjectInfo,
   type WatchStatus,
@@ -44,6 +48,11 @@ import { focusLayout, isGroupId, MAX_PER_COLUMN } from "../graph/focus-layout";
 import { FocusView } from "../graph/FocusView";
 import { GraphView } from "../graph/GraphView";
 import { neighborhood } from "../graph/neighborhood";
+import { FindingDetails } from "../findings/FindingDetails";
+import { FindingsBanner } from "../findings/FindingsBanner";
+import { FindingsView } from "../findings/FindingsView";
+import { nodeRings, summarize } from "../findings/model";
+import { useFindings } from "../findings/useFindings";
 import { graph3dData } from "../graph3d/data";
 import { webglAvailable } from "../graph3d/support";
 import { isMac } from "../platform";
@@ -68,6 +77,8 @@ import { TitleBar } from "./TitleBar";
 const Graph3DView = lazy(() => import("../graph3d/Graph3DView"));
 
 export interface WorkspaceProps {
+  /** Findings, dismissals and code previews go through the EpochApi. */
+  readonly api: EpochApi;
   readonly project: ProjectInfo;
   readonly graph: Graph;
   /** The file watcher's state (the desktop app). */
@@ -95,6 +106,11 @@ const NEXT_COLOR_BY: Readonly<Record<ColorBy, ColorBy>> = {
   language: "risk",
   risk: "folder",
 };
+const VIEW_COMMANDS: Readonly<Record<View, CommandId>> = {
+  graph: "view.graph",
+  focus: "view.focus",
+  findings: "view.findings",
+};
 const COLOR_BY_NAMES: Readonly<Record<ColorBy, string>> = {
   folder: "Folder",
   language: "Language",
@@ -106,6 +122,7 @@ const COLOR_BY_NAMES: Readonly<Record<ColorBy, string>> = {
  * (graph or focus view), the inspector, and the status bar.
  */
 export function Workspace({
+  api,
   project,
   graph,
   watch,
@@ -196,6 +213,38 @@ export function Workspace({
   }, [graph, isFileNode, selected, center, focusHood, hops, showViaBarrel]);
 
   const [watchNoticeClosed, setWatchNoticeClosed] = useState(false);
+
+  // Findings (M5): open ones, the banner's counts, rings on the graph.
+  const findings = useFindings(api, graph, shell !== undefined);
+  const findingsLevel: Confidence =
+    analysis?.findings.minConfidence ?? "medium";
+  const summary = useMemo(
+    () => summarize(graph.findings, findings.open, findingsLevel),
+    [graph, findings.open, findingsLevel],
+  );
+  /** The banner stays hidden after closing until its count changes. */
+  const [bannerClosedAt, setBannerClosedAt] = useState<number | undefined>();
+  const [selectedFinding, setSelectedFinding] = useState<string | undefined>();
+  const finding = graph.findings.find((f) => f.id === selectedFinding);
+  const [findingsOnly, setFindingsOnly] = useState(false);
+  const rings = useMemo(
+    () => nodeRings(graph, graph.findings, findings.open),
+    [graph, findings.open],
+  );
+  /** Rings on what is drawn: a closed folder carries its files' highest level. */
+  const visibleRings = useMemo(() => {
+    const out = new Map<string, Confidence>();
+    for (const [id, level] of rings) {
+      const rep = representative(id, expanded, graph);
+      const had = out.get(rep);
+      if (had === undefined || atLeast(level, had)) out.set(rep, level);
+    }
+    return out;
+  }, [rings, expanded, graph]);
+  const openFinding = (id: string) => {
+    setSelectedFinding(id);
+    updatePrefs({ inspector: true, inspectorTab: "details" });
+  };
 
   // Blast radius of the selection (core's pure function, as the API uses).
   const [impactOn, setImpactOn] = useState(false);
@@ -343,6 +392,9 @@ export function Workspace({
       if (isFileNode(selected) && selected !== center) focusOn(selected);
       else if (center !== undefined) setView("focus");
     },
+    "view.findings": () => {
+      setView("findings");
+    },
     "focus.selected": () => {
       if (selected !== undefined) focusOn(selected);
     },
@@ -378,6 +430,10 @@ export function Workspace({
     "graph.blastRadius": () => {
       toggleImpact();
     },
+    "graph.findingsOnly": () => {
+      setFindingsOnly((on) => !on);
+      setView("graph");
+    },
   };
 
   const entries: { id: CommandId; title: string; enabled: boolean }[] = [
@@ -388,6 +444,11 @@ export function Workspace({
     },
     { id: "view.graph", title: "Show Graph", enabled: view !== "graph" },
     { id: "view.focus", title: "Show Focus View", enabled: canFocus },
+    {
+      id: "view.findings",
+      title: "Show Findings",
+      enabled: view !== "findings",
+    },
     {
       id: "focus.selected",
       title: "Focus on Selected File",
@@ -439,6 +500,11 @@ export function Workspace({
       id: "graph.blastRadius",
       title: impactOn ? "Hide Blast Radius" : "Show Blast Radius",
       enabled: impactOn || isFileNode(selected),
+    },
+    {
+      id: "graph.findingsOnly",
+      title: findingsOnly ? "Show All Files" : "Show Only Files with Findings",
+      enabled: !mode3d,
     },
   ];
   const commands: Command[] = entries.map((c) => {
@@ -604,7 +670,7 @@ export function Workspace({
             label="View"
             value={view}
             onChange={(v) => {
-              run(v === "graph" ? "view.graph" : "view.focus", "key");
+              run(VIEW_COMMANDS[v], "key");
             }}
             options={[
               { value: "graph", label: "Graph", icon: Network },
@@ -615,6 +681,7 @@ export function Workspace({
                 disabled: !canFocus,
                 title: canFocus ? "Focus view" : "Select a file first",
               },
+              { value: "findings", label: "Findings", icon: Lightbulb },
             ]}
           />
         </div>
@@ -671,8 +738,9 @@ export function Workspace({
               shell={shell}
               view={view}
               canFocus={canFocus}
+              findingsCount={summary.total}
               onView={(v) => {
-                run(v === "graph" ? "view.graph" : "view.focus", "key");
+                run(VIEW_COMMANDS[v], "key");
               }}
               selected={selected}
               onSelect={show}
@@ -699,6 +767,8 @@ export function Workspace({
               colors={colors}
               selected={selected}
               impact={visibleImpact}
+              findingRings={visibleRings}
+              findingsOnly={findingsOnly}
               reveal={reveal}
               onSelect={setSelected}
               onActivate={(id) => {
@@ -752,6 +822,31 @@ export function Workspace({
               />
             </div>
           )}
+          {view === "findings" && (
+            <div className="h-full">
+              <FindingsView
+                graph={graph}
+                analysis={analysis ?? null}
+                state={findings}
+                selected={selectedFinding}
+                onSelect={openFinding}
+              />
+            </div>
+          )}
+          {view !== "findings" &&
+            findings.ready &&
+            summary.total > 0 &&
+            bannerClosedAt !== summary.total && (
+              <FindingsBanner
+                summary={summary}
+                onReview={() => {
+                  setView("findings");
+                }}
+                onClose={() => {
+                  setBannerClosedAt(summary.total);
+                }}
+              />
+            )}
           {view === "graph" && !mode3d && visibleImpact && (
             <div
               data-testid="impact-legend"
@@ -810,36 +905,40 @@ export function Workspace({
               </span>
             </div>
           )}
-          <CanvasToolbar
-            view={view}
-            onZoomIn={() => controls()?.zoomIn()}
-            onZoomOut={() => controls()?.zoomOut()}
-            onFit={() => controls()?.fit()}
-            colorBy={prefs.colorBy}
-            onColorBy={(by: ColorBy) => {
-              updatePrefs({ colorBy: by });
-            }}
-            showViaBarrel={showViaBarrel}
-            onShowViaBarrel={setShowViaBarrel}
-            hops={hops}
-            onHops={(h: Hops) => {
-              updatePrefs({ hops: h });
-            }}
-            onExpandAll={() => {
-              setExpanded(new Set(allDirs));
-            }}
-            onCollapseAll={() => {
-              setExpanded(new Set());
-            }}
-            dimensions={mode3d ? "3d" : "2d"}
-            onDimensions={(d) => {
-              updatePrefs({ graphMode: d });
-            }}
-            webgl={webgl}
-            impact={impactOn}
-            impactEnabled={impactOn || isFileNode(selected)}
-            onImpact={toggleImpact}
-          />
+          {view !== "findings" && (
+            <CanvasToolbar
+              view={view}
+              onZoomIn={() => controls()?.zoomIn()}
+              onZoomOut={() => controls()?.zoomOut()}
+              onFit={() => controls()?.fit()}
+              colorBy={prefs.colorBy}
+              onColorBy={(by: ColorBy) => {
+                updatePrefs({ colorBy: by });
+              }}
+              showViaBarrel={showViaBarrel}
+              onShowViaBarrel={setShowViaBarrel}
+              hops={hops}
+              onHops={(h: Hops) => {
+                updatePrefs({ hops: h });
+              }}
+              onExpandAll={() => {
+                setExpanded(new Set(allDirs));
+              }}
+              onCollapseAll={() => {
+                setExpanded(new Set());
+              }}
+              dimensions={mode3d ? "3d" : "2d"}
+              onDimensions={(d) => {
+                updatePrefs({ graphMode: d });
+              }}
+              webgl={webgl}
+              impact={impactOn}
+              impactEnabled={impactOn || isFileNode(selected)}
+              onImpact={toggleImpact}
+              findingsOnly={findingsOnly}
+              onFindingsOnly={setFindingsOnly}
+            />
+          )}
           {menu && (
             <ContextMenu
               x={menu.x}
@@ -869,17 +968,29 @@ export function Workspace({
                 updatePrefs({ inspectorTab: t });
               }}
               details={
-                <DetailsPanel
-                  graph={graph}
-                  analysis={analysis ?? null}
-                  selected={selected}
-                  onShow={show}
-                  onFocus={focusOn}
-                  folderOpen={
-                    selected !== undefined && expanded.has(dirPath(selected))
-                  }
-                  onToggleFolder={toggleDir}
-                />
+                view === "findings" && finding !== undefined ? (
+                  <FindingDetails
+                    key={finding.id}
+                    api={api}
+                    graph={graph}
+                    finding={finding}
+                    state={findings}
+                    onShow={show}
+                    previews={shell !== undefined}
+                  />
+                ) : (
+                  <DetailsPanel
+                    graph={graph}
+                    analysis={analysis ?? null}
+                    selected={selected}
+                    onShow={show}
+                    onFocus={focusOn}
+                    folderOpen={
+                      selected !== undefined && expanded.has(dirPath(selected))
+                    }
+                    onToggleFolder={toggleDir}
+                  />
+                )
               }
               impact={
                 <ImpactPanel

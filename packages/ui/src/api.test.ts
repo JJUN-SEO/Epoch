@@ -9,6 +9,11 @@ const graph: Graph = testGraph(["a.ts", "b.ts"], [edge("a.ts", "b.ts")]);
 
 const openProject = vi.fn(() => Promise.resolve(project));
 const showAppMenu = vi.fn(() => Promise.resolve());
+const getFindings = vi.fn(() => Promise.resolve([]));
+const dismissFinding = vi.fn(() => Promise.resolve());
+const getCodePreview = vi.fn(() =>
+  Promise.resolve({ file: "a.ts", startLine: 1, lines: ["x"] }),
+);
 
 function fakeBridge() {
   const deltaListeners: ((d: GraphDelta) => void)[] = [];
@@ -22,6 +27,10 @@ function fakeBridge() {
       return () => undefined;
     },
     onWatchStatus: vi.fn(() => () => undefined),
+    getFindings,
+    dismissFinding,
+    undismissFinding: vi.fn(() => Promise.resolve()),
+    getCodePreview,
     getAnalysisInfo: vi.fn(() => Promise.resolve(null)),
     onAnalysisInfo: vi.fn(() => () => undefined),
     chooseProject: vi.fn(() => Promise.resolve(null)),
@@ -70,9 +79,22 @@ describe("createIpcApi", () => {
     expect(getGraph).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards findings, dismissals and code previews to the bridge", async () => {
+    const { api } = createIpcApi(fakeBridge().bridge);
+    await expect(api.getFindings({ minConfidence: "high" })).resolves.toEqual(
+      [],
+    );
+    expect(getFindings).toHaveBeenCalledWith({ minConfidence: "high" });
+    await api.dismissFinding("abc", "kept");
+    expect(dismissFinding).toHaveBeenCalledWith("abc", "kept");
+    await expect(api.getCodePreview("a.ts", 1, 1)).resolves.toMatchObject({
+      lines: ["x"],
+    });
+    expect(getCodePreview).toHaveBeenCalledWith("a.ts", 1, 1);
+  });
+
   it("rejects methods of later milestones, naming the milestone", async () => {
     const { api } = createIpcApi(fakeBridge().bridge);
-    await expect(api.getFindings()).rejects.toThrow("M5");
     await expect(api.getSettings()).rejects.toThrow("M7");
   });
 });
@@ -86,6 +108,8 @@ describe("createStaticApi", () => {
       api.getBlastRadius("b.ts", { mode: "certain", includeTypeOnly: true }),
     ).resolves.toMatchObject({ total: 1 });
     await expect(api.getCodePreview("a", 1, 2)).rejects.toThrow("no source");
+    await expect(api.getFindings()).resolves.toEqual(graph.findings);
+    await expect(api.dismissFinding("x")).rejects.toThrow("cannot dismiss");
     await expect(api.setKey("anthropic", "x")).rejects.toThrow(
       "no model features",
     );

@@ -30,10 +30,15 @@ export type WatchStatus =
   /** Watching stopped for good (the OS watch limit); the last graph stays. */
   | { readonly state: "stopped"; readonly message: string };
 
-/** @provisional What the latest analysis used: git history and a coverage report. */
+/**
+ * @provisional What the latest analysis used: git history, a coverage
+ * report, epoch.config.json, and what the Findings stage could check.
+ */
 export interface AnalysisInfo {
   readonly git: AnalysisMeta["git"];
   readonly coverage: AnalysisMeta["coverage"];
+  readonly config: AnalysisMeta["config"];
+  readonly findings: AnalysisMeta["findings"];
 }
 
 /** @provisional */

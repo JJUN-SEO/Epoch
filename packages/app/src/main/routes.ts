@@ -1,7 +1,10 @@
 import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { z } from "zod";
+import { Confidence, FindingKind } from "@epoch-dev/core";
+import { DismissalId, DismissalNote } from "@epoch-dev/engine/dismissals";
 import { CHANNELS } from "../shared/channels";
+import { MAX_PREVIEW_LINES, RepoRelativePath } from "../shared/host-protocol";
 import type { Register } from "./ipc";
 import type { ProjectSession } from "./project";
 import type { Projects } from "./projects";
@@ -12,6 +15,22 @@ const FolderPath = z
   .min(1)
   .max(4096)
   .refine((p) => path.isAbsolute(p), "must be an absolute path");
+
+const FindingFilter = z.strictObject({
+  kinds: z.array(FindingKind).max(3).exactOptional(),
+  minConfidence: Confidence.exactOptional(),
+  includeDismissed: z.boolean().exactOptional(),
+});
+
+const Line = z.number().int().min(1).max(10_000_000);
+
+/** A preview range: file, start and end line, at most MAX_PREVIEW_LINES long. */
+const PreviewArgs = z
+  .tuple([RepoRelativePath, Line, Line])
+  .refine(
+    ([, start, end]) => end >= start && end - start < MAX_PREVIEW_LINES,
+    `a range of 1 to ${String(MAX_PREVIEW_LINES)} lines`,
+  );
 
 /** A position in the window, in CSS pixels. */
 const WindowCoordinate = z.number().int().min(0).max(100_000);
@@ -47,6 +66,30 @@ export function registerRoutes(
   handle(CHANNELS.getAnalysisInfo, {
     args: z.tuple([]),
     handle: (win) => Promise.resolve(sessionFor(win).analysisInfo()),
+  });
+  handle(CHANNELS.getFindings, {
+    args: z.tuple([FindingFilter.optional()]),
+    handle: (win, filter?: z.infer<typeof FindingFilter>) =>
+      sessionFor(win).findings(filter ?? {}),
+  });
+  handle(CHANNELS.dismissFinding, {
+    args: z.tuple([DismissalId, DismissalNote.optional()]),
+    handle: (win, id: string, note?: string) => {
+      sessionFor(win).dismiss(id, note);
+      return Promise.resolve(undefined);
+    },
+  });
+  handle(CHANNELS.undismissFinding, {
+    args: z.tuple([DismissalId]),
+    handle: (win, id) => {
+      sessionFor(win).undismiss(id);
+      return Promise.resolve(undefined);
+    },
+  });
+  handle(CHANNELS.getCodePreview, {
+    args: PreviewArgs,
+    handle: (win, file, start, end) =>
+      sessionFor(win).preview(file, start, end),
   });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),

@@ -33,6 +33,9 @@ export function CanvasToolbar(props: {
   readonly impact: boolean;
   readonly impactEnabled: boolean;
   readonly onImpact: () => void;
+  /** Fade files without open findings (graph view). */
+  readonly findingsOnly: boolean;
+  readonly onFindingsOnly: (on: boolean) => void;
 }) {
   return (
     <div
@@ -110,6 +113,14 @@ export function CanvasToolbar(props: {
         value={props.colorBy}
         onChange={props.onColorBy}
       />
+      {props.view === "graph" && props.dimensions === "2d" && (
+        <Toggle
+          label="Findings only"
+          title="Fade the files that no open finding mentions"
+          checked={props.findingsOnly}
+          onChange={props.onFindingsOnly}
+        />
+      )}
       <Toggle
         label="Barrel imports"
         title="Show the import of a barrel file itself (hidden by default; the real dependency is drawn either way)"

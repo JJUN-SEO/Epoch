@@ -1,13 +1,18 @@
 import path from "node:path";
 import {
   applyDelta,
+  filterFindings,
   type AnalysisInfo,
+  type CodePreview,
+  type Finding,
+  type FindingFilter,
   type Graph,
   type GraphDelta,
   type Progress,
   type ProjectInfo,
   type WatchStatus,
 } from "@epoch-dev/core";
+import { DismissalStore } from "@epoch-dev/engine/dismissals";
 import type { Analysis, HostClient, HostListeners } from "./host-client";
 
 /** What a session tells its window about the open project. */
@@ -27,6 +32,7 @@ export interface SessionListeners {
 export class ProjectSession {
   private readonly spawnHost: (listeners: HostListeners) => HostClient;
   private readonly listeners: SessionListeners;
+  private readonly dismissalsFor: (root: string) => DismissalStore;
   private host: HostClient | undefined;
   private current:
     | {
@@ -39,9 +45,12 @@ export class ProjectSession {
   constructor(
     spawnHost: (listeners: HostListeners) => HostClient,
     listeners: SessionListeners,
+    dismissalsFor: (root: string) => DismissalStore = (root) =>
+      DismissalStore.forProject(root),
   ) {
     this.spawnHost = spawnHost;
     this.listeners = listeners;
+    this.dismissalsFor = dismissalsFor;
   }
 
   /** Starts analyzing a granted folder (a real path) and returns at once. */
@@ -77,6 +86,43 @@ export class ProjectSession {
     return current.latest
       ? Promise.resolve(current.latest.graph)
       : current.analysis.then((a) => a.graph);
+  }
+
+  /** The open project's findings, without dismissed ones unless asked (EpochApi.getFindings). */
+  async findings(filter: FindingFilter = {}): Promise<Finding[]> {
+    const root = this.openRoot();
+    const graph = await this.graph();
+    return filterFindings(
+      graph.findings,
+      filter,
+      this.dismissalsFor(root).ids(),
+    );
+  }
+
+  /** Stored in Epoch's data directory, keyed by finding id; never in the project. */
+  dismiss(id: string, note?: string): void {
+    this.dismissalsFor(this.openRoot()).dismiss(id, note);
+  }
+
+  undismiss(id: string): void {
+    this.dismissalsFor(this.openRoot()).undismiss(id);
+  }
+
+  /** Read-only lines of a project file, read by the analysis host inside the root. */
+  preview(
+    file: string,
+    startLine: number,
+    endLine: number,
+  ): Promise<CodePreview> {
+    const root = this.openRoot();
+    if (!this.host) return Promise.reject(new Error("No project is open."));
+    return this.host.preview(root, file, startLine, endLine);
+  }
+
+  private openRoot(): string {
+    const root = this.current?.info.root;
+    if (root === undefined) throw new Error("No project is open.");
+    return root;
   }
 
   /** What the latest analysis used; null until the first one finishes. */

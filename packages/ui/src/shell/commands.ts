@@ -6,6 +6,7 @@ export type CommandId =
   | "project.open"
   | "view.graph"
   | "view.focus"
+  | "view.findings"
   | "focus.selected"
   | "nav.back"
   | "nav.forward"
@@ -17,13 +18,15 @@ export type CommandId =
   | "graph.collapseAll"
   | "graph.colorBy"
   | "graph.dimensions"
-  | "graph.blastRadius";
+  | "graph.blastRadius"
+  | "graph.findingsOnly";
 
 /** What the native menu may ask for (main sends one of these; anything else is ignored). */
 export const MENU_COMMANDS: readonly CommandId[] = [
   "palette",
   "view.graph",
   "view.focus",
+  "view.findings",
   "nav.back",
   "nav.forward",
   "panel.sidebar",
@@ -39,6 +42,7 @@ export const SHORTCUTS: Readonly<Partial<Record<CommandId, Shortcut>>> = {
   "project.open": { mod: true, key: "o" },
   "view.graph": { mod: true, code: "Digit1" },
   "view.focus": { mod: true, code: "Digit2" },
+  "view.findings": { mod: true, code: "Digit3" },
   "nav.back": { mod: true, code: "BracketLeft" },
   "nav.forward": { mod: true, code: "BracketRight" },
   "panel.sidebar": { mod: true, key: "b" },

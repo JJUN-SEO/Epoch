@@ -586,6 +586,7 @@ export async function analyze(
     findings: {
       history: detected.history,
       unassessableFlags: detected.unassessableFlags,
+      minConfidence: loaded.config.findings.minConfidence,
       counts: {
         high: detected.findings.filter((f) => f.confidence === "high").length,
         medium: detected.findings.filter((f) => f.confidence === "medium")

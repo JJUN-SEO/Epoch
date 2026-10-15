@@ -177,6 +177,7 @@ describe("contract schemas", () => {
       findings: {
         history: "off",
         unassessableFlags: 0,
+        minConfidence: "medium",
         counts: { high: 0, medium: 0, low: 0 },
         frameworks: [],
       },

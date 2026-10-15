@@ -1,6 +1,7 @@
 import { utilityProcess, type UtilityProcess } from "electron";
 import type {
   AnalysisInfo,
+  CodePreview,
   Graph,
   GraphDelta,
   Progress,
@@ -35,6 +36,10 @@ export class HostClient {
   private readonly child: UtilityProcess;
   private readonly listeners: HostListeners;
   private readonly pending = new Map<number, Pending>();
+  private readonly previews = new Map<
+    number,
+    { resolve: (p: CodePreview) => void; reject: (e: Error) => void }
+  >();
   private nextId = 0;
   private exited = false;
 
@@ -66,6 +71,31 @@ export class HostClient {
     });
   }
 
+  /** Lines of a file in `root` (a granted folder), read by the host. */
+  preview(
+    root: string,
+    file: string,
+    startLine: number,
+    endLine: number,
+  ): Promise<CodePreview> {
+    if (this.exited) {
+      return Promise.reject(new Error("The analysis host has stopped."));
+    }
+    const id = this.nextId++;
+    return new Promise<CodePreview>((resolve, reject) => {
+      this.previews.set(id, { resolve, reject });
+      const request: HostRequest = {
+        type: "preview",
+        id,
+        root,
+        file,
+        startLine,
+        endLine,
+      };
+      this.child.postMessage(request);
+    });
+  }
+
   dispose(): void {
     this.failAll(new Error("The analysis was replaced or its window closed."));
     if (!this.exited) this.child.kill();
@@ -84,6 +114,13 @@ export class HostClient {
       this.listeners.onWatchStatus(event.status);
       return;
     }
+    const preview = this.previews.get(event.id);
+    if (preview !== undefined) {
+      this.previews.delete(event.id);
+      if (event.type === "preview") preview.resolve(event.preview);
+      else if (event.type === "error") preview.reject(new Error(event.message));
+      return;
+    }
     const pending = this.pending.get(event.id);
     if (pending === undefined) return;
     switch (event.type) {
@@ -99,11 +136,15 @@ export class HostClient {
         this.pending.delete(event.id);
         pending.reject(new Error(event.message));
         break;
+      case "preview":
+        break; // answered above
     }
   }
 
   private failAll(error: Error): void {
     for (const p of this.pending.values()) p.reject(error);
     this.pending.clear();
+    for (const p of this.previews.values()) p.reject(error);
+    this.previews.clear();
   }
 }

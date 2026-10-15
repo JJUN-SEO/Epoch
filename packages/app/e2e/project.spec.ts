@@ -91,7 +91,10 @@ test("the bridge exposes only its named functions", async () => {
   expect(surface).toEqual({
     keys: [
       "chooseProject",
+      "dismissFinding",
       "getAnalysisInfo",
+      "getCodePreview",
+      "getFindings",
       "getGraph",
       "onAnalysisInfo",
       "onGraphDelta",
@@ -103,6 +106,7 @@ test("the bridge exposes only its named functions", async () => {
       "openProject",
       "recentProjects",
       "showAppMenu",
+      "undismissFinding",
     ],
     ipcRenderer: "undefined",
     electron: "undefined",

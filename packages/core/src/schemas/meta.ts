@@ -100,6 +100,8 @@ export const AnalysisMeta = z.strictObject({
     history: z.enum(["usable", "not-a-repo", "shallow", "too-short", "off"]),
     /** Flag usages whose key is not a string literal (cannot be assessed). */
     unassessableFlags: Count,
+    /** findings.minConfidence from epoch.config.json: the banner's and panel's default level. */
+    minConfidence: z.enum(["high", "medium", "low"]),
     counts: z.strictObject({ high: Count, medium: Count, low: Count }),
     /** Frameworks that load files by convention, for the entryPoints notice. */
     frameworks: z.array(

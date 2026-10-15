@@ -11,7 +11,7 @@ import { daysBetween, isoDate, plural, type FindingsFile } from "./input.js";
  * stale-flag (CLAUDE.md rubric): a flag with a literal key, not declared
  * long-lived, introduced at least staleAfterDays ago AND with every usage's
  * lines last touched at least staleAfterDays ago. Strong usages give Medium,
- * weak-only Low. Never High: age alone does not prove a flag is unused.
+ * weak-only Low. Never High: age alone does not show a flag is finished.
  */
 
 interface Usage {

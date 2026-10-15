@@ -81,7 +81,29 @@ export function graphStylesheet(t: CanvasTheme): StylesheetJson {
     },
     // A Go package (ADR-013): several files, one node.
     { selector: "node[kind = 'package']", style: { shape: "hexagon" } },
+    // Open findings: a calm dashed ring, weight by confidence (never the danger color).
+    {
+      selector: "node[finding]",
+      style: {
+        "border-style": "dashed",
+        "border-color": t.muted,
+        "border-width": 1.5,
+        "border-opacity": 0.55,
+      },
+    },
+    {
+      selector: "node[finding = 'high']",
+      style: { "border-width": 2.5, "border-opacity": 1 },
+    },
+    {
+      selector: "node[finding = 'medium']",
+      style: { "border-width": 2, "border-opacity": 0.8 },
+    },
     // Blast radius: the changed node, then what depends on it by distance.
+    {
+      selector: "node[impact]",
+      style: { "border-style": "solid", "border-opacity": 1 },
+    },
     {
       selector: "node[impact = 0]",
       style: { "border-width": 3, "border-color": t.accent },

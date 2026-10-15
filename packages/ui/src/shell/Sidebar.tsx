@@ -1,4 +1,10 @@
-import { ChevronDown, Crosshair, FolderOpen, Network } from "lucide-react";
+import {
+  ChevronDown,
+  Crosshair,
+  FolderOpen,
+  Lightbulb,
+  Network,
+} from "lucide-react";
 import { useState } from "react";
 import type { Graph, ProjectInfo } from "@epoch-dev/core";
 import type { Shell } from "../api";
@@ -9,7 +15,7 @@ import { FileTree } from "./FileTree";
 import { MenuItem, MenuSeparator, Popover } from "./Popover";
 import { shortcutLabel } from "./shortcuts";
 
-export type View = "graph" | "focus";
+export type View = "graph" | "focus" | "findings";
 
 const folderName = (p: string): string =>
   p
@@ -115,6 +121,8 @@ export function Sidebar(props: {
   readonly shell: Shell | undefined;
   readonly view: View;
   readonly canFocus: boolean;
+  /** Open findings at the banner's level, shown beside the Findings view. */
+  readonly findingsCount: number;
   readonly onView: (view: View) => void;
   readonly selected: string | undefined;
   readonly onSelect: (id: string) => void;
@@ -135,6 +143,12 @@ export function Sidebar(props: {
       label: "Focus",
       icon: Crosshair,
       shortcut: SHORTCUTS["view.focus"],
+    },
+    {
+      id: "findings" as const,
+      label: "Findings",
+      icon: Lightbulb,
+      shortcut: SHORTCUTS["view.findings"],
     },
   ];
   return (
@@ -172,6 +186,11 @@ export function Sidebar(props: {
             >
               <v.icon size={15} strokeWidth={1.75} aria-hidden="true" />
               <span className="flex-1">{v.label}</span>
+              {v.id === "findings" && props.findingsCount > 0 && (
+                <span className="bg-sunken text-muted rounded-full px-1.5 text-[11px]">
+                  {props.findingsCount}
+                </span>
+              )}
               {v.shortcut && (
                 <span className="text-faint text-[11px]">
                   {shortcutLabel(v.shortcut, mac)}
