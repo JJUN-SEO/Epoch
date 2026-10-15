@@ -115,7 +115,7 @@ describe("python entry points", () => {
         "src/app/__init__.py": "",
         "src/app/_cli.py": "",
         "src/app/_gui.py": "",
-      }).filter(([, , source]) => !source.includes("(public module")),
+      }).filter(([, , source]) => source?.includes("(public module") !== true),
     ).toEqual([
       ["src/app/_cli.py", "manifest", "setup.cfg console_scripts app"],
       ["src/app/_gui.py", "manifest", "setup.cfg gui_scripts"],

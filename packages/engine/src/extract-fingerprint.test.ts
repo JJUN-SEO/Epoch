@@ -25,7 +25,7 @@ import { Parsers } from "./parse.js";
  * covered too.
  */
 const CONFIG: ExtractorConfig = {
-  flagPatterns: DEFAULT_FLAG_PATTERNS,
+  flagPatterns: [...DEFAULT_FLAG_PATTERNS],
   wrapperFunctions: ["featureEnabled", "feature_enabled", "FeatureEnabled"],
   envPrefixes: ["FEATURE_", "ENABLE_"],
 };
