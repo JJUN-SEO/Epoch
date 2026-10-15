@@ -152,6 +152,7 @@ describe("contract schemas", () => {
         resolve: 3,
         graph: 4,
         score: 0,
+        findings: 0,
         total: 10,
       },
       counts: {
@@ -172,6 +173,13 @@ describe("contract schemas", () => {
       host: { platform: "linux", arch: "x64", node: "24.21.0" },
       git: { status: "off" },
       coverage: null,
+      config: { present: false, warnings: [] },
+      findings: {
+        history: "off",
+        unassessableFlags: 0,
+        counts: { high: 0, medium: 0, low: 0 },
+        frameworks: [],
+      },
     };
     expect(AnalysisMeta.parse(meta)).toEqual(meta);
   });

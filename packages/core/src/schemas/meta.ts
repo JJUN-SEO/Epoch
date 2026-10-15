@@ -34,6 +34,8 @@ export const AnalysisMeta = z.strictObject({
     graph: Ms,
     /** Git churn, coverage and risk. */
     score: Ms,
+    /** Dead-feature detectors, git history lookups included. */
+    findings: Ms,
     total: Ms,
   }),
   counts: z.strictObject({
@@ -87,6 +89,28 @@ export const AnalysisMeta = z.strictObject({
       ambiguous: Count,
     })
     .nullable(),
+  /** epoch.config.json: whether one was found, and its problems (defaults apply). */
+  config: z.strictObject({
+    present: z.boolean(),
+    warnings: z.array(z.string()),
+  }),
+  /** The Findings stage (M5): what it could check, and what it found. */
+  findings: z.strictObject({
+    /** Git history for stale-flag and recency: usable, why not, or off. */
+    history: z.enum(["usable", "not-a-repo", "shallow", "too-short", "off"]),
+    /** Flag usages whose key is not a string literal (cannot be assessed). */
+    unassessableFlags: Count,
+    counts: z.strictObject({ high: Count, medium: Count, low: Count }),
+    /** Frameworks that load files by convention, for the entryPoints notice. */
+    frameworks: z.array(
+      z.strictObject({
+        id: z.string(),
+        name: z.string(),
+        dir: z.string(),
+        evidence: z.string(),
+      }),
+    ),
+  }),
   host: z.strictObject({
     platform: z.string(),
     arch: z.string(),

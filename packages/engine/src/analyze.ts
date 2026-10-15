@@ -4,17 +4,20 @@ import type { Tree } from "web-tree-sitter";
 import {
   AnalysisMeta,
   CERTAIN_EDGE_KINDS,
+  EntryPoint,
   FileFacts,
   GRAPH_SCHEMA_VERSION,
   Graph,
   Resolution,
   buildGraph,
+  compareCodeUnits,
   globMatcher,
   stronglyConnectedComponents,
   type AdapterRegistration,
   type CacheStore,
   type CachedFacts,
   type FileInput,
+  type GitHistoryProvider,
   type ManifestEntry,
   type Progress,
   type RawImport,
@@ -32,7 +35,10 @@ import { nowNs, scanChanges } from "./changes.js";
 import { extractorConfigOf, loadConfig, type LoadedConfig } from "./config.js";
 import { discover, toPosix } from "./discover.js";
 import { extractFile, type ExtractedFile } from "./extract-file.js";
+import { runFindings } from "@epoch-dev/findings";
+import { frameworksOf } from "./frameworks.js";
 import { readHeadCommit, type GitRunner } from "./git.js";
+import { GitHistory } from "./history.js";
 import { Parsers } from "./parse.js";
 import type { ParsePool } from "./pool.js";
 import { FsReader } from "./reader.js";
@@ -79,6 +85,15 @@ export interface AnalyzeOptions {
    * (absolute path; CLI --coverage).
    */
   readonly coverageFile?: string;
+  /**
+   * Overrides for the Findings stage (tests): a history provider instead of
+   * the repository's git history, and the "now" ages are measured against
+   * instead of HEAD's commit date.
+   */
+  readonly findings?: {
+    readonly history?: GitHistoryProvider;
+    readonly now?: Date;
+  };
 }
 
 export interface AnalyzeResult {
@@ -128,7 +143,7 @@ interface SourceFile {
 
 /**
  * Runs the pipeline on a project folder: Discover, Parse, Extract (cached),
- * Resolve, Graph (CLAUDE.md "Pipeline", stages 1-5). With a cache, unchanged
+ * Resolve, Graph, Score and Findings (CLAUDE.md "Pipeline"). With a cache, unchanged
  * files are neither read nor parsed; resolution and the graph are recomputed
  * every run from the (cached) facts (ADR-004). Reads the project only
  * through a FsReader confined to the root, never writes into it, and never
@@ -448,9 +463,77 @@ export async function analyze(
     loadCoverage(found.root, reader, opts.coverageFile),
     members,
   );
-  const graph = Graph.parse(scored.graph);
-  progress("graph", 1, 1);
   const t6 = performance.now();
+
+  // 8. Findings: entry points, then every detector over the scored graph.
+  const roots = new Map<string, EntryPoint>();
+  const addRoot = (e: EntryPoint) => {
+    if (analyzed.has(e.file))
+      roots.set(`${e.file}\u0000${e.reason}\u0000${e.source}`, e);
+  };
+  for (const reg of registrations) {
+    if (!sources.some((s) => s.reg === reg)) continue;
+    for (const e of reg.adapter.detectEntryPoints(contextFor(reg)))
+      addRoot(EntryPoint.parse(e));
+  }
+  const entryGlobs = globMatcher(loaded.config.entryPoints);
+  for (const s of sources) {
+    if (s.reg.adapter.isTestFile(s.rel))
+      addRoot({ file: s.rel, reason: "test", source: "test file" });
+    if (entryGlobs(s.rel)) {
+      addRoot({
+        file: s.rel,
+        reason: "config",
+        source: "epoch.config.json entryPoints",
+      });
+    }
+  }
+  const sortedRoots = [...roots.values()].sort(
+    (a, b) =>
+      compareCodeUnits(a.file, b.file) ||
+      compareCodeUnits(a.reason, b.reason) ||
+      compareCodeUnits(a.source, b.source),
+  );
+  const history =
+    opts.findings?.history ??
+    (opts.history === false
+      ? undefined
+      : GitHistory.open(found.root, reader, {
+          staleAfterDays: loaded.config.flags.staleAfterDays,
+          ...(opts.git ? { run: opts.git } : {}),
+          ...(cache ? { store: cache } : {}),
+        }));
+  const now =
+    opts.findings?.now ??
+    (history instanceof GitHistory ? history.now() : undefined) ??
+    new Date(0); // unused: ages need usable history
+  const frameworks = frameworksOf(found.root, found.files, reader);
+  const detected = await runFindings({
+    graph: scored.graph,
+    files: sources.map((s) => ({
+      path: s.rel,
+      language: s.reg.languageFor(s.rel),
+      isTest: s.reg.adapter.isTestFile(s.rel),
+      facts: s.facts,
+    })),
+    packages: members,
+    roots: sortedRoots,
+    projectDirs: [...contexts.values()].flatMap((c) =>
+      c.projectRoots.map((r) => r.dir),
+    ),
+    frameworks,
+    config: loaded.config,
+    ...(history ? { history } : {}),
+    now,
+    hash: (text) => sha256(text),
+  });
+  const graph = Graph.parse({
+    ...scored.graph,
+    roots: sortedRoots,
+    findings: detected.findings,
+  });
+  progress("graph", 1, 1);
+  const t7 = performance.now();
 
   if (cache) {
     manifest.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -479,7 +562,8 @@ export async function analyze(
       resolve: t4 - t3,
       graph: t5 - t4,
       score: t6 - t5,
-      total: t6 - t0,
+      findings: t7 - t6,
+      total: t7 - t0,
     },
     counts: {
       filesAnalyzed: sources.length,
@@ -498,6 +582,23 @@ export async function analyze(
     cycles,
     git: scored.git,
     coverage: scored.coverage,
+    config: { present: loaded.present, warnings: loaded.warnings },
+    findings: {
+      history: detected.history,
+      unassessableFlags: detected.unassessableFlags,
+      counts: {
+        high: detected.findings.filter((f) => f.confidence === "high").length,
+        medium: detected.findings.filter((f) => f.confidence === "medium")
+          .length,
+        low: detected.findings.filter((f) => f.confidence === "low").length,
+      },
+      frameworks: frameworks.map(({ id, name, dir, evidence }) => ({
+        id,
+        name,
+        dir,
+        evidence,
+      })),
+    },
     host: {
       platform: process.platform,
       arch: process.arch,
