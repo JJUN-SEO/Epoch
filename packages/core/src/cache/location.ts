@@ -47,3 +47,43 @@ export function resolveCacheDir({
     ? `${xdg}/${APP}`
     : `${homedir}/.cache/${APP}`;
 }
+
+/** Overrides the data directory (tests). */
+export const DATA_DIR_ENV = "EPOCH_DATA_DIR";
+
+/**
+ * The per-user data directory for what Epoch must keep (dismissed findings).
+ * Not the cache: the cache is derived and safe to delete, this is not. Never
+ * inside an analyzed project. Pure, like resolveCacheDir.
+ *
+ * - `EPOCH_DATA_DIR`, when set, wins.
+ * - macOS: `~/Library/Application Support/epoch` (Apple's File System
+ *   Programming Guide, as above).
+ * - Windows: `%LOCALAPPDATA%\epoch\Data` (FOLDERID_LocalAppData, as above;
+ *   local, not roaming: the data names this machine's folders).
+ * - Everything else: `$XDG_DATA_HOME/epoch`, or `~/.local/share/epoch` when it
+ *   is unset or relative (XDG Base Directory spec, as above).
+ */
+export function resolveDataDir({
+  platform,
+  env,
+  homedir,
+}: CacheDirInputs): string {
+  const override = env[DATA_DIR_ENV];
+  if (override !== undefined && override !== "") return override;
+  if (platform === "darwin") {
+    return `${homedir}/Library/Application Support/${APP}`;
+  }
+  if (platform === "win32") {
+    const local = env.LOCALAPPDATA;
+    const base =
+      local !== undefined && local !== ""
+        ? local
+        : `${homedir}\\AppData\\Local`;
+    return `${base}\\${APP}\\Data`;
+  }
+  const xdg = env.XDG_DATA_HOME;
+  return xdg?.startsWith("/") === true
+    ? `${xdg}/${APP}`
+    : `${homedir}/.local/share/${APP}`;
+}

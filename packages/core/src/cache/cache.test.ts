@@ -2,7 +2,35 @@ import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { canonicalJson } from "./canonical-json.js";
 import { recomputeIfChanged, type DerivedStore } from "./early-cutoff.js";
-import { resolveCacheDir } from "./location.js";
+import { resolveCacheDir, resolveDataDir } from "./location.js";
+
+describe("resolveDataDir", () => {
+  it("follows each OS's per-user data convention, beside but apart from the cache", () => {
+    expect(
+      resolveDataDir({ platform: "linux", env: {}, homedir: "/home/u" }),
+    ).toBe("/home/u/.local/share/epoch");
+    expect(
+      resolveDataDir({
+        platform: "linux",
+        env: { XDG_DATA_HOME: "/x/data" },
+        homedir: "/home/u",
+      }),
+    ).toBe("/x/data/epoch");
+    expect(
+      resolveDataDir({ platform: "darwin", env: {}, homedir: "/Users/u" }),
+    ).toBe("/Users/u/Library/Application Support/epoch");
+    expect(
+      resolveDataDir({ platform: "win32", env: {}, homedir: "C:\\Users\\u" }),
+    ).toBe("C:\\Users\\u\\AppData\\Local\\epoch\\Data");
+    expect(
+      resolveDataDir({
+        platform: "linux",
+        env: { EPOCH_DATA_DIR: "/tmp/d" },
+        homedir: "/home/u",
+      }),
+    ).toBe("/tmp/d");
+  });
+});
 
 describe("resolveCacheDir", () => {
   const homedir = "/home/u";
