@@ -5,7 +5,11 @@ import type { SkipReason } from "@epoch-dev/core";
 import { readTrackedPaths, type TrackedPaths } from "./git-index.js";
 import { FsReader } from "./reader.js";
 
-/** Directories never walked, whatever the ignore files say (PLAN.md M1 Discover). */
+/**
+ * Build outputs and tool caches, not walked whatever the ignore files say
+ * (PLAN.md M1 Discover), unless git tracks files inside: a tracked `build/`
+ * is source (a Go package, a Python package named build).
+ */
 export const DEFAULT_SKIPPED_DIRS: ReadonlySet<string> = new Set([
   "node_modules",
   ".git",
@@ -34,6 +38,12 @@ const ENVIRONMENT_MARKERS = ["pyvenv.cfg", "conda-meta"] as const;
 
 /** Source files larger than this are skipped (minified bundles, generated blobs). */
 export const DEFAULT_MAX_FILE_BYTES = 1024 * 1024;
+
+/** Never walked, even when git tracks files inside: installed third-party code and git's own data. */
+const ALWAYS_SKIPPED_DIRS: ReadonlySet<string> = new Set([
+  "node_modules",
+  ".git",
+]);
 
 /** Ignore files, and whether git's "tracked files are never ignored" rule applies to them. */
 const IGNORE_FILES = [
@@ -110,7 +120,8 @@ function trackedLookup(tracked: TrackedPaths | undefined) {
 
 /**
  * Walks the project (Discover stage). Honours the root and nested .gitignore
- * and .epochignore files, always skips DEFAULT_SKIPPED_DIRS, never follows
+ * and .epochignore files, skips DEFAULT_SKIPPED_DIRS unless git tracks files
+ * inside (node_modules and .git always), never follows
  * symlinks (no cycles, no escaping the root of an untrusted project), and
  * skips oversized source files. As in git, a file git tracks is never hidden
  * by .gitignore (tracked paths come from .git/index, read as data);
@@ -172,7 +183,11 @@ export function discover(
         continue;
       }
       if (entry.isDirectory()) {
-        if (DEFAULT_SKIPPED_DIRS.has(entry.name)) continue;
+        if (
+          DEFAULT_SKIPPED_DIRS.has(entry.name) &&
+          (ALWAYS_SKIPPED_DIRS.has(entry.name) || !tracked.dir(childRel))
+        )
+          continue;
         if (isIgnored(here, childRel, true, false)) continue;
         const ignoredHere = gitIgnored || isIgnored(here, childRel, true, true);
         if (ignoredHere && !tracked.dir(childRel)) continue;

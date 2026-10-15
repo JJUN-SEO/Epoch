@@ -220,6 +220,25 @@ describe("discover: files git tracks are never hidden by .gitignore", () => {
     expect(discover(root, { isSource }).files).toEqual(expected);
   });
 
+  it("walks a build-output directory name only when git tracks files inside", () => {
+    const root = tree({
+      "internal/build/build.go": "package build",
+      "dist/bundle.js": "",
+      "coverage/lcov.info": "",
+      "node_modules/dep/index.js": "",
+    });
+    git(root, "init", "-q");
+    git(root, "add", "internal/build/build.go", "node_modules/dep/index.js");
+    git(root, "commit", "-q", "-m", "init");
+    // A tracked build/ is source (a Go package); node_modules never is.
+    expect(discover(root, { isSource }).files).toEqual([
+      "internal/build/build.go",
+    ]);
+    // Without git there is nothing to vouch for it.
+    fs.rmSync(path.join(root, ".git"), { recursive: true, force: true });
+    expect(discover(root, { isSource }).files).toEqual([]);
+  });
+
   it("falls back to plain .gitignore rules without a readable index", () => {
     const root = trackedRepo();
     fs.writeFileSync(path.join(root, ".git", "index"), "garbage");
