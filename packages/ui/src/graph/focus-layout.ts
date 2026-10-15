@@ -9,7 +9,7 @@ import type { Neighborhood } from "./neighborhood";
  * instant, stable, and unit-tested.
  */
 
-export const FOCUS_COLUMN_GAP = 280;
+export const FOCUS_COLUMN_GAP = 240;
 export const FOCUS_ROW_GAP = 34;
 /** Above this many files, a column groups them by folder (tuned by eye on vitest and Flask). */
 export const MAX_PER_COLUMN = 40;

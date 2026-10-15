@@ -13,8 +13,12 @@ import {
  * static demo site runs the same code.
  */
 
-/** Directories start collapsed above this many file nodes (CLAUDE.md "App UX basics"). */
-export const COLLAPSE_ABOVE = 300;
+/**
+ * About this many nodes (files and closed folders) are drawn when a project
+ * opens; larger projects start as a map of folders (CLAUDE.md "App UX basics":
+ * collapse by directory).
+ */
+export const INITIAL_NODE_BUDGET = 50;
 
 const DIR = "dir:";
 export const dirId = (dir: string): string => `${DIR}${dir}`;
@@ -86,10 +90,40 @@ export const basename = (p: string): string => p.slice(p.lastIndexOf("/") + 1);
 const byId = (a: { id: string }, b: { id: string }): number =>
   a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 
-/** Every directory of the graph, expanded, unless it has more than COLLAPSE_ABOVE nodes. */
-export function initialExpanded(graph: Graph): Set<string> {
-  if (graph.nodes.length > COLLAPSE_ABOVE) return new Set();
-  return new Set(graph.nodes.flatMap((n) => ancestors(n.id)));
+/**
+ * The folders open when a project opens: breadth-first, shallow folders
+ * first (by path within a level), each opened only while the drawn nodes stay
+ * within `budget`. Opening a folder replaces it with its files and subfolders.
+ */
+export function initialExpanded(
+  graph: Graph,
+  budget = INITIAL_NODE_BUDGET,
+): Set<string> {
+  const children = new Map<string, Set<string>>();
+  const add = (dir: string, child: string) => {
+    const set = children.get(dir);
+    if (set) set.add(child);
+    else children.set(dir, new Set([child]));
+  };
+  for (const n of graph.nodes) {
+    const dirs = ancestors(n.id);
+    add(dirs.at(-1) ?? "", n.id);
+    for (const [i, d] of dirs.entries()) add(dirs[i - 1] ?? "", d);
+  }
+  const subdirs = (dir: string) =>
+    [...(children.get(dir) ?? [])].filter((c) => children.has(c)).sort();
+
+  const expanded = new Set<string>();
+  let drawn = children.get("")?.size ?? 0;
+  const queue = subdirs("");
+  for (let next = queue.shift(); next !== undefined; next = queue.shift()) {
+    const cost = (children.get(next)?.size ?? 0) - 1;
+    if (drawn + cost > budget) continue;
+    expanded.add(next);
+    drawn += cost;
+    queue.push(...subdirs(next));
+  }
+  return expanded;
 }
 
 /** `expanded` plus every directory above `id` (a node or a dirId), so it becomes visible. */

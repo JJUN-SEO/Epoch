@@ -14,6 +14,7 @@ const graph: Graph = {
 };
 
 const openProject = vi.fn(() => Promise.resolve(project));
+const showAppMenu = vi.fn(() => Promise.resolve());
 
 function fakeBridge(): DesktopBridge {
   return {
@@ -24,6 +25,8 @@ function fakeBridge(): DesktopBridge {
     openDroppedFolder: vi.fn(() => Promise.resolve(project)),
     recentProjects: vi.fn(() => Promise.resolve(["/p"])),
     onProjectOpened: vi.fn(() => () => undefined),
+    showAppMenu: showAppMenu,
+    onMenuCommand: vi.fn(() => () => undefined),
   };
 }
 
@@ -36,6 +39,8 @@ describe("createIpcApi", () => {
     await expect(api.getGraph()).resolves.toBe(graph);
     await expect(shell.recentProjects()).resolves.toEqual(["/p"]);
     await expect(shell.chooseProject()).resolves.toBeNull();
+    shell.showAppMenu(10, 40);
+    expect(showAppMenu).toHaveBeenCalledWith(10, 40);
   });
 
   it("rejects methods of later milestones, naming the milestone", async () => {

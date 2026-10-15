@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  COLLAPSE_ABOVE,
+  INITIAL_NODE_BUDGET,
   aggregate,
   ancestors,
   dirId,
@@ -145,16 +145,30 @@ describe("aggregate", () => {
 });
 
 describe("initialExpanded, expandTo and searchNodes", () => {
-  it("starts collapsed only above the threshold", () => {
+  it("opens folders breadth-first while the drawn nodes fit the budget", () => {
     const small = graph(["a/b/c.ts"]);
     expect([...initialExpanded(small)].sort()).toEqual(["a", "a/b"]);
+    // One folder with more files than the budget stays closed.
     const big = graph(
       Array.from(
-        { length: COLLAPSE_ABOVE + 1 },
+        { length: INITIAL_NODE_BUDGET + 1 },
         (_, i) => `d/f${String(i)}.ts`,
       ),
     );
     expect(initialExpanded(big).size).toBe(0);
+    // Shallow folders open first; a deep one that would overflow stays closed.
+    const mixed = graph([
+      "top.ts",
+      "x/1.ts",
+      "x/y/2.ts",
+      "x/y/3.ts",
+      "x/y/4.ts",
+      "z/5.ts",
+    ]);
+    // Root: top.ts, x, z (3). Open x: + x/1.ts, x/y (4). Open z: + z/5.ts (4).
+    // Open x/y: + three files (6), over a budget of 5.
+    expect([...initialExpanded(mixed, 5)].sort()).toEqual(["x", "z"]);
+    expect([...initialExpanded(mixed, 6)].sort()).toEqual(["x", "x/y", "z"]);
   });
 
   it("opens the directories above a node or a directory", () => {

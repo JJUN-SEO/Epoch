@@ -1,41 +1,50 @@
-import cytoscape, {
-  type Core,
-  type ElementDefinition,
-  type EventObject,
+import type {
+  Core,
+  ElementDefinition,
+  EventObject,
+  NodeSingular,
 } from "cytoscape";
-import { useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useImperativeHandle,
+  useRef,
+  useState,
+  type Ref,
+} from "react";
 import type { VisibleGraph } from "./aggregate";
+import type { NodeColors } from "./colors";
+import {
+  controlsFor,
+  createCy,
+  fitWithin,
+  highlightNeighbors,
+  type CanvasControls,
+} from "./cy";
 import { LayoutClient } from "./layout";
-import { languageColor, nodeSize, stylesheet } from "./style";
+import { graphStylesheet, nodeSize } from "./style";
+import { onThemeChange, readCanvasTheme } from "./theme";
 
 export interface GraphViewProps {
+  /** Shown (the canvas resizes when it becomes visible again). */
+  readonly active: boolean;
   readonly visible: VisibleGraph;
+  readonly colors: NodeColors;
   readonly selected: string | undefined;
   /** Center the view on this node once it is laid out (a new object re-centers). */
-  readonly focus: { readonly id: string } | undefined;
+  readonly reveal: { readonly id: string } | undefined;
   readonly onSelect: (id: string | undefined) => void;
-  readonly onToggleDir: (id: string) => void;
+  /** Double-click: a folder opens or closes, a file opens in the focus view. */
+  readonly onActivate: (id: string) => void;
+  readonly onContextMenu: (id: string, x: number, y: number) => void;
+  readonly controlsRef?: Ref<CanvasControls | undefined>;
 }
 
 const MAX_FIT_ZOOM = 1.5;
 
-const darkQuery = () => window.matchMedia("(prefers-color-scheme: dark)");
-
-/**
- * Cytoscape injects a <style> element (giving its container position:
- * relative) unless one with this id exists. The strict CSP blocks injected
- * styles, so a marker stands in and styles.css carries the rule.
- */
-function preventStyleInjection(): void {
-  const id = "__________cytoscape_stylesheet";
-  if (document.getElementById(id) === null) {
-    const marker = document.createElement("meta");
-    marker.id = id;
-    document.head.append(marker);
-  }
-}
-
-function elementsOf(visible: VisibleGraph): ElementDefinition[] {
+function elementsOf(
+  visible: VisibleGraph,
+  colors: NodeColors,
+): ElementDefinition[] {
   return [
     ...visible.nodes.map((n) => ({
       group: "nodes" as const,
@@ -48,7 +57,10 @@ function elementsOf(visible: VisibleGraph): ElementDefinition[] {
         kind: n.kind,
         collapsed: n.collapsed,
         size: nodeSize(n.kind, n.collapsed, n.fileCount),
-        color: languageColor(n.language),
+        color: colors.colorOf(
+          n.kind === "dir" ? n.id.slice("dir:".length) : n.id,
+          n.language,
+        ),
         ...(n.parent === undefined ? {} : { parent: n.parent }),
       },
     })),
@@ -67,7 +79,8 @@ function elementsOf(visible: VisibleGraph): ElementDefinition[] {
 
 /**
  * The dependency graph, drawn by Cytoscape on a canvas. Layout runs in a Web
- * Worker. A visually hidden list mirrors the nodes, so the graph can be
+ * Worker. Hovering a node highlights its neighbors; the selection keeps its
+ * highlight. A visually hidden list mirrors the nodes, so the graph can be
  * navigated by keyboard and screen readers (and driven by the e2e tests).
  */
 export function GraphView(props: GraphViewProps) {
@@ -76,39 +89,61 @@ export function GraphView(props: GraphViewProps) {
   const layoutRef = useRef<LayoutClient | undefined>(undefined);
   const handlers = useRef(props);
   handlers.current = props;
+  const needsFit = useRef(false);
   const [laidOut, setLaidOut] = useState(0);
   const [busy, setBusy] = useState(false);
 
+  useImperativeHandle(
+    props.controlsRef,
+    () => {
+      const controls = () =>
+        cyRef.current && controlsFor(cyRef.current, MAX_FIT_ZOOM);
+      return {
+        zoomIn: () => {
+          controls()?.zoomIn();
+        },
+        zoomOut: () => {
+          controls()?.zoomOut();
+        },
+        fit: () => {
+          controls()?.fit();
+        },
+      };
+    },
+    [],
+  );
+
   useEffect(() => {
     if (!container.current) return;
-    preventStyleInjection();
-    const cy = cytoscape({
-      container: container.current,
-      style: stylesheet(darkQuery().matches),
-      minZoom: 0.05,
-      maxZoom: 3,
-      boxSelectionEnabled: false,
-      autounselectify: false,
-    });
+    const cy = createCy(container.current, graphStylesheet(readCanvasTheme()));
     // Cytoscape types event targets as any; on a node selector it is a node.
-    const nodeId = (e: EventObject) =>
-      (e.target as cytoscape.NodeSingular).id();
+    const nodeId = (e: EventObject) => (e.target as NodeSingular).id();
     cy.on("tap", "node", (e) => {
       handlers.current.onSelect(nodeId(e));
     });
     cy.on("tap", (e) => {
       if (e.target === cy) handlers.current.onSelect(undefined);
     });
-    cy.on("dbltap", "node[kind = 'dir']", (e) => {
-      handlers.current.onToggleDir(nodeId(e));
+    cy.on("dbltap", "node", (e) => {
+      handlers.current.onActivate(nodeId(e));
     });
-    const media = darkQuery();
-    const onTheme = () => cy.style(stylesheet(media.matches));
-    media.addEventListener("change", onTheme);
+    cy.on("cxttap", "node", (e) => {
+      const p = e.renderedPosition;
+      handlers.current.onContextMenu(nodeId(e), p.x, p.y);
+    });
+    cy.on("mouseover", "node", (e) => {
+      highlightNeighbors(cy, nodeId(e));
+    });
+    cy.on("mouseout", "node", () => {
+      highlightNeighbors(cy, handlers.current.selected);
+    });
+    const stopTheme = onThemeChange(() => {
+      cy.style(graphStylesheet(readCanvasTheme()));
+    });
     cyRef.current = cy;
     layoutRef.current = new LayoutClient();
     return () => {
-      media.removeEventListener("change", onTheme);
+      stopTheme();
       layoutRef.current?.dispose();
       cy.destroy();
     };
@@ -118,7 +153,7 @@ export function GraphView(props: GraphViewProps) {
     const cy = cyRef.current;
     const layout = layoutRef.current;
     if (!cy || !layout) return;
-    const elements = elementsOf(props.visible);
+    const elements = elementsOf(props.visible, props.colors);
     let cancelled = false;
     setBusy(true);
     void layout
@@ -148,38 +183,69 @@ export function GraphView(props: GraphViewProps) {
             }),
           );
         });
-        cy.fit(undefined, 40);
-        // A few nodes would otherwise fill the screen.
-        if (cy.zoom() > MAX_FIT_ZOOM) {
-          cy.zoom(MAX_FIT_ZOOM);
-          cy.center();
-        }
+        // A hidden canvas has no size to fit to; fit once it is shown.
+        if (handlers.current.active) fitWithin(cy, MAX_FIT_ZOOM, false);
+        else needsFit.current = true;
         setBusy(false);
         setLaidOut((n) => n + 1);
       });
     return () => {
       cancelled = true;
     };
+    // Colors restyle in place (below); only the visible graph needs a layout.
   }, [props.visible]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const languages = new Map(
+      props.visible.nodes.map((v) => [v.id, v.language]),
+    );
+    cy.batch(() => {
+      cy.nodes().forEach((n) => {
+        const id = n.id();
+        const language = languages.get(id);
+        n.data(
+          "color",
+          props.colors.colorOf(
+            id.startsWith("dir:") ? id.slice("dir:".length) : id,
+            language,
+          ),
+        );
+      });
+    });
+    // Only a change of colors restyles; the layout effect sets them on redraw.
+  }, [props.colors]);
 
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
     cy.$(":selected").unselect();
     if (props.selected !== undefined) cy.$id(props.selected).select();
+    highlightNeighbors(cy, props.selected);
   }, [props.selected, laidOut]);
 
   useEffect(() => {
     const cy = cyRef.current;
-    if (!cy || props.focus === undefined) return;
-    const node = cy.$id(props.focus.id);
+    if (!cy || !props.active) return;
+    cy.resize();
+    if (needsFit.current) {
+      needsFit.current = false;
+      fitWithin(cy, MAX_FIT_ZOOM, false);
+    }
+  }, [props.active]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy || props.reveal === undefined || !props.active) return;
+    const node = cy.$id(props.reveal.id);
     if (node.nonempty()) {
       cy.animate(
         { center: { eles: node }, zoom: Math.max(cy.zoom(), 1) },
         { duration: 200 },
       );
     }
-  }, [props.focus, laidOut]);
+  }, [props.reveal, props.active, laidOut]);
 
   return (
     <div className="relative h-full w-full">
@@ -191,7 +257,7 @@ export function GraphView(props: GraphViewProps) {
         aria-hidden="true"
       />
       {busy && (
-        <div className="pointer-events-none absolute top-3 left-3 rounded bg-neutral-900/70 px-2 py-1 text-xs text-white">
+        <div className="bg-raised text-muted shadow-pop pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs">
           Laying out…
         </div>
       )}

@@ -110,11 +110,36 @@ test("selecting a node shows its details, and links lead to its neighbors", asyn
   await expect(details(epoch.page)).toContainText("Imported by (1)");
 });
 
-test("search finds a file and shows it", async () => {
-  await epoch.page.getByRole("searchbox", { name: "Find a file" }).fill("A.TS");
-  const results = epoch.page.getByRole("list", { name: "Search results" });
-  await results.getByRole("button", { name: "src/a.ts" }).click();
+test("the command palette finds a file and shows it", async () => {
+  await epoch.page.keyboard.press("ControlOrMeta+K");
+  const palette = epoch.page.getByRole("dialog", { name: "Command palette" });
+  await palette
+    .getByRole("combobox", { name: "Search files and commands" })
+    .fill("A.TS");
+  await palette.getByRole("option", { name: "src/a.ts" }).click();
+  await expect(palette).toHaveCount(0);
   await expect(detailsTitle(epoch.page)).toHaveText("src/a.ts");
+});
+
+test("the command palette runs commands from the keyboard", async () => {
+  await expect(
+    epoch.page.getByRole("navigation", { name: "Sidebar" }),
+  ).toBeVisible();
+  await epoch.page
+    .getByRole("button", { name: "Search files and commands" })
+    .click();
+  const input = epoch.page.getByRole("combobox", {
+    name: "Search files and commands",
+  });
+  await input.fill("hide sidebar");
+  await input.press("Enter");
+  await expect(
+    epoch.page.getByRole("navigation", { name: "Sidebar" }),
+  ).toHaveCount(0);
+  await epoch.page.keyboard.press("ControlOrMeta+B");
+  await expect(
+    epoch.page.getByRole("navigation", { name: "Sidebar" }),
+  ).toBeVisible();
 });
 
 test("the barrel-imports toggle redraws the graph", async () => {
@@ -128,7 +153,7 @@ test("the barrel-imports toggle redraws the graph", async () => {
 test("clicking a node on the canvas selects it", async () => {
   // One file: after fitting, it sits at the center of the canvas.
   await answerDialogWith(project({ "index.ts": "export const x = 1;\n" }));
-  await epoch.page.getByRole("button", { name: "Open…" }).click();
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
   await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
     "1 files · 0 edges",
   );
@@ -144,7 +169,7 @@ test("a large project starts with folders collapsed and opens them on demand", a
       `export const v${String(i)} = ${String(i)};\n`;
   }
   await answerDialogWith(project(files));
-  await epoch.page.getByRole("button", { name: "Open…" }).click();
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
   await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
     "301 files · 0 edges",
   );
@@ -169,6 +194,104 @@ test("File > Open Project… opens a project in the window", async () => {
   await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
     "2 files · 1 edges",
   );
+});
+
+test("the focus view puts a file between its dependents and its imports", async () => {
+  await answerDialogWith(
+    project({
+      "src/app.ts": 'import "./b";\nimport "./c";\n',
+      "src/b.ts": "export const b = 1;\n",
+      "src/c.ts": "export const c = 1;\n",
+      "src/main.ts": 'import "./app";\n',
+    }),
+  );
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
+  await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
+    "4 files · 3 edges",
+  );
+  await selectNode(epoch.page, "src/app.ts");
+  await details(epoch.page).getByRole("button", { name: "Focus" }).click();
+  await expect(epoch.page.getByTestId("focus-canvas")).toBeVisible();
+  const focusNodes = epoch.page.getByRole("list", { name: "Focus nodes" });
+  await expect(focusNodes.getByRole("button")).toHaveText([
+    "src/app.ts (center)",
+    "src/b.ts (imports)",
+    "src/c.ts (imports)",
+    "src/main.ts (dependents)",
+  ]);
+
+  // The inspector lists the same neighbors.
+  await epoch.page.getByRole("tab", { name: "Neighbors" }).click();
+  const neighbors = epoch.page.getByTestId("neighbors");
+  await expect(
+    neighbors
+      .getByRole("region", { name: "Imports" })
+      .getByRole("button", { name: /^src\// }),
+  ).toHaveText([/src\/b\.ts/, /src\/c\.ts/]);
+  await expect(
+    neighbors
+      .getByRole("region", { name: "Imported by" })
+      .getByRole("button", { name: /^src\// }),
+  ).toHaveText([/src\/main\.ts/]);
+
+  // Focusing on a neighbor re-centers on it; Back returns.
+  await neighbors.getByRole("button", { name: "Focus on src/main.ts" }).click();
+  await expect(focusNodes.getByRole("button")).toHaveText([
+    "src/app.ts (imports)",
+    "src/main.ts (center)",
+  ]);
+  await epoch.page.getByRole("button", { name: "Back" }).click();
+  await expect(focusNodes.getByRole("button").first()).toHaveText(
+    "src/app.ts (center)",
+  );
+
+  // Two hops reach the imports of the imports.
+  await neighbors.getByRole("button", { name: "Focus on src/main.ts" }).click();
+  await neighbors
+    .getByRole("group", { name: "Hops" })
+    .getByRole("button", { name: "2" })
+    .click();
+  await expect(focusNodes.getByRole("button")).toHaveText([
+    "src/app.ts (imports)",
+    "src/b.ts (imports)",
+    "src/c.ts (imports)",
+    "src/main.ts (center)",
+  ]);
+  await epoch.page.getByRole("tab", { name: "Details" }).click();
+  await epoch.page.keyboard.press("ControlOrMeta+1");
+  await expect(epoch.page.getByTestId("graph-canvas")).toBeVisible();
+});
+
+test("View menu commands reach the window", async () => {
+  const sidebar = epoch.page.getByRole("navigation", { name: "Sidebar" });
+  await expect(sidebar).toBeVisible();
+  const clickViewItem = (label: string) =>
+    epoch.app.evaluate(({ Menu }, l) => {
+      const view = Menu.getApplicationMenu()?.items.find(
+        (i) => i.label === "View",
+      );
+      view?.submenu?.items.find((i) => i.label === l)?.click();
+    }, label);
+  await clickViewItem("Toggle Sidebar");
+  await expect(sidebar).toHaveCount(0);
+  await clickViewItem("Toggle Sidebar");
+  await expect(sidebar).toBeVisible();
+  await clickViewItem("Command Palette…");
+  await expect(
+    epoch.page.getByRole("dialog", { name: "Command palette" }),
+  ).toBeVisible();
+  await epoch.page.keyboard.press("Escape");
+});
+
+test("the title bar leaves room for the native window buttons", async () => {
+  // Windows and Linux: the buttons are a Window Controls Overlay. macOS: the
+  // traffic lights sit inside the title bar (hiddenInset), not an overlay.
+  const overlay = await epoch.page.evaluate(
+    () =>
+      (navigator as { windowControlsOverlay?: { visible: boolean } })
+        .windowControlsOverlay?.visible ?? false,
+  );
+  expect(overlay).toBe(process.platform !== "darwin");
 });
 
 test("the whole flow caused no CSP violations", () => {

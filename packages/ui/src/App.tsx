@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { EpochApi, Graph, Progress, ProjectInfo } from "@epoch-dev/core";
 import type { Shell } from "./api";
-import { GraphScreen } from "./components/GraphScreen";
-import { ProgressView } from "./components/ProgressView";
-import { StartScreen } from "./components/StartScreen";
 import { errorMessage } from "./errors";
+import { ProgressPane } from "./shell/ProgressPane";
+import { TitleBar } from "./shell/TitleBar";
+import { Welcome } from "./shell/Welcome";
+import { Workspace } from "./shell/Workspace";
 
 type View =
   | { readonly kind: "start"; readonly error?: string }
@@ -21,7 +22,7 @@ export interface AppProps {
   readonly shell?: Shell;
 }
 
-/** Start screen -> streaming progress -> graph (CLAUDE.md "App UX basics"). */
+/** Welcome -> streaming progress -> the project workspace (CLAUDE.md "App UX basics"). */
 export function App({ api, shell }: AppProps) {
   const [view, setView] = useState<View>({ kind: "start" });
   const [progress, setProgress] = useState<Progress | undefined>();
@@ -82,32 +83,63 @@ export function App({ api, shell }: AppProps) {
     };
   }, [shell, open]);
 
+  const titleBar = (title?: string) => (
+    <TitleBar
+      desktop={shell !== undefined}
+      onAppMenu={
+        shell
+          ? (x, y) => {
+              shell.showAppMenu(x, y);
+            }
+          : undefined
+      }
+    >
+      <span className="text-muted flex-1 truncate text-center text-[13px] font-medium">
+        {title ?? "Epoch"}
+      </span>
+    </TitleBar>
+  );
+
   switch (view.kind) {
     case "start":
-      return shell ? (
-        <StartScreen
-          shell={shell}
-          error={view.error}
-          onOpen={open}
-          openRecent={(folder) => {
-            open(() => api.openProject(folder));
-          }}
-        />
-      ) : (
-        <main className="p-8">This page needs the Epoch desktop app.</main>
+      return (
+        <div className="flex h-full flex-col">
+          {titleBar()}
+          {shell ? (
+            <Welcome
+              shell={shell}
+              error={view.error}
+              onOpen={open}
+              openRecent={(folder) => {
+                open(() => api.openProject(folder));
+              }}
+            />
+          ) : (
+            <main className="p-8">This page needs the Epoch desktop app.</main>
+          )}
+        </div>
       );
     case "analyzing":
-      return <ProgressView project={view.project} progress={progress} />;
+      return (
+        <div className="flex h-full flex-col">
+          {titleBar(view.project.name)}
+          <ProgressPane project={view.project} progress={progress} />
+        </div>
+      );
     case "graph":
       return (
-        <GraphScreen
+        <Workspace
           key={view.project.root}
           project={view.project}
           graph={view.graph}
           {...(shell
             ? {
+                shell,
                 onOpenAnother: () => {
                   open(() => shell.chooseProject());
+                },
+                onOpenRecent: (folder: string) => {
+                  open(() => api.openProject(folder));
                 },
               }
             : {})}

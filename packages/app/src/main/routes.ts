@@ -13,11 +13,15 @@ const FolderPath = z
   .max(4096)
   .refine((p) => path.isAbsolute(p), "must be an absolute path");
 
+/** A position in the window, in CSS pixels. */
+const WindowCoordinate = z.number().int().min(0).max(100_000);
+
 /** Registers every IPC channel main answers, each with its payload schema. */
 export function registerRoutes(
   handle: Register,
   projects: Projects,
   sessionFor: (win: BrowserWindow) => ProjectSession,
+  popupAppMenu: (win: BrowserWindow, x: number, y: number) => void,
 ): void {
   handle(CHANNELS.openProject, {
     args: z.tuple([FolderPath]),
@@ -39,5 +43,12 @@ export function registerRoutes(
   handle(CHANNELS.getGraph, {
     args: z.tuple([]),
     handle: (win) => sessionFor(win).graph(),
+  });
+  handle(CHANNELS.showAppMenu, {
+    args: z.tuple([WindowCoordinate, WindowCoordinate]),
+    handle: (win, x, y) => {
+      popupAppMenu(win, x, y);
+      return Promise.resolve(undefined);
+    },
   });
 }

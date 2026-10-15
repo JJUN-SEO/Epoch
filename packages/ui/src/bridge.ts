@@ -24,4 +24,11 @@ export interface DesktopBridge {
   recentProjects(): Promise<string[]>;
   /** A project opened from the native menu (File > Open Project…). */
   onProjectOpened(cb: (project: ProjectInfo) => void): Unsubscribe;
+  /**
+   * Pops up the native application menu at a window position. Windows and
+   * Linux use it: their custom title bar has no menu bar.
+   */
+  showAppMenu(x: number, y: number): Promise<void>;
+  /** A command chosen in the native menu, such as "view.graph". */
+  onMenuCommand(cb: (id: string) => void): Unsubscribe;
 }

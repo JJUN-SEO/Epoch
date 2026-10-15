@@ -53,6 +53,16 @@ const bridge: DesktopBridge = {
       ipcRenderer.removeListener(EVENTS.projectOpened, listener);
     };
   },
+  showAppMenu: (x, y) => invoke<undefined>(CHANNELS.showAppMenu, x, y),
+  onMenuCommand: (cb) => {
+    const listener = (_event: IpcRendererEvent, id: string) => {
+      cb(id);
+    };
+    ipcRenderer.on(EVENTS.menuCommand, listener);
+    return () => {
+      ipcRenderer.removeListener(EVENTS.menuCommand, listener);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld("epoch", bridge);

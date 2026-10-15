@@ -135,6 +135,14 @@ async function start(): Promise<void> {
         openRepository: () => {
           openExternally(REPOSITORY_URL);
         },
+        command: (id) => {
+          const win =
+            BrowserWindow.getFocusedWindow() ??
+            BrowserWindow.getAllWindows()[0];
+          if (win !== undefined && !win.isDestroyed()) {
+            win.webContents.send(EVENTS.menuCommand, id);
+          }
+        },
       }),
     );
   };
@@ -154,7 +162,9 @@ async function start(): Promise<void> {
         : undefined,
     devOrigin,
   );
-  registerRoutes(handle, projects, sessionFor);
+  registerRoutes(handle, projects, sessionFor, (win, x, y) => {
+    Menu.getApplicationMenu()?.popup({ window: win, x, y });
+  });
 
   await openWindow(stateFile);
   app.on("activate", () => {

@@ -92,11 +92,13 @@ test("the bridge exposes only its named functions", async () => {
     keys: [
       "chooseProject",
       "getGraph",
+      "onMenuCommand",
       "onProgress",
       "onProjectOpened",
       "openDroppedFolder",
       "openProject",
       "recentProjects",
+      "showAppMenu",
     ],
     ipcRenderer: "undefined",
     electron: "undefined",
@@ -190,6 +192,55 @@ test("invalid payloads are rejected", async () => {
   // The preload forwards only the first argument, so main sees "/a" alone,
   // which was never granted.
   expect(extra).toContain("Epoch opens only folders chosen");
+});
+
+test("the app-menu channel takes only a window position", async () => {
+  const errors = await epoch.page.evaluate(async () => {
+    const bridge = window.epoch as unknown as {
+      showAppMenu(...args: unknown[]): Promise<unknown>;
+    };
+    const attempts = [
+      bridge.showAppMenu("10", 40),
+      bridge.showAppMenu(-1, 40),
+      bridge.showAppMenu(1.5, 40),
+      bridge.showAppMenu(),
+    ];
+    return Promise.all(
+      attempts.map((a) =>
+        a.then(
+          () => "accepted",
+          (e: unknown) => String(e),
+        ),
+      ),
+    );
+  });
+  for (const e of errors) expect(e).toContain("invalid payload");
+
+  // A valid position pops up the application menu there. The real popup is
+  // stubbed: on macOS it would block until dismissed.
+  await epoch.app.evaluate(({ Menu }) => {
+    const g = globalThis as { epochPopups?: unknown[]; epochMenu?: unknown };
+    g.epochPopups = [];
+    g.epochMenu = Menu.getApplicationMenu.bind(Menu);
+    Menu.getApplicationMenu = () =>
+      ({
+        popup: (o: { x: number; y: number }) => {
+          g.epochPopups?.push({ x: o.x, y: o.y });
+        },
+      }) as unknown as ReturnType<typeof Menu.getApplicationMenu>;
+  });
+  try {
+    await epoch.page.evaluate(() => window.epoch.showAppMenu(12, 40));
+    const popups = await epoch.app.evaluate(
+      () => (globalThis as { epochPopups?: unknown[] }).epochPopups,
+    );
+    expect(popups).toEqual([{ x: 12, y: 40 }]);
+  } finally {
+    await epoch.app.evaluate(({ Menu }) => {
+      const g = globalThis as { epochMenu?: typeof Menu.getApplicationMenu };
+      if (g.epochMenu) Menu.getApplicationMenu = g.epochMenu;
+    });
+  }
 });
 
 test("a File the page made itself carries no path and is refused", async () => {

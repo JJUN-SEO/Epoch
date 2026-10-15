@@ -11,6 +11,10 @@ export interface Shell {
   recentProjects(): Promise<string[]>;
   /** Projects opened from the native menu. */
   onProjectOpened(cb: (project: ProjectInfo) => void): () => void;
+  /** The native application menu, popped up from the title bar (Windows, Linux). */
+  showAppMenu(x: number, y: number): void;
+  /** Commands chosen in the native menu. */
+  onMenuCommand(cb: (id: string) => void): () => void;
 }
 
 const unavailable = (what: string) => (): Promise<never> =>
@@ -48,6 +52,10 @@ export function createIpcApi(bridge: DesktopBridge): {
       openDroppedFolder: (file) => bridge.openDroppedFolder(file),
       recentProjects: () => bridge.recentProjects(),
       onProjectOpened: (cb) => bridge.onProjectOpened(cb),
+      showAppMenu: (x, y) => {
+        void bridge.showAppMenu(x, y);
+      },
+      onMenuCommand: (cb) => bridge.onMenuCommand(cb),
     },
   };
 }
