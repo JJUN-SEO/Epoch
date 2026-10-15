@@ -43,7 +43,7 @@ const ADAPTERS: readonly {
     grammars: ["python"],
     minFiles: 30,
     fingerprints: {
-      "1": "d549692cbaf4c1c35b7eaf69cd79c74ea8f2185a02c161513d60a1a82bf1296d",
+      "1": "8f37d071cfb040a5f4e5e86e0ce58876756d4aa5460edab29f98cb2dcbcb54dc",
     },
   },
 ];

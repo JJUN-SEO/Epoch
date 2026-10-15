@@ -1,0 +1,24 @@
+{
+  "nodes": [
+    "tests/apps/demo/__init__.py",
+    "tests/conftest.py",
+    "tests/test_b.py"
+  ],
+  "edges": [],
+  "externals": {
+    "tests/conftest.py": [
+      "py:sys"
+    ],
+    "tests/test_b.py": [
+      "requests"
+    ]
+  },
+  "unresolved": [
+    {
+      "from": "tests/test_b.py",
+      "specifier": "demo",
+      "reason": "ambiguous",
+      "line": 1
+    }
+  ]
+}

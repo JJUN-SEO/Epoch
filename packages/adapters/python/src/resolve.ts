@@ -16,6 +16,8 @@ interface Index {
   readonly projects: readonly ProjectSources[];
   /** Every source root, deepest first. */
   readonly roots: readonly string[];
+  /** Top-level names some file in the project defines as a module or package. */
+  readonly moduleNames: ReadonlySet<string>;
 }
 
 const indexes = new WeakMap<ResolveContext, Index>();
@@ -34,8 +36,16 @@ function indexFor(ctx: ResolveContext): Index {
   const files = new Set(ctx.repo.files);
   const dirs = new Set<string>();
   const pyDirs = new Set<string>();
+  const moduleNames = new Set<string>();
   for (const f of files) {
     const py = /\.pyi?$/.test(f);
+    if (py) {
+      const name = f.slice(f.lastIndexOf("/") + 1).replace(/\.pyi?$/, "");
+      const dir = dirOf(f);
+      moduleNames.add(
+        name === "__init__" ? dir.slice(dir.lastIndexOf("/") + 1) : name,
+      );
+    }
     for (let d = dirOf(f); d !== ""; d = dirOf(d)) {
       const seen = dirs.has(d) && (!py || pyDirs.has(d));
       dirs.add(d);
@@ -52,16 +62,30 @@ function indexFor(ctx: ResolveContext): Index {
   const roots = [...new Set(projects.flatMap((p) => p.roots))].sort(
     (a, b) => depth(b) - depth(a),
   );
-  const index = { files, pyDirs, projects, roots };
+  const index = { files, pyDirs, projects, roots, moduleNames };
   indexes.set(ctx, index);
   return index;
 }
 
-/** sys.path order for a file: the projects that contain it (deepest first), then the others. */
+/**
+ * sys.path order for a file: the projects that contain it (deepest first),
+ * then the others, then the file's own directory when it is not a package
+ * (Python puts a script's folder on sys.path, and pytest's default
+ * "prepend" import mode does the same for a test file).
+ */
 function rootsFor(ix: Index, from: string): string[] {
   const mine = ix.projects.filter((p) => inside(from, p.dir));
   const others = ix.projects.filter((p) => !mine.includes(p));
-  return [...new Set([...mine, ...others].flatMap((p) => p.roots))];
+  const own = dirOf(from);
+  const isPackage =
+    ix.files.has(join(own, "__init__.py")) ||
+    ix.files.has(join(own, "__init__.pyi"));
+  return [
+    ...new Set([
+      ...[...mine, ...others].flatMap((p) => p.roots),
+      ...(isPackage ? [] : [own]),
+    ]),
+  ];
 }
 
 /** The file Python loads for module path `p`: a package before a module, stubs last. */
@@ -162,6 +186,11 @@ function resolveAbsolute(
       ? { kind: "unresolved", reason: "ambiguous" }
       : notFound;
   }
+  // On no root, but defined somewhere in the project: likely reached through
+  // a runtime sys.path edit, which static analysis cannot see (ADR-006).
+  // Calling it third-party would be a guess, so it stays unresolved.
+  if (ix.moduleNames.has(top))
+    return { kind: "unresolved", reason: "ambiguous" };
   return { kind: "external", name: top };
 }
 

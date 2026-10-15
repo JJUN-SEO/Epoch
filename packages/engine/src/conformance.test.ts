@@ -20,7 +20,7 @@ const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REGISTERED_ADAPTERS = new Set(["typescript", "python"]);
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
   typescript: 21,
-  python: 14,
+  python: 16,
 };
 
 interface Expected {
