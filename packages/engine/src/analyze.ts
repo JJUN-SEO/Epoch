@@ -333,6 +333,17 @@ export async function analyze(
     return ctx;
   };
   const analyzed = new Set(sources.map((s) => s.rel));
+  // Package membership (ADR-013): a package exists when an analyzed
+  // production file belongs to it.
+  const packageOf = new Map<string, { id: string; member: boolean }>();
+  const members = new Map<string, string[]>();
+  for (const s of sources) {
+    const pkg = s.reg.packageFor?.(s.rel, contextFor(s.reg));
+    if (pkg === undefined) continue;
+    packageOf.set(s.rel, pkg);
+    if (pkg.member)
+      members.set(pkg.id, [...(members.get(pkg.id) ?? []), s.rel]);
+  }
   const assets = new Map<string, FileInput | null>();
   /** A leaf node for a resolved non-source file (JSON, CSS, images), or null if unreadable. */
   const assetFor = (rel: string): FileInput | null => {
@@ -365,13 +376,15 @@ export async function analyze(
   const inputs: FileInput[] = [];
   for (const [i, s] of sources.entries()) {
     const ctx = contextFor(s.reg);
+    const pkg = packageOf.get(s.rel);
     const resolutions: { imp: RawImport; res: Resolution }[] = [];
     for (const imp of s.facts.imports) {
       let res = Resolution.parse(s.reg.adapter.resolveImport(imp, s.rel, ctx));
       if (
-        res.kind === "file" &&
-        !analyzed.has(res.target) &&
-        assetFor(res.target) === null
+        (res.kind === "file" &&
+          !analyzed.has(res.target) &&
+          assetFor(res.target) === null) ||
+        (res.kind === "package" && !members.has(res.target))
       ) {
         res = { kind: "unresolved", reason: "not-found" };
       }
@@ -386,6 +399,7 @@ export async function analyze(
       facts: s.facts,
       resolutions,
       partial: s.partial,
+      ...(pkg !== undefined ? { package: pkg } : {}),
     });
     progress("resolve", i + 1, sources.length);
   }
@@ -394,7 +408,11 @@ export async function analyze(
 
   // 5. Graph
   progress("graph", 0, 1);
-  const built = Graph.parse(buildGraph(inputs));
+  const built = Graph.parse(
+    buildGraph(inputs, {
+      packageHash: (hashes) => sha256(hashes.join("\n")),
+    }),
+  );
   const cycles = stronglyConnectedComponents(built, CERTAIN_EDGE_KINDS);
   const t5 = performance.now();
 
@@ -407,6 +425,7 @@ export async function analyze(
     built,
     churn,
     loadCoverage(found.root, reader, opts.coverageFile),
+    members,
   );
   const graph = Graph.parse(scored.graph);
   progress("graph", 1, 1);

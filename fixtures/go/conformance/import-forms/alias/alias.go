@@ -1,0 +1,3 @@
+package alias
+
+func A() {}

@@ -1,0 +1,6 @@
+{
+  "description": "A replace directive with a directory target makes that module local; a replace with a module target stays third-party.",
+  "adapters": [
+    "go"
+  ]
+}

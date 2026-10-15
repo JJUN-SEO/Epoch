@@ -1,0 +1,44 @@
+{
+  "nodes": [
+    "onlytests/x_test.go",
+    "pkg:example.com/app/util",
+    "util/util_ext_test.go",
+    "util/util_test.go"
+  ],
+  "edges": [
+    {
+      "source": "onlytests/x_test.go",
+      "target": "pkg:example.com/app/util",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "util/util_ext_test.go",
+      "target": "pkg:example.com/app/util",
+      "kind": "import",
+      "evidence": [
+        "test file in the package directory"
+      ]
+    },
+    {
+      "source": "util/util_test.go",
+      "target": "pkg:example.com/app/util",
+      "kind": "import",
+      "evidence": [
+        "test file in the package directory"
+      ]
+    }
+  ],
+  "externals": {
+    "onlytests/x_test.go": [
+      "go:testing"
+    ],
+    "util/util_ext_test.go": [
+      "go:testing"
+    ],
+    "util/util_test.go": [
+      "go:testing"
+    ]
+  },
+  "unresolved": []
+}

@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    "pkg:example.com/m/a",
+    "pkg:example.com/m/a/b",
+    "pkg:example.com/m/a/b/c"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/m/a",
+      "target": "pkg:example.com/m/a/b",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/m/a",
+      "target": "pkg:example.com/m/a/b/c",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/m/a/b",
+      "target": "pkg:example.com/m/a/b/c",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

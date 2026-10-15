@@ -1,0 +1,6 @@
+{
+  "description": "Modules a go.work uses resolve each other locally; a module outside the workspace gets the published version, an external.",
+  "adapters": [
+    "go"
+  ]
+}

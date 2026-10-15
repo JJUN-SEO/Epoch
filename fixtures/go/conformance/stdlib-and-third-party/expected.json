@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "pkg:example.com/svc"
+  ],
+  "edges": [],
+  "externals": {
+    "pkg:example.com/svc": [
+      "github.com/pkg/errors",
+      "github.com/unlisted/dep/sub",
+      "go:fmt",
+      "go:net/http",
+      "golang.org/x/sync",
+      "golang.org/x/sync/v2"
+    ]
+  },
+  "unresolved": []
+}

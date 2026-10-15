@@ -8,7 +8,7 @@ describe("Parsers", async () => {
   });
 
   it("loads and self-tests every grammar", () => {
-    for (const name of ["typescript", "tsx", "javascript", "python"]) {
+    for (const name of ["typescript", "tsx", "javascript", "python", "go"]) {
       expect(parsers.language(name).abiVersion).toBeGreaterThan(0);
     }
   });

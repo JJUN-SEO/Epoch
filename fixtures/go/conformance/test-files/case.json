@@ -1,0 +1,6 @@
+{
+  "description": "_test.go files stay file nodes linked to the package of their directory, both in-package tests and external _test packages; a directory with only tests has no package node.",
+  "adapters": [
+    "go"
+  ]
+}

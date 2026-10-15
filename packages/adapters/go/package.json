@@ -1,0 +1,36 @@
+{
+  "name": "@epoch-dev/adapter-go",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Epoch language adapter for Go.",
+  "license": "MIT",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./extract": {
+      "types": "./dist/extract.d.ts",
+      "default": "./dist/extract.js"
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@vscode/tree-sitter-wasm": "catalog:",
+    "eslint": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@epoch-dev/core": "workspace:*",
+    "web-tree-sitter": "catalog:"
+  }
+}

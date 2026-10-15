@@ -1,0 +1,37 @@
+{
+  "nodes": [
+    "pkg:example.com/forms",
+    "pkg:example.com/forms/alias",
+    "pkg:example.com/forms/blank",
+    "pkg:example.com/forms/dot",
+    "pkg:example.com/forms/raw"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/forms",
+      "target": "pkg:example.com/forms/alias",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/forms",
+      "target": "pkg:example.com/forms/blank",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/forms",
+      "target": "pkg:example.com/forms/dot",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/forms",
+      "target": "pkg:example.com/forms/raw",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

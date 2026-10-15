@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    "onlytests/o_test.go",
+    "pkg:example.com/app"
+  ],
+  "edges": [],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "main.go",
+      "specifier": "example.com/app/nope",
+      "reason": "not-found",
+      "line": 4
+    },
+    {
+      "from": "main.go",
+      "specifier": "example.com/app/onlytests",
+      "reason": "not-found",
+      "line": 5
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Paths whose first element has no dot are the standard library (go:<path>); others are third-party, named by the longest require module path, or by the import path when no require matches.",
+  "adapters": [
+    "go"
+  ]
+}

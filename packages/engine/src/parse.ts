@@ -49,6 +49,12 @@ export const GRAMMARS: Readonly<Record<string, GrammarSpec>> = {
     rootType: "module",
     statementTypes: ["import_statement", "import_from_statement"],
   },
+  go: {
+    name: "go",
+    canary: 'package main\n\nimport "fmt"\n',
+    rootType: "source_file",
+    statementTypes: ["package_clause", "import_declaration"],
+  },
 };
 
 /** Throws unless `abi` is within the runtime's supported range. */

@@ -1,0 +1,31 @@
+{
+  "nodes": [
+    "pkg:example.com/m/a/internal/secret",
+    "pkg:example.com/m/a/x",
+    "pkg:example.com/m/b",
+    "pkg:example.com/m/internal/top"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/m/a/x",
+      "target": "pkg:example.com/m/a/internal/secret",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/m/b",
+      "target": "pkg:example.com/m/internal/top",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "b/b.go",
+      "specifier": "example.com/m/a/internal/secret",
+      "reason": "not-found",
+      "line": 4
+    }
+  ]
+}

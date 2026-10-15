@@ -8,4 +8,5 @@ export const LANGUAGE_TIERS: Readonly<Record<string, "A" | "B">> = {
   typescript: "A",
   javascript: "A",
   python: "B",
+  go: "B",
 };

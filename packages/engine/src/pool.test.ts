@@ -11,7 +11,7 @@ const workerFile = new URL("../dist/parse-worker.js", import.meta.url);
 const fixtures = fileURLToPath(
   new URL("../../../fixtures/typescript/", import.meta.url),
 );
-const conformance = ["typescript", "python"].flatMap((language) => {
+const conformance = ["typescript", "python", "go"].flatMap((language) => {
   const dir = fileURLToPath(
     new URL(`../../../fixtures/${language}/conformance/`, import.meta.url),
   );

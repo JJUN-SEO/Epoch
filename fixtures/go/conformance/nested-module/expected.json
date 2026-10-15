@@ -1,0 +1,24 @@
+{
+  "nodes": [
+    "pkg:example.com/root",
+    "pkg:example.com/root/sub/pkg",
+    "pkg:example.com/root/util"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/root",
+      "target": "pkg:example.com/root/util",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "pkg:example.com/root": [
+      "example.com/root/sub"
+    ],
+    "pkg:example.com/root/sub/pkg": [
+      "example.com/root"
+    ]
+  },
+  "unresolved": []
+}

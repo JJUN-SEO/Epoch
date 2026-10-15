@@ -1,0 +1,20 @@
+{
+  "nodes": [
+    "pkg:example.com/app",
+    "pkg:example.com/lib"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/app",
+      "target": "pkg:example.com/lib",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "pkg:example.com/app": [
+      "github.com/old/dep"
+    ]
+  },
+  "unresolved": []
+}

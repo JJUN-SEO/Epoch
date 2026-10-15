@@ -1,0 +1,6 @@
+{
+  "description": "Files under vendor/ and testdata/, and files or directories starting with . or _, are not source; vendored imports stay external.",
+  "adapters": [
+    "go"
+  ]
+}

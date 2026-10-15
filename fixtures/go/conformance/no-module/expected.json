@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    "main.go"
+  ],
+  "edges": [],
+  "externals": {
+    "main.go": [
+      "example.com/x/y",
+      "go:fmt"
+    ]
+  },
+  "unresolved": []
+}

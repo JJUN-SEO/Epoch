@@ -1,0 +1,6 @@
+{
+  "description": "Aliased, dot, blank and raw-string imports all resolve; a blank import is a side-effect import.",
+  "adapters": [
+    "go"
+  ]
+}

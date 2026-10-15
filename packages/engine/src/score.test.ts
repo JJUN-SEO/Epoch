@@ -121,6 +121,35 @@ describe("the Score stage", () => {
     expect(off.meta.git).toEqual({ status: "off" });
   });
 
+  it("scores a Go package over its member files (ADR-013)", async () => {
+    const dir = project({
+      "go.mod": "module example.com/m\n",
+      "p/a.go": "package p\n\nconst A = 1\n",
+      "p/b.go": "package p\n\nconst B = 2\n",
+      "p/p_test.go": "package p\n",
+      "main.go": 'package main\n\nimport "example.com/m/p"\n\nvar _ = p.A\n',
+    });
+    childProcess.execFileSync("git", ["init", "-q", "-b", "main"], {
+      cwd: dir,
+    });
+    commitAll(dir, "one", 20);
+    fs.appendFileSync(path.join(dir, "p/a.go"), "// a\n");
+    commitAll(dir, "two", 10);
+    fs.appendFileSync(path.join(dir, "p/a.go"), "// a\n");
+    fs.appendFileSync(path.join(dir, "p/b.go"), "// b\n");
+    commitAll(dir, "three", 0);
+    fs.writeFileSync(
+      path.join(dir, "lcov.info"),
+      "SF:p/a.go\nDA:3,1\nDA:4,0\nend_of_record\nSF:p/b.go\nDA:3,1\nend_of_record\n",
+    );
+    const { graph } = await analyze(dir);
+    const pkg = graph.nodes.find((n) => n.id === "pkg:example.com/m/p");
+    // Three distinct commits touched a.go or b.go; 2 of 3 lines are covered.
+    expect(pkg?.metrics).toMatchObject({ churn90d: 3, fanIn: 2 });
+    expect(pkg?.metrics.coverage).toBeCloseTo(2 / 3);
+    expect(pkg?.metrics.riskScore).toEqual(expect.any(Number));
+  });
+
   it("uses a coverage report the caller names", async () => {
     const dir = project(FILES);
     const report = path.join(project({}), "cobertura.xml");

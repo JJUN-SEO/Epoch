@@ -1,0 +1,6 @@
+{
+  "description": "An internal package is importable only from the tree rooted at the parent of its last internal element; a refused import is unresolved.",
+  "adapters": [
+    "go"
+  ]
+}

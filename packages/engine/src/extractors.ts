@@ -1,5 +1,6 @@
 import type { Tree } from "web-tree-sitter";
 import type { LanguageAdapter } from "@epoch-dev/core";
+import { extract as extractGo } from "@epoch-dev/adapter-go/extract";
 import { extract as extractPython } from "@epoch-dev/adapter-python/extract";
 import { extract as extractTypescript } from "@epoch-dev/adapter-typescript/extract";
 
@@ -14,4 +15,5 @@ export const EXTRACTORS: Readonly<
 > = {
   typescript: extractTypescript,
   python: extractPython,
+  go: extractGo,
 };

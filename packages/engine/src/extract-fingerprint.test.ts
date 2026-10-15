@@ -9,6 +9,7 @@ import {
   canonicalJson,
   type AdapterRegistration,
 } from "@epoch-dev/core";
+import { goRegistration } from "@epoch-dev/adapter-go";
 import { pythonRegistration } from "@epoch-dev/adapter-python";
 import { typescriptRegistration } from "@epoch-dev/adapter-typescript";
 import { Parsers } from "./parse.js";
@@ -44,6 +45,15 @@ const ADAPTERS: readonly {
     minFiles: 30,
     fingerprints: {
       "1": "8f37d071cfb040a5f4e5e86e0ce58876756d4aa5460edab29f98cb2dcbcb54dc",
+    },
+  },
+  {
+    registration: goRegistration,
+    fixtures: "go",
+    grammars: ["go"],
+    minFiles: 30,
+    fingerprints: {
+      "1": "1ca97380485a034c9f90a2fd880c247128edf9e163f525d7c7287f4e970d686d",
     },
   },
 ];

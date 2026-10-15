@@ -14,13 +14,14 @@ import { analyze } from "./analyze.js";
  * every case under fixtures/<language>/conformance/<case>/ is a mini repo
  * with an expected.json. node ids, edges (with evidence), externals and
  * unresolved imports are compared exactly. Each language adds its own case
- * folders (Go arrives in M4); the harness stays the same.
+ * folders; the harness stays the same.
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
-const REGISTERED_ADAPTERS = new Set(["typescript", "python"]);
+const REGISTERED_ADAPTERS = new Set(["typescript", "python", "go"]);
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
   typescript: 21,
   python: 16,
+  go: 15,
 };
 
 interface Expected {

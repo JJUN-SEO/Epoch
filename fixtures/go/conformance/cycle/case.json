@@ -1,0 +1,6 @@
+{
+  "description": "An import cycle (rejected by the compiler, but possible in a broken tree) gives both edges without looping.",
+  "adapters": [
+    "go"
+  ]
+}

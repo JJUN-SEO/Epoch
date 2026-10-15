@@ -72,6 +72,28 @@ importers:
         specifier: 8.71.2
         version: 8.71.2(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
 
+  packages/adapters/go:
+    dependencies:
+      '@epoch-dev/core':
+        specifier: workspace:*
+        version: link:../../core
+      web-tree-sitter:
+        specifier: 'catalog:'
+        version: 0.27.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@vscode/tree-sitter-wasm':
+        specifier: 'catalog:'
+        version: 0.3.1
+      eslint:
+        specifier: 'catalog:'
+        version: 10.12.0(jiti@2.7.0)(supports-color@7.2.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/adapters/python:
     dependencies:
       '@epoch-dev/core':
@@ -266,6 +288,9 @@ importers:
 
   packages/engine:
     dependencies:
+      '@epoch-dev/adapter-go':
+        specifier: workspace:*
+        version: link:../adapters/go
       '@epoch-dev/adapter-python':
         specifier: workspace:*
         version: link:../adapters/python
