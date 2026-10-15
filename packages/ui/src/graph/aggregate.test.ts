@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import type { EdgeKind, Graph, GraphEdge, GraphNode } from "@epoch-dev/core";
 import {
   COLLAPSE_ABOVE,
   aggregate,
@@ -10,41 +9,7 @@ import {
   representative,
   searchNodes,
 } from "./aggregate";
-
-const node = (id: string, language = "typescript"): GraphNode => ({
-  id,
-  kind: id.startsWith("pkg:") ? "package" : "file",
-  language,
-  loc: 1,
-  contentHash: "h",
-  exports: [],
-  externals: [],
-  flags: [],
-  metrics: { fanIn: 0, fanOut: 0 },
-});
-
-const edge = (
-  source: string,
-  target: string,
-  kind: EdgeKind = "import",
-  confidence = 1,
-): GraphEdge => ({
-  source,
-  target,
-  kind,
-  provenance: confidence < 1 ? "git-cochange" : "resolver",
-  confidence,
-  evidence: [],
-});
-
-const graph = (nodes: string[], edges: GraphEdge[] = []): Graph => ({
-  schemaVersion: 1,
-  nodes: nodes.map((id) => node(id)),
-  edges,
-  roots: [],
-  findings: [],
-  unresolved: [],
-});
+import { edge, graph } from "./test-graph";
 
 const ids = (xs: readonly { id: string }[]) => xs.map((x) => x.id);
 

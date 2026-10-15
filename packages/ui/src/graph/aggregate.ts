@@ -3,6 +3,7 @@ import {
   HINT_EDGE_KINDS,
   type EdgeKind,
   type Graph,
+  type GraphEdge,
 } from "@epoch-dev/core";
 
 /*
@@ -57,6 +58,19 @@ export interface AggregateOptions {
   readonly showViaBarrel: boolean;
 }
 
+/** An inferred relation (drawn dashed), not a resolver-proven fact. */
+export const isHintEdge = (e: GraphEdge): boolean =>
+  HINT_EDGE_KINDS.has(e.kind) || e.confidence < 1;
+
+/**
+ * Whether the graph views draw an edge: the default display set of the
+ * traversal policy, hints, and via-barrel edges only when asked for.
+ */
+export const isShownEdge = (e: GraphEdge, showViaBarrel: boolean): boolean =>
+  isHintEdge(e) ||
+  DISPLAY_EDGE_KINDS.has(e.kind) ||
+  (e.kind === "via-barrel" && showViaBarrel);
+
 /** "a/b/c.ts" -> ["a", "a/b"]; package and root-level nodes have none. */
 export function ancestors(id: string): string[] {
   if (id.startsWith("pkg:")) return [];
@@ -68,7 +82,7 @@ export function ancestors(id: string): string[] {
   return out;
 }
 
-const basename = (p: string): string => p.slice(p.lastIndexOf("/") + 1);
+export const basename = (p: string): string => p.slice(p.lastIndexOf("/") + 1);
 const byId = (a: { id: string }, b: { id: string }): number =>
   a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
 
@@ -153,12 +167,8 @@ export function aggregate(
     }
   >();
   for (const e of graph.edges) {
-    const hint = HINT_EDGE_KINDS.has(e.kind) || e.confidence < 1;
-    const shown =
-      hint ||
-      DISPLAY_EDGE_KINDS.has(e.kind) ||
-      (e.kind === "via-barrel" && options.showViaBarrel);
-    if (!shown) continue;
+    if (!isShownEdge(e, options.showViaBarrel)) continue;
+    const hint = isHintEdge(e);
     const source = representative(e.source, expanded);
     const target = representative(e.target, expanded);
     if (source === target) continue;
