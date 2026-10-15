@@ -22,4 +22,6 @@ export interface DesktopBridge {
   /** A folder dropped on the window. Only real drops carry a path. */
   openDroppedFolder(file: File): Promise<ProjectInfo>;
   recentProjects(): Promise<string[]>;
+  /** A project opened from the native menu (File > Open Project…). */
+  onProjectOpened(cb: (project: ProjectInfo) => void): Unsubscribe;
 }

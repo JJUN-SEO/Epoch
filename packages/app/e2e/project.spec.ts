@@ -93,6 +93,7 @@ test("the bridge exposes only its named functions", async () => {
       "chooseProject",
       "getGraph",
       "onProgress",
+      "onProjectOpened",
       "openDroppedFolder",
       "openProject",
       "recentProjects",

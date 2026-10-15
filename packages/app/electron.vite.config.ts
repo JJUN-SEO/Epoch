@@ -50,6 +50,9 @@ export default defineConfig({
       // electron-vite turns minification off by default; the UI loads faster
       // with it (641 kB unminified vs 223 kB for an empty React page).
       minify: true,
+      // Loaded from disk, never downloaded: Cytoscape alone is about 430 kB
+      // minified, in the page and again in the layout worker.
+      chunkSizeWarningLimit: 1024,
       rollupOptions: { input: resolve(uiRoot, "index.html") },
     },
   },

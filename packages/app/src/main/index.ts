@@ -3,20 +3,28 @@ import {
   app,
   BrowserWindow,
   ipcMain,
+  Menu,
+  screen,
   session,
   type WebContents,
 } from "electron";
+import type { ProjectInfo } from "@epoch-dev/core";
 import { EVENTS } from "../shared/channels";
-import { hardenSession, hardenWebContents } from "./harden";
+import { hardenSession, hardenWebContents, openExternally } from "./harden";
 import { HostClient } from "./host-client";
 import { createRouter } from "./ipc";
+import { buildMenu } from "./menu";
 import { APP_ENTRY_URL, devServerOrigin } from "./policy";
 import { ProjectSession } from "./project";
+import { Projects } from "./projects";
 import { registerAppScheme, serveUi } from "./protocol";
 import { RecentProjects } from "./recent";
 import { GrantedRoots } from "./roots";
 import { registerRoutes } from "./routes";
 import { createProjectWindow } from "./window";
+import { isReachable, loadWindowState, saveWindowState } from "./window-state";
+
+const REPOSITORY_URL = "https://github.com/JJUN-SEO/under-construction-";
 
 // `electron-vite dev` serves the UI from a local dev server and passes its URL
 // in ELECTRON_RENDERER_URL. A packaged app ignores the variable, so nothing in
@@ -33,6 +41,12 @@ const hostEntry = path.join(import.meta.dirname, "host.js");
 /** One project session per window, keyed by its web contents. */
 const sessions = new Map<WebContents, ProjectSession>();
 
+function sessionFor(win: BrowserWindow): ProjectSession {
+  const s = sessions.get(win.webContents);
+  if (s === undefined) throw new Error("Unknown window.");
+  return s;
+}
+
 // These must run before "ready".
 app.enableSandbox();
 registerAppScheme();
@@ -43,8 +57,19 @@ app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
 
-async function openWindow(): Promise<void> {
-  const win = createProjectWindow({ preload });
+async function openWindow(stateFile: string): Promise<BrowserWindow> {
+  const saved = loadWindowState(stateFile);
+  const reachable =
+    saved !== undefined &&
+    isReachable(
+      saved,
+      screen.getAllDisplays().map((d) => d.workArea),
+    );
+  const win = createProjectWindow({
+    preload,
+    ...(reachable ? { bounds: saved } : {}),
+  });
+  if (reachable && saved.maximized) win.maximize();
   const contents = win.webContents;
   sessions.set(
     contents,
@@ -55,22 +80,71 @@ async function openWindow(): Promise<void> {
       },
     ),
   );
+  win.on("close", () => {
+    saveWindowState(stateFile, {
+      ...win.getNormalBounds(),
+      maximized: win.isMaximized(),
+    });
+  });
   win.on("closed", () => {
     sessions.get(contents)?.dispose();
     sessions.delete(contents);
   });
   await win.loadURL(uiUrl);
+  return win;
 }
 
 async function start(): Promise<void> {
   hardenSession(session.defaultSession, devOrigin);
   serveUi(path.join(outDir, "renderer"));
 
+  const userData = app.getPath("userData");
+  const stateFile = path.join(userData, "window-state.json");
   const roots = new GrantedRoots();
   const recent = new RecentProjects(
-    path.join(app.getPath("userData"), "recent-projects.json"),
+    path.join(userData, "recent-projects.json"),
   );
   for (const folder of recent.projects) roots.grantStored(folder);
+
+  /** Tells a window's UI about a project opened from the menu. */
+  const announce = (win: BrowserWindow, project: ProjectInfo | null) => {
+    if (project !== null && !win.isDestroyed()) {
+      win.webContents.send(EVENTS.projectOpened, project);
+    }
+  };
+  const targetWindow = async (): Promise<BrowserWindow> =>
+    BrowserWindow.getFocusedWindow() ??
+    BrowserWindow.getAllWindows()[0] ??
+    (await openWindow(stateFile));
+
+  const refreshMenu = () => {
+    Menu.setApplicationMenu(
+      buildMenu({
+        recent: projects.recentProjects(),
+        development: !app.isPackaged,
+        openProject: () => {
+          void targetWindow().then(async (win) => {
+            announce(win, await projects.choose(win));
+          });
+        },
+        openRecent: (folder) => {
+          void targetWindow().then((win) => {
+            announce(win, projects.openGranted(win, folder));
+          });
+        },
+        openRepository: () => {
+          openExternally(REPOSITORY_URL);
+        },
+      }),
+    );
+  };
+  const projects = new Projects({
+    roots,
+    recent,
+    sessionFor,
+    onRecentChanged: refreshMenu,
+  });
+  refreshMenu();
 
   const handle = createRouter(
     ipcMain,
@@ -80,19 +154,11 @@ async function start(): Promise<void> {
         : undefined,
     devOrigin,
   );
-  registerRoutes(handle, {
-    roots,
-    recent,
-    sessionFor: (win) => {
-      const s = sessions.get(win.webContents);
-      if (s === undefined) throw new Error("Unknown window.");
-      return s;
-    },
-  });
+  registerRoutes(handle, projects, sessionFor);
 
-  await openWindow();
+  await openWindow(stateFile);
   app.on("activate", () => {
-    if (BrowserWindow.getAllWindows().length === 0) void openWindow();
+    if (BrowserWindow.getAllWindows().length === 0) void openWindow(stateFile);
   });
 }
 

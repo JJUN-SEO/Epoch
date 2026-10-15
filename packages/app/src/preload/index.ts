@@ -44,6 +44,15 @@ const bridge: DesktopBridge = {
     return invoke<ProjectInfo>(CHANNELS.openDroppedFolder, folder);
   },
   recentProjects: () => invoke<string[]>(CHANNELS.recentProjects),
+  onProjectOpened: (cb) => {
+    const listener = (_event: IpcRendererEvent, project: ProjectInfo) => {
+      cb(project);
+    };
+    ipcRenderer.on(EVENTS.projectOpened, listener);
+    return () => {
+      ipcRenderer.removeListener(EVENTS.projectOpened, listener);
+    };
+  },
 };
 
 contextBridge.exposeInMainWorld("epoch", bridge);

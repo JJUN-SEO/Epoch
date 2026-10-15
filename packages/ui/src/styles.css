@@ -1,1 +1,26 @@
 @import "tailwindcss";
+
+/* The app follows the OS light/dark theme (CLAUDE.md "App UX basics"). */
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-white text-neutral-900 antialiased dark:bg-neutral-950 dark:text-neutral-100;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+}
+
+/* Cytoscape's container rule, which it would otherwise inject (GraphView.tsx). */
+.__________cytoscape_container {
+  position: relative;
+}

@@ -1,0 +1,69 @@
+import { dialog, type BrowserWindow } from "electron";
+import type { ProjectInfo } from "@epoch-dev/core";
+import type { ProjectSession } from "./project";
+import type { RecentProjects } from "./recent";
+import { realFolder, type GrantedRoots } from "./roots";
+
+/**
+ * Opening projects, for IPC and the native menu alike: grants, the recent
+ * list and each window's session in one place.
+ */
+export class Projects {
+  private readonly roots: GrantedRoots;
+  private readonly recent: RecentProjects;
+  private readonly sessionFor: (win: BrowserWindow) => ProjectSession;
+  private readonly onRecentChanged: () => void;
+
+  constructor(deps: {
+    roots: GrantedRoots;
+    recent: RecentProjects;
+    sessionFor: (win: BrowserWindow) => ProjectSession;
+    onRecentChanged: () => void;
+  }) {
+    this.roots = deps.roots;
+    this.recent = deps.recent;
+    this.sessionFor = deps.sessionFor;
+    this.onRecentChanged = deps.onRecentChanged;
+  }
+
+  /** Starts analyzing a folder already checked against the granted roots. */
+  private open(win: BrowserWindow, real: string): ProjectInfo {
+    const info = this.sessionFor(win).open(real);
+    this.recent.add(real);
+    this.onRecentChanged();
+    win.setTitle(`${info.name} — Epoch`);
+    return info;
+  }
+
+  /** A folder the user granted before (the recent list). */
+  openGranted(win: BrowserWindow, folder: string): ProjectInfo {
+    return this.open(win, this.roots.resolve(folder));
+  }
+
+  /** A folder from a real drop: the drop grants it. */
+  openDropped(win: BrowserWindow, folder: string): ProjectInfo {
+    return this.open(win, this.roots.grant(folder));
+  }
+
+  /** The native folder dialog; choosing a folder grants it. Null if cancelled. */
+  async choose(win: BrowserWindow): Promise<ProjectInfo | null> {
+    const choice = await dialog.showOpenDialog(win, {
+      title: "Open Project",
+      properties: ["openDirectory"],
+    });
+    const [folder] = choice.filePaths;
+    if (choice.canceled || folder === undefined) return null;
+    return this.open(win, this.roots.grant(folder));
+  }
+
+  /** Recent projects that still exist as the same real folders. */
+  recentProjects(): string[] {
+    return this.recent.projects.filter((p) => {
+      try {
+        return realFolder(p) === p;
+      } catch {
+        return false;
+      }
+    });
+  }
+}

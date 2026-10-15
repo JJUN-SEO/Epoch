@@ -7,7 +7,7 @@ import { isAllowedExternalUrl, isAllowedRequest } from "./policy";
  */
 
 /** Opens an allowlisted https link in the default browser; drops anything else. */
-function openExternally(url: string): void {
+export function openExternally(url: string): void {
   if (isAllowedExternalUrl(url)) void shell.openExternal(url);
 }
 

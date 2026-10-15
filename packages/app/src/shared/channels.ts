@@ -15,4 +15,6 @@ export const CHANNELS = {
 /** Main-to-renderer events. */
 export const EVENTS = {
   progress: "epoch:progress",
+  /** A project opened from the native menu; payload: ProjectInfo. */
+  projectOpened: "epoch:project-opened",
 } as const;

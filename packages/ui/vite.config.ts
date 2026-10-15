@@ -9,5 +9,8 @@ import { devCsp } from "./dev-csp";
 export default defineConfig({
   plugins: [react(), tailwindcss(), devCsp()],
   base: "./",
-  build: { outDir: "dist", emptyOutDir: true },
+  // The layout worker is created with { type: "module" }.
+  worker: { format: "es" },
+  // Cytoscape alone is about 430 kB minified (see electron.vite.config.ts).
+  build: { outDir: "dist", emptyOutDir: true, chunkSizeWarningLimit: 1024 },
 });

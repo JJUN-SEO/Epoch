@@ -2,6 +2,13 @@ import { BrowserWindow, nativeTheme } from "electron";
 
 export interface WindowOptions {
   readonly preload?: string;
+  /** Saved size and position, already checked to be on a display. */
+  readonly bounds?: {
+    readonly x: number;
+    readonly y: number;
+    readonly width: number;
+    readonly height: number;
+  };
 }
 
 /**
@@ -14,6 +21,7 @@ export function createProjectWindow(options: WindowOptions): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
+    ...options.bounds,
     minWidth: 720,
     minHeight: 480,
     show: false,

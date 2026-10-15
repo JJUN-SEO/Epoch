@@ -45,17 +45,21 @@ export function packagedExecutable(): string {
 export interface Launched {
   readonly app: ElectronApplication;
   readonly page: Page;
+  /** Holds this run's user-data and cache directories. */
+  readonly home: string;
   close(): Promise<void>;
 }
 
 /**
- * Starts the app with a throwaway user-data and cache directory, and waits for
- * the first window to finish loading.
+ * Starts the app with a throwaway user-data and cache directory (or the given
+ * one, to test what survives a restart), and waits for the first window to
+ * finish loading.
  */
 export async function launch(
   env: Readonly<Record<string, string>> = {},
+  reuse?: { readonly home: string },
 ): Promise<Launched> {
-  const home = mkdtempSync(path.join(os.tmpdir(), "epoch-e2e-"));
+  const home = reuse?.home ?? mkdtempSync(path.join(os.tmpdir(), "epoch-e2e-"));
   const options = {
     // Keep Chromium's OS-level sandbox on under Playwright (it adds
     // --no-sandbox on Linux otherwise); CI runs as a non-root user.
@@ -79,9 +83,10 @@ export async function launch(
   return {
     app,
     page,
+    home,
     async close() {
       await app.close();
-      rmSync(home, { recursive: true, force: true });
+      if (reuse === undefined) rmSync(home, { recursive: true, force: true });
     },
   };
 }
