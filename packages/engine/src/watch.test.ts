@@ -120,33 +120,60 @@ const git = (cwd: string, ...args: string[]) =>
     { cwd, stdio: "pipe" },
   );
 
-/** Starts watching and collects updates and statuses. */
+/**
+ * Starts watching, collects updates, their batches and statuses, and returns
+ * once file events reach the watcher. On macOS, fs.watch on a directory is
+ * one FSEvents stream that libuv recreates on its own thread, "since now",
+ * for each new watch, so a change made right after chokidar's ready can be
+ * lost (CI run 36). A file nothing analyzes is touched until an update shows.
+ */
 async function watched(dir: string) {
   const cache = new MemoryCacheStore();
   const initial = await analyze(dir, { cache, history: false });
   const updates: AnalyzeResult[] = [];
+  const batches: ReadonlySet<string>[] = [];
   const statuses: WatchStatus[] = [];
   const w = await watchProject(initial, {
     analyze: { cache, history: false },
-    onUpdate: (r) => updates.push(r),
+    onUpdate: (r, changed) => {
+      updates.push(r);
+      batches.push(changed);
+    },
     onStatus: (s) => statuses.push(s),
     quietMs: 100,
     maxMs: 1000,
     headPollMs: 100,
   });
   watchers.push(w);
-  return { initial, updates, statuses };
+  expect(statuses).toEqual([{ state: "watching" }]);
+  let pokes = 0;
+  await vi.waitFor(
+    () => {
+      if (updates.length > 0) return;
+      write(dir, "probe.txt", String(++pokes));
+      throw new Error("no file event reached the watcher yet");
+    },
+    { timeout: 15_000, interval: 250 },
+  );
+  return { initial, updates, batches, statuses };
 }
 
 /** Waits until the latest update's graph equals a fresh analysis. */
-async function settles(dir: string, updates: AnalyzeResult[]): Promise<void> {
+async function settles(
+  dir: string,
+  updates: AnalyzeResult[],
+  statuses: WatchStatus[],
+): Promise<void> {
   const fresh = serializeCanonical(
     (await analyze(dir, { history: false })).graph,
   );
   await vi.waitFor(
     () => {
       const last = updates.at(-1);
-      expect(last && serializeCanonical(last.graph)).toBe(fresh);
+      expect(
+        last && serializeCanonical(last.graph),
+        `watcher statuses: ${JSON.stringify(statuses)}`,
+      ).toBe(fresh);
     },
     { timeout: 15_000, interval: 50 },
   );
@@ -161,14 +188,13 @@ describe("watchProject", () => {
   it("re-analyzes after an edit, a new file and a deletion", async () => {
     const dir = project(FILES);
     const { updates, statuses } = await watched(dir);
-    expect(statuses).toEqual([{ state: "watching" }]);
 
     write(dir, "src/c.ts", 'import { a } from "./a";\nexport const c = a;\n');
-    await settles(dir, updates);
+    await settles(dir, updates, statuses);
     expect(updates.at(-1)?.graph.nodes.map((n) => n.id)).toContain("src/c.ts");
 
     fs.rmSync(path.join(dir, "src/b.ts"));
-    await settles(dir, updates);
+    await settles(dir, updates, statuses);
     expect(updates.at(-1)?.graph.unresolved).toMatchObject([
       { from: "src/a.ts", specifier: "./b", reason: "not-found" },
     ]);
@@ -186,14 +212,14 @@ describe("watchProject", () => {
     git(dir, "add", "-A");
     git(dir, "commit", "-q", "-m", "two");
     git(dir, "checkout", "-q", "main");
-    const { updates } = await watched(dir);
+    const { updates, statuses } = await watched(dir);
 
     git(dir, "checkout", "-q", "feature");
-    await settles(dir, updates);
+    await settles(dir, updates, statuses);
     expect(updates.at(-1)?.graph.nodes.map((n) => n.id)).toContain("src/d.ts");
 
     git(dir, "checkout", "-q", "main");
-    await settles(dir, updates);
+    await settles(dir, updates, statuses);
     expect(updates.at(-1)?.graph.nodes.map((n) => n.id)).not.toContain(
       "src/d.ts",
     );
@@ -205,16 +231,23 @@ describe("watchProject", () => {
       "node_modules/x/index.js": "",
       "dist/x.js": "",
     });
-    const { updates } = await watched(dir);
-    write(dir, "node_modules/x/other.js", "");
-    write(dir, "dist/y.js", "");
-    write(dir, "src/.a.ts.swp", "");
-    write(dir, "src/a.ts~", "");
-    // A real change afterwards proves events flow; only it causes an update.
+    const { updates, batches, statuses } = await watched(dir);
+    const noise = [
+      "node_modules/x/other.js",
+      "dist/y.js",
+      "src/.a.ts.swp", // chokidar's atomic mode drops these two itself
+      "src/a.ts~",
+      "src/.#a.ts", // these two only isEditorNoise catches
+      "src/a.ts___jb_tmp___",
+    ];
+    for (const rel of noise) write(dir, rel, "");
+    // Give noise events time to arrive; a real change afterwards proves
+    // events flow. No batch may ever name a noise path.
     await new Promise((r) => setTimeout(r, 500));
-    expect(updates).toHaveLength(0);
     write(dir, "src/e.ts", "export const e = 1;\n");
-    await settles(dir, updates);
-    expect(updates).toHaveLength(1);
+    await settles(dir, updates, statuses);
+    const seen = batches.flatMap((b) => [...b]);
+    expect(seen).toContain("src/e.ts");
+    expect(seen.filter((p) => noise.includes(p))).toEqual([]);
   }, 40_000);
 });
