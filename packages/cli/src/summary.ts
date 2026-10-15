@@ -41,6 +41,19 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
     pad("parsed", meta.counts.cacheMisses),
   );
 
+  const git = meta.git;
+  lines.push(
+    "",
+    git.status === "usable"
+      ? `  git          90-day churn up to ${new Date((git.churnUntil ?? 0) * 1000).toISOString().slice(0, 10)}${git.shallow === true ? " (shallow clone: only the fetched history counts)" : ""}`
+      : git.status === "off"
+        ? "  git          off"
+        : `  git          no churn or risk score (${git.status})`,
+    meta.coverage === null
+      ? "  coverage     none found"
+      : `  coverage     ${meta.coverage.source} (${meta.coverage.format}): ${String(meta.coverage.files)} files${meta.coverage.unmatched + meta.coverage.ambiguous > 0 ? `, ${String(meta.coverage.unmatched)} unmatched, ${String(meta.coverage.ambiguous)} ambiguous` : ""}`,
+  );
+
   const list = <T>(
     title: string,
     items: readonly T[],

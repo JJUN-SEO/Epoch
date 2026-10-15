@@ -80,6 +80,41 @@ describe("epoch analyze (human summary)", () => {
     expect(r.stdout).toContain(
       "apps/web/src/main.tsx:8  <non-literal>  dynamic-specifier under apps/web/src/routes/",
     );
+    // The fixture is not a git repository root, and has no coverage report.
+    expect(r.stdout).toContain(
+      "git          no churn or risk score (not-a-repo)",
+    );
+    expect(r.stdout).toContain("coverage     none found");
+  });
+
+  it("uses the coverage report given with --coverage", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-cov-"));
+    try {
+      const report = path.join(dir, "lcov.info");
+      fs.writeFileSync(
+        report,
+        "SF:/ci/work/apps/web/src/main.tsx\nDA:1,1\nDA:2,0\nend_of_record\nSF:/elsewhere/x.ts\nDA:1,1\nend_of_record\n",
+      );
+      const r = await cli("analyze", monorepo, "--coverage", report);
+      expect(r.code).toBe(EXIT_OK);
+      expect(r.stdout).toContain(
+        `coverage     ${report} (lcov): 1 files, 1 unmatched, 0 ambiguous`,
+      );
+      const json = await cli(
+        "analyze",
+        monorepo,
+        "--json",
+        "--coverage",
+        report,
+      );
+      const graph = Graph.parse(JSON.parse(json.stdout));
+      expect(
+        graph.nodes.find((n) => n.id === "apps/web/src/main.tsx")?.metrics
+          .coverage,
+      ).toBe(0.5);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -30,10 +30,11 @@ import {
 import { nowNs, scanChanges } from "./changes.js";
 import { discover } from "./discover.js";
 import { extractFile, type ExtractedFile } from "./extract-file.js";
-import { readHeadCommit } from "./git.js";
+import { readHeadCommit, type GitRunner } from "./git.js";
 import { Parsers } from "./parse.js";
 import type { ParsePool } from "./pool.js";
 import { FsReader } from "./reader.js";
+import { ChurnMemo, loadCoverage, scoreGraph } from "./score.js";
 import { DEFAULT_REGISTRATIONS } from "./registrations.js";
 import manifest from "../package.json" with { type: "json" };
 
@@ -61,6 +62,21 @@ export interface AnalyzeOptions {
     imp: RawImport,
     res: Resolution,
   ) => void;
+  /**
+   * Git churn and the risk score (default on): a git repository at the root
+   * gets metrics.churn90d and metrics.riskScore. Off for runs that must not
+   * depend on history (performance benchmarks).
+   */
+  readonly history?: boolean;
+  /** Reuses churn across runs on the same HEAD (the watcher). */
+  readonly churnMemo?: ChurnMemo;
+  /** Runs git (tests inject one). */
+  readonly git?: GitRunner;
+  /**
+   * A coverage report to use instead of looking for one in the project
+   * (absolute path; CLI --coverage).
+   */
+  readonly coverageFile?: string;
 }
 
 export interface AnalyzeResult {
@@ -378,10 +394,23 @@ export async function analyze(
 
   // 5. Graph
   progress("graph", 0, 1);
-  const graph = Graph.parse(buildGraph(inputs));
-  const cycles = stronglyConnectedComponents(graph, CERTAIN_EDGE_KINDS);
-  progress("graph", 1, 1);
+  const built = Graph.parse(buildGraph(inputs));
+  const cycles = stronglyConnectedComponents(built, CERTAIN_EDGE_KINDS);
   const t5 = performance.now();
+
+  // 7. Score (6. Enrich adds hint edges in M6): churn, coverage, risk.
+  const churn =
+    opts.history === false
+      ? undefined
+      : (opts.churnMemo ?? new ChurnMemo()).get(found.root, reader, opts.git);
+  const scored = scoreGraph(
+    built,
+    churn,
+    loadCoverage(found.root, reader, opts.coverageFile),
+  );
+  const graph = Graph.parse(scored.graph);
+  progress("graph", 1, 1);
+  const t6 = performance.now();
 
   if (cache) {
     manifest.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -409,7 +438,8 @@ export async function analyze(
       parse: t3 - t2,
       resolve: t4 - t3,
       graph: t5 - t4,
-      total: t5 - t0,
+      score: t6 - t5,
+      total: t6 - t0,
     },
     counts: {
       filesAnalyzed: sources.length,
@@ -426,6 +456,8 @@ export async function analyze(
     skipped,
     parseErrors,
     cycles,
+    git: scored.git,
+    coverage: scored.coverage,
     host: {
       platform: process.platform,
       arch: process.arch,

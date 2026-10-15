@@ -151,6 +151,7 @@ describe("contract schemas", () => {
         parse: 2,
         resolve: 3,
         graph: 4,
+        score: 0,
         total: 10,
       },
       counts: {
@@ -169,6 +170,8 @@ describe("contract schemas", () => {
       parseErrors: ["broken.ts"],
       cycles: [],
       host: { platform: "linux", arch: "x64", node: "24.21.0" },
+      git: { status: "off" },
+      coverage: null,
     };
     expect(AnalysisMeta.parse(meta)).toEqual(meta);
   });

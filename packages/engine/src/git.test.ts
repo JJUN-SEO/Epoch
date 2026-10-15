@@ -109,7 +109,10 @@ describe("changedSince (--since)", () => {
     ]);
     expect(calls.length).toBe(4);
     for (const call of calls)
-      expect(call.slice(0, 4)).toEqual(["git", ...GIT_HARDENING]);
+      expect(call.slice(0, 1 + GIT_HARDENING.length)).toEqual([
+        "git",
+        ...GIT_HARDENING,
+      ]);
     expect(calls[1]).toEqual([
       "git",
       ...GIT_HARDENING,

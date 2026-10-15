@@ -51,6 +51,7 @@ async function measure(dir: string): Promise<RepoResult> {
   const epochImports: EpochImport[] = [];
   let t = performance.now();
   const { graph } = await analyze(repo.root, {
+    history: false,
     onResolution: (from, imp, res) =>
       epochImports.push({
         from,

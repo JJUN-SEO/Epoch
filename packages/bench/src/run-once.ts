@@ -27,6 +27,8 @@ const pool = values["in-process"] ? undefined : new ParsePool();
 try {
   const { graph, meta } = await analyze(dir, {
     cache,
+    // Timings measure the pipeline, not git history (the churn cost is measured separately).
+    history: false,
     ...(pool ? { pool } : {}),
   });
   const json = serializeCanonical(graph);

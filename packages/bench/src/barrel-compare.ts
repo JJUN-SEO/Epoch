@@ -49,7 +49,7 @@ const byKey = (a: Triple, b: Triple) =>
 const peakRssKb = () => process.resourceUsage().maxRSS;
 
 async function ours(repoDir: string): Promise<SideResult> {
-  const { graph, meta } = await analyze(repoDir);
+  const { graph, meta } = await analyze(repoDir, { history: false });
   const triples: Triple[] = [];
   for (const e of graph.edges) {
     for (const ev of e.evidence) {

@@ -32,6 +32,8 @@ export const AnalysisMeta = z.strictObject({
     parse: Ms,
     resolve: Ms,
     graph: Ms,
+    /** Git churn, coverage and risk. */
+    score: Ms,
     total: Ms,
   }),
   counts: z.strictObject({
@@ -55,6 +57,36 @@ export const AnalysisMeta = z.strictObject({
   parseErrors: z.array(z.string()),
   /** Strongly connected components over certain-mode edges (size > 1 or self-loop). */
   cycles: z.array(z.array(z.string())),
+  /** Git history behind churn90d and riskScore (M4). */
+  git: z.strictObject({
+    status: z.enum([
+      "usable",
+      "not-a-repo",
+      "no-commits",
+      "git-unavailable",
+      "off",
+    ]),
+    /** Only part of the history was fetched; churn counts what is there. */
+    shallow: z.boolean().optional(),
+    head: z.string().optional(),
+    /** The churn window, Unix seconds: 90 days before HEAD's commit date. */
+    churnSince: z.number().int().optional(),
+    churnUntil: z.number().int().optional(),
+  }),
+  /** The coverage report behind metrics.coverage, if one was found. */
+  coverage: z
+    .strictObject({
+      /** Repo-relative when found in the project; as given otherwise. */
+      source: z.string(),
+      format: z.enum(["lcov", "cobertura"]),
+      /** Analyzed files the report covers. */
+      files: Count,
+      /** Report entries matching no analyzed file. */
+      unmatched: Count,
+      /** Report entries matching several analyzed files equally. */
+      ambiguous: Count,
+    })
+    .nullable(),
   host: z.strictObject({
     platform: z.string(),
     arch: z.string(),

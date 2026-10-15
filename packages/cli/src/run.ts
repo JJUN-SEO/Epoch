@@ -24,7 +24,7 @@ export const EXIT_ERROR = 1;
 const MIB = 1024 * 1024;
 
 export const USAGE = `Usage:
-  epoch analyze <path> [--json] [--since <commit>]
+  epoch analyze <path> [--json] [--since <commit>] [--coverage <file>]
   epoch cache stats | clear | prune [--max-size <MB>]
 
 Commands:
@@ -36,6 +36,9 @@ Commands:
 Options:
   --json             Print the canonical graph as JSON on stdout
   --since <commit>   Also re-read files changed between <commit> and HEAD
+  --coverage <file>  Use this lcov or Cobertura report (default: look for
+                     coverage/lcov.info, coverage/cobertura-coverage.xml,
+                     coverage.xml or lcov.info in the project)
   --max-size <MB>    Cache size cap for prune (default ${String(DEFAULT_MAX_CACHE_BYTES / MIB)})
   -h, --help         Show this help
 
@@ -79,6 +82,7 @@ async function analyzeCommand(
     options: {
       json: { type: "boolean", default: false },
       since: { type: "string" },
+      coverage: { type: "string" },
     },
     allowPositionals: true,
     strict: true,
@@ -118,6 +122,9 @@ async function analyzeCommand(
       pool,
       ...(cache ? { cache } : {}),
       ...(forceReread ? { forceReread } : {}),
+      ...(values.coverage === undefined
+        ? {}
+        : { coverageFile: path.resolve(values.coverage) }),
     });
     cache?.prune(DEFAULT_MAX_CACHE_BYTES);
   } finally {

@@ -59,16 +59,20 @@ export type GitRunner = (args: readonly string[], cwd: string) => string;
 /**
  * Options and environment for every git call. Only read-only, tree-level
  * commands are used, and these keep repo-local configuration from running
- * anything: no fsmonitor hook, no external diff or textconv drivers, no
- * pager, no prompts, and no optional index locks (git never writes .git).
+ * anything: no fsmonitor hook, no signature checks (a configured
+ * gpg.program would run), no external diff or textconv drivers, no pager,
+ * no prompts, and no optional index locks (git never writes .git).
  */
 export const GIT_HARDENING = [
   "-c",
   "core.fsmonitor=false",
+  "-c",
+  "log.showSignature=false",
   "--no-pager",
 ] as const;
 
-const defaultRunner: GitRunner = (args, cwd) => {
+/** Runs git with GIT_HARDENING; throws GitError on failure. */
+export const defaultRunner: GitRunner = (args, cwd) => {
   try {
     return childProcess.execFileSync("git", [...GIT_HARDENING, ...args], {
       cwd,

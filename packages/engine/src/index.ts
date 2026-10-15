@@ -16,3 +16,6 @@ export * from "./reader.js";
 export * from "./cache/index.js";
 export * from "./git.js";
 export * from "./changes.js";
+export * from "./churn.js";
+export * from "./coverage.js";
+export * from "./score.js";
