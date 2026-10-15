@@ -47,7 +47,61 @@ export interface Launched {
   readonly page: Page;
   /** Holds this run's user-data, cache and data (dismissals) directories. */
   readonly home: string;
+  /** Quits the app, keeping `home` (to launch again on it). */
+  quit(): Promise<void>;
+  /** Quits the app and removes `home` unless it was reused. */
   close(): Promise<void>;
+}
+
+/*
+ * Launching and quitting get their own deadlines, well inside the test
+ * timeout, so a hang fails naming the step and showing what the app last
+ * wrote, instead of a bare test timeout (CI run 37: a test and the worker
+ * teardown each waited 60 s on macOS with no clue where). A hung app is
+ * killed so it cannot stall the rest of the run.
+ */
+const LAUNCH_MS = 30_000;
+const QUIT_MS = 20_000;
+const OUTPUT_LINES = 40;
+
+/** Keeps the last lines the app wrote to stdout and stderr. */
+function recordOutput(app: ElectronApplication): () => string {
+  const lines: string[] = [];
+  const keep = (chunk: Buffer) => {
+    lines.push(...chunk.toString("utf8").split(/\r?\n/).filter(Boolean));
+    lines.splice(0, Math.max(0, lines.length - OUTPUT_LINES));
+  };
+  const proc = app.process();
+  proc.stdout?.on("data", keep);
+  proc.stderr?.on("data", keep);
+  return () => (lines.length === 0 ? "(nothing)" : lines.join("\n"));
+}
+
+/** Resolves as `step` does, or fails after `ms`, killing the app. */
+async function within<T>(
+  app: ElectronApplication,
+  output: () => string,
+  what: string,
+  ms: number,
+  step: Promise<T>,
+): Promise<T> {
+  step.catch(() => undefined); // still pending when the deadline wins
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      app.process().kill("SIGKILL");
+      reject(
+        new Error(
+          `${what} took longer than ${String(ms / 1000)} s; the app was killed. Its last output:\n${output()}`,
+        ),
+      );
+    }, ms);
+  });
+  try {
+    return await Promise.race([step, deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 /**
@@ -80,14 +134,25 @@ export async function launch(
           executablePath: packagedExecutable(),
         })
       : await electron.launch({ ...options, args: [appDir, ...options.args] });
-  const page = await app.firstWindow();
-  await page.waitForLoadState("load");
+  const output = recordOutput(app);
+  const page = await within(
+    app,
+    output,
+    "Opening the first window",
+    LAUNCH_MS,
+    app.firstWindow().then(async (p) => {
+      await p.waitForLoadState("load");
+      return p;
+    }),
+  );
+  const quit = () => within(app, output, "Quitting", QUIT_MS, app.close());
   return {
     app,
     page,
     home,
+    quit,
     async close() {
-      await app.close();
+      await quit();
       if (reuse === undefined) rmSync(home, { recursive: true, force: true });
     },
   };

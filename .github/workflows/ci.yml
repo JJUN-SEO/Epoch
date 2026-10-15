@@ -128,5 +128,16 @@ jobs:
           EPOCH_E2E_TARGET: packaged
         run: $HEADLESS pnpm --filter @epoch-dev/app e2e
 
+      # What Playwright kept of a failing test (page snapshot, error context),
+      # so a failure that only happens on a runner can be looked at.
+      - name: Keep e2e results of a failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-results-${{ matrix.os }}
+          path: packages/app/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: The run left the tree clean
         run: test -z "$(git status --porcelain)"

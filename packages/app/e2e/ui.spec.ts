@@ -318,7 +318,7 @@ test("the window and the dismissed privacy note survive a restart", async () => 
     });
     expect(before).toBeDefined();
     expect(before).not.toMatchObject({ width: 1280, height: 800 }); // not the default
-    await first.app.close();
+    await first.quit();
     const second = await launch({}, { home });
     try {
       const after = await second.app.evaluate(({ BrowserWindow }) =>
@@ -332,7 +332,7 @@ test("the window and the dismissed privacy note survive a restart", async () => 
         second.page.getByRole("complementary", { name: "Privacy" }),
       ).toHaveCount(0);
     } finally {
-      await second.app.close();
+      await second.quit();
     }
   } finally {
     fs.rmSync(home, { recursive: true, force: true });
