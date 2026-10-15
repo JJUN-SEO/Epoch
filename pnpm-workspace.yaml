@@ -6,10 +6,16 @@ packages:
 # Shared exact versions; packages reference them as "catalog:".
 # https://pnpm.io/catalogs
 catalog:
+  "@tailwindcss/vite": 4.3.3
   "@types/node": 24.19.2
+  "@vitejs/plugin-react": 5.2.0
+  "@vscode/tree-sitter-wasm": 0.3.1
+  better-sqlite3: 13.0.3
   eslint: 10.12.0
   typescript: 6.0.3
+  vite: 7.3.6
   vitest: 5.0.4
+  web-tree-sitter: 0.27.1
 
 # Fail install when the running Node does not satisfy `engines`. pnpm's docs say
 # a root mismatch always fails, but pnpm 11.28.2 only warns without this
@@ -22,4 +28,11 @@ updateNotifier: false
 # Dependency install scripts run only when listed here (strictDepBuilds is on by
 # default). Add each one deliberately, with the reason in the commit message.
 # https://pnpm.io/settings/build#allowbuilds
-allowBuilds: {}
+allowBuilds:
+  # esbuild (via Vite) has a postinstall that only verifies its platform
+  # binary, which arrives as an optional dependency; denied, and builds work
+  # without it (verified when M3 added the UI).
+  esbuild: false
+  # electron-winstaller (via electron-builder) copies a 7-Zip binary for
+  # Squirrel.Windows installers; Epoch ships NSIS on Windows, so it is unused.
+  electron-winstaller: false

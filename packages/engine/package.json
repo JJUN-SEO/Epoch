@@ -29,9 +29,9 @@
   "dependencies": {
     "@epoch-dev/adapter-typescript": "workspace:*",
     "@epoch-dev/core": "workspace:*",
-    "@vscode/tree-sitter-wasm": "0.3.1",
-    "better-sqlite3": "13.0.3",
+    "@vscode/tree-sitter-wasm": "catalog:",
+    "better-sqlite3": "catalog:",
     "ignore": "7.0.12",
-    "web-tree-sitter": "0.27.1"
+    "web-tree-sitter": "catalog:"
   }
 }

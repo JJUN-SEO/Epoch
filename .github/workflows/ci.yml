@@ -76,3 +76,57 @@ jobs:
         run: |
           test ! -e AGENTS.md
           test -z "$(git status --porcelain)"
+
+  e2e:
+    name: e2e (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      # xvfb-run gives Electron a display on Linux; the other runners have one.
+      # (The runner context is not available at job level, hence the matrix.)
+      HEADLESS: ${{ startsWith(matrix.os, 'ubuntu') && 'xvfb-run -a' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # electron has no install script (allowBuilds stays deny-by-default);
+      # its own installer downloads the binary for this OS from GitHub.
+      - name: Install the Electron binary
+        run: pnpm --filter @epoch-dev/app exec install-electron
+
+      # Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor, which
+      # Chromium's sandbox needs. The tests keep the sandbox on (never
+      # --no-sandbox), so allow them for this runner.
+      - name: Allow Chromium's sandbox
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - run: pnpm build
+
+      - name: e2e against the build
+        run: $HEADLESS pnpm --filter @epoch-dev/app e2e
+
+      - name: Package (unpacked, unsigned)
+        run: pnpm --filter @epoch-dev/app package:dir
+
+      - name: e2e against the packaged app
+        env:
+          EPOCH_E2E_TARGET: packaged
+        run: $HEADLESS pnpm --filter @epoch-dev/app e2e
+
+      - name: The run left the tree clean
+        run: test -z "$(git status --porcelain)"

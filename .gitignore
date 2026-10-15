@@ -19,3 +19,8 @@ coverage/
 .DS_Store
 Thumbs.db
 *.log
+
+# Electron build output (electron-vite) and packaged apps (electron-builder)
+packages/app/out/
+packages/app/release/
+packages/app/test-results/

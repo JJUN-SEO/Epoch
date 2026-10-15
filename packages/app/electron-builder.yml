@@ -1,0 +1,49 @@
+# electron-builder configuration. M3 builds an unpacked, unsigned app for the
+# current OS (`pnpm --filter @epoch-dev/app package:dir`) so packaging problems
+# surface early; installers, signing and publishing are M8 (CLAUDE.md
+# "Distribution").
+appId: dev.epoch.app
+productName: Epoch
+executableName: epoch
+copyright: Copyright © 2026 Junhyuk Seo
+
+directories:
+  output: release
+
+# Only the electron-vite output. Runtime dependencies (package.json
+# "dependencies": the native and WASM packages that stay external) are added
+# by electron-builder from node_modules.
+files:
+  - out/**
+  - "!out/**/*.map"
+  - package.json
+  # better-sqlite3's C sources (for building from source); the prebuilt addon
+  # is all that runs.
+  - "!node_modules/better-sqlite3/{deps,src}/**"
+
+asar: true
+# A native addon cannot be loaded from inside an asar archive.
+asarUnpack:
+  - "**/*.node"
+
+# better-sqlite3 ships N-API prebuilds, which Electron loads as-is (ADR-004,
+# verified in M3), so nothing is rebuilt or compiled from source.
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+
+mac:
+  category: public.app-category.developer-tools
+  target: dmg
+  # Ad-hoc signature only (no certificate) until the signing decision in M8:
+  # Apple Silicon refuses to run native code without at least that.
+  # Hardened runtime matters for notarization, which is also M8.
+  identity: "-"
+  hardenedRuntime: false
+win:
+  target: nsis
+linux:
+  target: AppImage
+  category: Development
+
+publish: null

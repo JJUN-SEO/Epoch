@@ -26,8 +26,19 @@ const NETWORK_MODULES = [
 ];
 const NETWORK_GLOBALS = ["fetch", "WebSocket", "EventSource"];
 
+const RENDER_AS_TEXT_MESSAGE =
+  "Render repository-derived strings as text, never as HTML (CLAUDE.md, Electron security).";
+
 export default defineConfig(
-  globalIgnores(["**/dist/", "**/coverage/", "**/.turbo/"]),
+  globalIgnores([
+    "**/dist/",
+    "**/coverage/",
+    "**/.turbo/",
+    // Electron build output, packaged apps and Playwright artifacts.
+    "**/out/",
+    "**/release/",
+    "**/test-results/",
+  ]),
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -94,6 +105,37 @@ export default defineConfig(
             message: NETWORK_MESSAGE,
           })),
         ),
+      ],
+    },
+  },
+  {
+    // The renderer shows strings from untrusted repositories (file names,
+    // flag names, evidence): render them as text, never as HTML (CLAUDE.md
+    // "Electron security"). It also never imports Node or Electron modules.
+    files: ["packages/ui/src/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        ...[
+          "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          "MemberExpression[property.name=/^(innerHTML|outerHTML)$/]",
+          "CallExpression[callee.property.name=/^(insertAdjacentHTML|createContextualFragment|write|writeln)$/]",
+        ].map((selector) => ({ selector, message: RENDER_AS_TEXT_MESSAGE })),
+      ],
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              regex: "^(node:|electron$|electron/)",
+              message: "The renderer has no Node.js or Electron access.",
+            },
+            {
+              regex: `^(node:)?(${NETWORK_MODULES.join("|")}|undici)(/|$)`,
+              message: NETWORK_MESSAGE,
+            },
+          ],
+        },
       ],
     },
   },

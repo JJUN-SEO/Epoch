@@ -20,14 +20,14 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
-    "@vscode/tree-sitter-wasm": "0.3.1",
+    "@vscode/tree-sitter-wasm": "catalog:",
     "eslint": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {
     "@epoch-dev/core": "workspace:*",
     "typescript": "catalog:",
-    "web-tree-sitter": "0.27.1",
+    "web-tree-sitter": "catalog:",
     "yaml": "2.9.1"
   }
 }
