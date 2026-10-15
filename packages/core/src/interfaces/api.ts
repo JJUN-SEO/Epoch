@@ -1,10 +1,12 @@
 import type {
   Confidence,
+  EntryPoint,
   Finding,
   FindingKind,
   Graph,
   GraphEdge,
   GraphNode,
+  UnresolvedImport,
 } from "../schemas/index.js";
 
 /*
@@ -30,7 +32,11 @@ export interface Progress {
   readonly total: number;
 }
 
-/** @provisional Watcher-driven incremental update (M4). */
+/**
+ * A watcher-driven change to the graph (M4): what to add, replace or remove
+ * so the previous graph becomes the new one (core/graph/delta.ts). The small
+ * lists are replaced whole when they change.
+ */
 export interface GraphDelta {
   readonly upsertNodes: readonly GraphNode[];
   readonly removeNodes: readonly string[];
@@ -39,25 +45,40 @@ export interface GraphDelta {
     GraphEdge,
     "source" | "target" | "kind"
   >[];
+  readonly roots?: readonly EntryPoint[];
+  readonly findings?: readonly Finding[];
+  readonly unresolved?: readonly UnresolvedImport[];
 }
 
-/** @provisional CLAUDE.md "Blast radius" (M4). */
+/** CLAUDE.md "Blast radius". */
 export interface BlastRadiusOptions {
+  /** certain: fact edges only; likely: plus hint edges at or above hintThreshold. */
   readonly mode: "certain" | "likely";
+  /** Follow type-only edges (CLAUDE.md "Edge traversal policy": a toggle, default on). */
   readonly includeTypeOnly: boolean;
-  /** Minimum hint confidence in likely mode. */
+  /** Minimum hint confidence; required in likely mode (ADR-008 sets the UI default, M6). */
   readonly hintThreshold?: number;
+  /** Stop after this many hops. */
   readonly maxDepth?: number;
 }
 
-/** @provisional CLAUDE.md "Blast radius": totals, depth, groupings, hint dependence. */
+/** CLAUDE.md "Blast radius": totals, depth, groupings, hint dependence. */
 export interface BlastRadiusResult {
   readonly nodeId: string;
-  readonly affected: readonly { id: string; depth: number }[];
+  /** Sorted by depth, then id. The changed node itself is never listed. */
+  readonly affected: readonly {
+    readonly id: string;
+    readonly depth: number;
+    /** Reached only through a hint edge (not reachable in certain mode). */
+    readonly viaHint: boolean;
+  }[];
   readonly total: number;
   readonly maxDepth: number;
+  /** By containing directory ("." at the root); a package counts under its own path. */
   readonly byDirectory: Readonly<Record<string, number>>;
   readonly byLanguage: Readonly<Record<string, number>>;
+  /** Files and packages (Go) separately, so neither granularity hides the other. */
+  readonly byKind: { readonly file: number; readonly package: number };
   /** How many results depend on hint edges. */
   readonly viaHints: number;
 }

@@ -1,10 +1,12 @@
 import {
   DISPLAY_EDGE_KINDS,
-  HINT_EDGE_KINDS,
+  isHintEdge,
   type EdgeKind,
   type Graph,
   type GraphEdge,
 } from "@epoch-dev/core";
+
+export { isHintEdge };
 
 /*
  * What the graph view shows: files inside directory compound nodes, where a
@@ -61,10 +63,6 @@ export interface AggregateOptions {
   /** Show via-barrel edges (hidden by default; CLAUDE.md "Edge traversal policy"). */
   readonly showViaBarrel: boolean;
 }
-
-/** An inferred relation (drawn dashed), not a resolver-proven fact. */
-export const isHintEdge = (e: GraphEdge): boolean =>
-  HINT_EDGE_KINDS.has(e.kind) || e.confidence < 1;
 
 /**
  * Whether the graph views draw an edge: the default display set of the

@@ -1,4 +1,4 @@
-import type { EdgeKind } from "./schemas/index.js";
+import type { EdgeKind, GraphEdge } from "./schemas/index.js";
 
 /**
  * The edge traversal policy (CLAUDE.md "Edge traversal policy") as data, so
@@ -41,3 +41,11 @@ export const REACHABILITY_EDGE_KINDS: ReadonlySet<EdgeKind> = FACT_EDGE_KINDS;
 
 /** Default display: every fact kind except via-barrel (toggle to show). */
 export const DISPLAY_EDGE_KINDS: ReadonlySet<EdgeKind> = CERTAIN_EDGE_KINDS;
+
+/**
+ * An inferred relation (a hint: dashed in the UI, followed only by "likely"
+ * analyses), as opposed to a resolver-proven fact (CLAUDE.md principle 3).
+ */
+export const isHintEdge = (
+  e: Pick<GraphEdge, "kind" | "confidence">,
+): boolean => HINT_EDGE_KINDS.has(e.kind) || e.confidence < 1;
