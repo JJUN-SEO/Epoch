@@ -1,6 +1,6 @@
 # Python: real-repository run (counts only)
 
-The Python adapter ships as tier B. Its accuracy has not been measured against a ground-truth tool yet (that is M4), so this report states counts and spot checks, not precision or recall.
+This M3 report states counts and spot checks. Accuracy against a ground-truth tool (grimp) was measured in M4: see [python-accuracy.md](python-accuracy.md), which moved the adapter to tier A.
 
 ## Method
 

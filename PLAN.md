@@ -63,6 +63,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-010 | M0 | Toolchain baseline: Node 24, pnpm 11, TypeScript 6 (not 7), Turborepo settings and telemetry off, compiled packages, CI on Linux, macOS and Windows |
 | ADR-011 | M1 | `churn90d` and `riskScore` are optional and absent until computed (M4), like `coverage` |
 | ADR-012 | M3.5 | Optional 3D overview: own renderer on three.js and d3-force-3d (the ready-made library violates the CSP); measured layout time, frame rate and picking |
+| ADR-013 | M4 | Go: packages as `pkg:` nodes (tests stay file nodes), go.mod/go.work resolution read as data, build tags not evaluated; measured against `go list` |
 
 ## Questions to ask me
 
@@ -216,12 +217,13 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Blast radius, Risk score, Edge traversal policy, Known hard problems (Go).
 
 **Tasks**
-- [ ] **Watcher** (`chokidar`) in the analysis host: debounce and batch events, respect ignore rules, handle renames and editor temp/swap files, and mass changes (branch switch) by falling back to a git-diff-driven re-analysis. Feeds the M2 incremental path and emits `onGraphDelta`.
-- [ ] **Blast radius** in `core`: reverse BFS over the traversal policy, cycle-safe; certain and likely modes (likely arrives usable in M6); type-only toggle; results: total affected, max depth, grouping by directory and language, count depending on hint edges. UI highlight with depth control.
-- [ ] **Git churn** in `engine`: last 90 days of `git log` with machine-readable output (`-z`, rename detection); skip merge commits; warn on shallow clones.
-- [ ] **Coverage ingestion:** lcov and Cobertura XML parsers; map to repo-relative paths (strip CI absolute prefixes).
-- [ ] **Risk score** per the CLAUDE.md formula (percentile rank, reweight when coverage is missing, deterministic ties); UI breakdown of each component.
-- [ ] **Go adapter** (`extract`, `resolveImport`, `isTestFile`): `go.mod` module path, import path to package directory, packages as nodes (`kind: "package"`, `id: "pkg:..."`), `internal/` rules, `_test.go`, `vendor/`, `go.work`. Build tags are recorded but not evaluated; document as a limitation. Conformance cases.
+- [x] **Watcher** (`chokidar`) in the analysis host: debounce and batch events, respect ignore rules, handle renames and editor temp/swap files, and mass changes (branch switch) by falling back to a git-diff-driven re-analysis. Feeds the M2 incremental path and emits `onGraphDelta`. (chokidar 5.0.0; batches of 300 ms quiet, 2 s at most; only directories Discover walks are watched; HEAD is polled, and a moved HEAD re-reads `git diff` paths; the OS watch limit stops watching with a clear message. Main applies the deltas, so `getGraph` stays current.)
+- [x] **Blast radius** in `core`: reverse BFS over the traversal policy, cycle-safe; certain and likely modes (likely arrives usable in M6); type-only toggle; results: total affected, max depth, grouping by directory and language, count depending on hint edges. UI highlight with depth control. (Impact tab and Blast radius toggle; packages and files counted separately.)
+- [x] **Git churn** in `engine`: last 90 days of `git log` with machine-readable output (`-z`, rename detection); skip merge commits; warn on shallow clones. (The window ends at HEAD's commit date, so the graph stays a function of the repository.)
+- [x] **Coverage ingestion:** lcov and Cobertura XML parsers; map to repo-relative paths (strip CI absolute prefixes). (Conventional report paths in the project, or `--coverage` in the CLI.)
+- [x] **Risk score** per the CLAUDE.md formula (percentile rank, reweight when coverage is missing, deterministic ties); UI breakdown of each component. (No git history: no score, and the UI says why; Color by Risk.)
+- [x] **Go adapter** (`extract`, `resolveImport`, `isTestFile`): `go.mod` module path, import path to package directory, packages as nodes (`kind: "package"`, `id: "pkg:..."`), `internal/` rules, `_test.go`, `vendor/`, `go.work`. Build tags are not evaluated (and not recorded: `FileFacts` has no field for them); the accuracy report measures the cost. Conformance cases. (ADR-013: 15 conformance cases checked against `go list`; test files stay file nodes linked to their package.)
+- [x] **Accuracy of Python and Go** against ground-truth tools (added to M4): Python vs grimp 3.17 on Flask 3.1.3, Go vs `go list` on cli/cli v2.82.0. Both met the tier A bar (precision and recall at least 95%, every disagreement explained) and moved to tier A. Python's raw precision is 71.6%: grimp does not see Flask's `sansio` namespace subpackage (`docs/benchmarks/python-accuracy.md`).
 
 **Acceptance**
 - Blast radius tests on fixtures: chain, diamond, cycle, the M1 barrel case, type-only toggle, `via-barrel` excluded, certain vs likely.

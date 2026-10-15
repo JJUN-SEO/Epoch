@@ -8,8 +8,9 @@
  * interface"): it reads project files only through the supplied FileReader,
  * never writes, and never runs the go command (ADR-006).
  *
- * Tier "B" until its accuracy is measured against `go list` (M4): CLAUDE.md
- * allows a Tier A claim only with a measured number.
+ * Tier "A": it passes the conformance suite, and on cli/cli its package
+ * edges match `go list` at 100% precision and recall, every test-file
+ * difference explained (docs/benchmarks/go.md).
  */
 import type { Tree } from "web-tree-sitter";
 import type { AdapterRegistration, LanguageAdapter } from "@epoch-dev/core";
@@ -20,7 +21,7 @@ import { resolveImport } from "./resolve.js";
 
 export const goAdapter: LanguageAdapter<Tree> = {
   id: "go",
-  tier: "B",
+  tier: "A",
   extensions: EXTENSIONS,
   version: "1", // bump whenever extract output can change (cache keys include it)
   detectProjectRoots,

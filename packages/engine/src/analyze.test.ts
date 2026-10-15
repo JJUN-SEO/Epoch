@@ -134,8 +134,8 @@ describe("analyze: monorepo fixture", async () => {
     expect(first.meta.cycles).toEqual([]);
     expect(first.meta.adapters).toEqual([
       { id: "typescript", version: "3", tier: "A" },
-      { id: "python", version: "1", tier: "B" },
-      { id: "go", version: "1", tier: "B" },
+      { id: "python", version: "1", tier: "A" },
+      { id: "go", version: "1", tier: "A" },
     ]);
   });
 });

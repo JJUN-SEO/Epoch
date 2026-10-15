@@ -70,7 +70,9 @@ The adapter reads `go.mod` and `go.work` with its own small parser following the
 
 ### 5. Tier
 
-Tier B until the accuracy measurement against `go list` (M4 benchmarks) meets the Tier A bar: precision and recall both at least 95%, with every disagreement explained.
+Tier B until the accuracy measurement against `go list` meets the Tier A bar: precision and recall both at least 95%, with every disagreement explained.
+
+**Measured (M4, `docs/benchmarks/go.md`):** on cli/cli v2.82.0, 272 packages on both sides; production edges 1,444 of 1,444 (100% precision and recall); test edges 99.5% precision, 100% recall. The 5 extra test edges come only from files with an `integration` build tag, which `go list` excludes here: the measured cost of not evaluating build constraints. The adapter is tier A.
 
 ## Consequences
 
