@@ -74,48 +74,51 @@
   --shadow-pop: var(--epoch-shadow);
 }
 
-html,
-body,
-#root {
-  height: 100%;
-}
+/* Base rules sit in Tailwind's base layer, so utilities (outline-none, ...) override them. */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
 
-/* A desktop app, not a page: no page scroll, no text selection in the chrome. */
-body {
-  @apply bg-canvas text-fg antialiased;
-  overflow: hidden;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  line-height: 1.4;
-  user-select: none;
-  cursor: default;
-}
+  /* A desktop app, not a page: no page scroll, no text selection in the chrome. */
+  body {
+    @apply bg-canvas text-fg antialiased;
+    overflow: hidden;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.4;
+    user-select: none;
+    cursor: default;
+  }
 
-button,
-[role="option"],
-[role="treeitem"] {
-  cursor: default;
-}
+  button,
+  [role="option"],
+  [role="treeitem"] {
+    cursor: default;
+  }
 
-input,
-textarea,
-.selectable {
-  user-select: text;
-}
+  input,
+  textarea,
+  .selectable {
+    user-select: text;
+  }
 
-:focus {
-  outline: none;
-}
+  :focus {
+    outline: none;
+  }
 
-:focus-visible {
-  outline: 2px solid var(--epoch-accent);
-  outline-offset: 1px;
-  border-radius: 4px;
-}
+  :focus-visible {
+    outline: 2px solid var(--epoch-accent);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--epoch-strong-border) transparent;
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--epoch-strong-border) transparent;
+  }
 }
 
 /* The custom title bar moves the window (Electron reads app-region). */
