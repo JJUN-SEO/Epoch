@@ -1,0 +1,6 @@
+{
+  "description": "Relative imports resolve against the importing file's package, one level per extra dot.",
+  "adapters": [
+    "python"
+  ]
+}

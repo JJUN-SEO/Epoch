@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    "a.py",
+    "b.py"
+  ],
+  "edges": [
+    {
+      "source": "a.py",
+      "target": "b.py",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "b.py",
+      "target": "a.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

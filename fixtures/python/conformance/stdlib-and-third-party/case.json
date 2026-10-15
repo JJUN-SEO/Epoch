@@ -1,0 +1,6 @@
+{
+  "description": "Standard-library modules are externals named py:<module>; anything else not in the project is a third-party external.",
+  "adapters": [
+    "python"
+  ]
+}

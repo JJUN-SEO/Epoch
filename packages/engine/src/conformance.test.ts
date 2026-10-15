@@ -13,12 +13,15 @@ import { analyze } from "./analyze.js";
  * The shared conformance suite (CLAUDE.md "Language adapter interface"):
  * every case under fixtures/<language>/conformance/<case>/ is a mini repo
  * with an expected.json. node ids, edges (with evidence), externals and
- * unresolved imports are compared exactly. Python (M3) and Go (M4) add
- * their own case folders; the harness stays the same.
+ * unresolved imports are compared exactly. Each language adds its own case
+ * folders (Go arrives in M4); the harness stays the same.
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
-const REGISTERED_ADAPTERS = new Set(["typescript"]);
-const REQUIRED_CASES: Readonly<Record<string, number>> = { typescript: 21 };
+const REGISTERED_ADAPTERS = new Set(["typescript", "python"]);
+const REQUIRED_CASES: Readonly<Record<string, number>> = {
+  typescript: 21,
+  python: 14,
+};
 
 interface Expected {
   nodes: string[];

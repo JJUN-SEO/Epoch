@@ -7,8 +7,8 @@ describe("Parsers", async () => {
     parsers.dispose();
   });
 
-  it("loads and self-tests the TypeScript, TSX and JavaScript grammars", () => {
-    for (const name of ["typescript", "tsx", "javascript"]) {
+  it("loads and self-tests every grammar", () => {
+    for (const name of ["typescript", "tsx", "javascript", "python"]) {
       expect(parsers.language(name).abiVersion).toBeGreaterThan(0);
     }
   });
@@ -31,9 +31,14 @@ describe("Parsers", async () => {
     tree.delete();
   });
 
-  it("rejects unknown grammars", async () => {
+  it("rejects unknown grammars and grammars it did not load", async () => {
     await expect(Parsers.load(["cobol"])).rejects.toThrow(/Unknown grammar/);
-    expect(() => parsers.language("python")).toThrow(/not loaded/);
+    const tsOnly = await Parsers.load(["typescript"]);
+    try {
+      expect(() => tsOnly.language("python")).toThrow(/not loaded/);
+    } finally {
+      tsOnly.dispose();
+    }
   });
 });
 

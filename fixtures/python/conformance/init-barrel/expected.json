@@ -1,0 +1,31 @@
+{
+  "nodes": [
+    "app.py",
+    "pkg/__init__.py",
+    "pkg/core.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "pkg/__init__.py",
+      "kind": "via-barrel",
+      "evidence": []
+    },
+    {
+      "source": "app.py",
+      "target": "pkg/core.py",
+      "kind": "import",
+      "evidence": [
+        "via barrel pkg/__init__.py"
+      ]
+    },
+    {
+      "source": "pkg/__init__.py",
+      "target": "pkg/core.py",
+      "kind": "reexport",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

@@ -15,7 +15,22 @@ export const DEFAULT_SKIPPED_DIRS: ReadonlySet<string> = new Set([
   "coverage",
   ".next",
   ".turbo",
+  // Python tool caches.
+  "__pycache__",
+  ".mypy_cache",
+  ".pytest_cache",
+  ".ruff_cache",
+  ".tox",
+  ".nox",
 ]);
+
+/**
+ * A directory holding one of these is a Python environment (installed
+ * third-party code, not the project), whatever its name: every PEP 405
+ * virtual environment has pyvenv.cfg at its root, every conda environment a
+ * conda-meta directory.
+ */
+const ENVIRONMENT_MARKERS = ["pyvenv.cfg", "conda-meta"] as const;
 
 /** Source files larger than this are skipped (minified bundles, generated blobs). */
 export const DEFAULT_MAX_FILE_BYTES = 1024 * 1024;
@@ -124,6 +139,14 @@ export function discover(
       entries = fs.readdirSync(abs, { withFileTypes: true });
     } catch {
       skipped.push({ path: rel === "" ? "." : rel, reason: "unreadable" });
+      return;
+    }
+    if (
+      rel !== "" &&
+      entries.some((e) =>
+        (ENVIRONMENT_MARKERS as readonly string[]).includes(e.name),
+      )
+    ) {
       return;
     }
     let here = scopes;

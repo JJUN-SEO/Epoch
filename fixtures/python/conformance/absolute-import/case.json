@@ -1,0 +1,6 @@
+{
+  "description": "`import a.b` links to the module itself, not the parent package's __init__.py.",
+  "adapters": [
+    "python"
+  ]
+}

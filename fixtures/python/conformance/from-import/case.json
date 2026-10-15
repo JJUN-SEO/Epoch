@@ -1,0 +1,6 @@
+{
+  "description": "`from a.b import name` links to the module that defines the name.",
+  "adapters": [
+    "python"
+  ]
+}

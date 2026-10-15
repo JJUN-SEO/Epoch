@@ -1,0 +1,5 @@
+[project]
+name = "pkg"
+
+[tool.setuptools.package-dir]
+"" = "lib"

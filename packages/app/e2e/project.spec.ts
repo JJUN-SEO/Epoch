@@ -265,3 +265,21 @@ test("a project large enough for the worker pool is analyzed in it", async () =>
     kind: "import",
   });
 });
+
+test("a Python project is analyzed, with barrel tracing through __init__.py", async () => {
+  const folder = copyFixture("python/conformance/init-barrel");
+  const { graph } = await openThroughDialog(folder);
+  expect(graph.nodes.map((n) => [n.id, n.language])).toEqual([
+    ["app.py", "python"],
+    ["pkg/__init__.py", "python"],
+    ["pkg/core.py", "python"],
+  ]);
+  expect(graph.edges).toContainEqual(
+    expect.objectContaining({
+      source: "app.py",
+      target: "pkg/core.py",
+      kind: "import",
+      evidence: ["via barrel pkg/__init__.py"],
+    }),
+  );
+});

@@ -43,6 +43,12 @@ export const GRAMMARS: Readonly<Record<string, GrammarSpec>> = {
     rootType: "program",
     statementTypes: ["import_statement", "export_statement"],
   },
+  python: {
+    name: "python",
+    canary: "import os\nfrom . import x\n",
+    rootType: "module",
+    statementTypes: ["import_statement", "import_from_statement"],
+  },
 };
 
 /** Throws unless `abi` is within the runtime's supported range. */

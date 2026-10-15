@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    "pkg/__init__.py",
+    "pkg/a.py",
+    "pkg/b.py",
+    "pkg/sub/__init__.py",
+    "pkg/sub/c.py"
+  ],
+  "edges": [
+    {
+      "source": "pkg/a.py",
+      "target": "pkg/b.py",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg/sub/c.py",
+      "target": "pkg/b.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

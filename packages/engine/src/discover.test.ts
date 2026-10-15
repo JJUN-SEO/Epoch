@@ -79,6 +79,39 @@ describe("discover", () => {
   });
 });
 
+describe("discover: Python environments and caches", () => {
+  it("skips virtual and conda environments by their marker, and tool caches", () => {
+    const root = tree({
+      "app.py": "",
+      "pkg/mod.py": "",
+      ".venv/pyvenv.cfg": "home = /usr/bin\n",
+      ".venv/lib/python3.13/site-packages/requests/__init__.py": "",
+      "envs/custom-name/pyvenv.cfg": "",
+      "envs/custom-name/lib/x.py": "",
+      "conda/conda-meta/history": "",
+      "conda/lib/y.py": "",
+      "pkg/__pycache__/mod.cpython-313.pyc": "",
+      ".pytest_cache/v/cache/lastfailed": "",
+      "venv/not-an-environment.py":
+        "a folder named venv is not skipped by name",
+    });
+    const found = discover(root, { isSource: (p) => p.endsWith(".py") });
+    expect(found.files).toEqual([
+      "app.py",
+      "pkg/mod.py",
+      "venv/not-an-environment.py",
+    ]);
+  });
+
+  it("still analyzes a project opened at an environment's root", () => {
+    const root = tree({ "pyvenv.cfg": "", "tool.py": "" });
+    expect(discover(root, { isSource: () => true }).files).toEqual([
+      "pyvenv.cfg",
+      "tool.py",
+    ]);
+  });
+});
+
 describe("FsReader", () => {
   const root = tree({
     "src/a.ts": "export const a = 1;\n",

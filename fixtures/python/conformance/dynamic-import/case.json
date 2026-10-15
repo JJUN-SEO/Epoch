@@ -1,0 +1,6 @@
+{
+  "description": "importlib.import_module and __import__ with a literal name are dynamic imports; other names cannot be resolved.",
+  "adapters": [
+    "python"
+  ]
+}

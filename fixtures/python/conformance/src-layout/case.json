@@ -1,0 +1,6 @@
+{
+  "description": "A src/ directory that is not itself a package is a source root.",
+  "adapters": [
+    "python"
+  ]
+}

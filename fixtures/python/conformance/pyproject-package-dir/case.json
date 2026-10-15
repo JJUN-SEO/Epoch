@@ -1,0 +1,6 @@
+{
+  "description": "pyproject.toml's setuptools package-dir names the source root (read as data, never run).",
+  "adapters": [
+    "python"
+  ]
+}

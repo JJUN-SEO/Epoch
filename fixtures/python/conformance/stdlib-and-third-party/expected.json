@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    "app.py",
+    "utils.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "utils.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "app.py": [
+      "py:os",
+      "requests",
+      "yaml"
+    ]
+  },
+  "unresolved": []
+}

@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "lib/pkg/__init__.py",
+    "lib/pkg/m.py",
+    "scripts/run.py"
+  ],
+  "edges": [
+    {
+      "source": "scripts/run.py",
+      "target": "lib/pkg/m.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

@@ -1,0 +1,6 @@
+{
+  "description": "An __init__.py that re-exports a name is a barrel: importers get an edge to the declaring module (CLAUDE.md barrel transparency rule).",
+  "adapters": [
+    "python"
+  ]
+}

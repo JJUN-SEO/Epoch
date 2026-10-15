@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    "pkg/__init__.py",
+    "pkg/helpers.py",
+    "pkg/mod.py"
+  ],
+  "edges": [
+    {
+      "source": "pkg/mod.py",
+      "target": "pkg/__init__.py",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg/mod.py",
+      "target": "pkg/helpers.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

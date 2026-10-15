@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "src/mylib/__init__.py",
+    "src/mylib/core.py",
+    "tests/test_core.py"
+  ],
+  "edges": [
+    {
+      "source": "tests/test_core.py",
+      "target": "src/mylib/core.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

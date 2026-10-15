@@ -1,0 +1,6 @@
+{
+  "description": "Two modules that import each other produce both edges.",
+  "adapters": [
+    "python"
+  ]
+}

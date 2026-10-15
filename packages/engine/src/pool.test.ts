@@ -11,9 +11,12 @@ const workerFile = new URL("../dist/parse-worker.js", import.meta.url);
 const fixtures = fileURLToPath(
   new URL("../../../fixtures/typescript/", import.meta.url),
 );
-const conformance = fs
-  .readdirSync(`${fixtures}conformance`)
-  .map((name) => `${fixtures}conformance/${name}`);
+const conformance = ["typescript", "python"].flatMap((language) => {
+  const dir = fileURLToPath(
+    new URL(`../../../fixtures/${language}/conformance/`, import.meta.url),
+  );
+  return fs.readdirSync(dir).map((name) => `${dir}${name}`);
+});
 
 // batchSize 2 exercises several batches per fixture.
 const pool = new ParsePool({

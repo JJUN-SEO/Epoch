@@ -72,6 +72,31 @@ importers:
         specifier: 8.71.2
         version: 8.71.2(eslint@10.12.0(jiti@2.7.0)(supports-color@7.2.0))(supports-color@7.2.0)(typescript@6.0.3)
 
+  packages/adapters/python:
+    dependencies:
+      '@epoch-dev/core':
+        specifier: workspace:*
+        version: link:../../core
+      smol-toml:
+        specifier: 1.9.0
+        version: 1.9.0
+      web-tree-sitter:
+        specifier: 'catalog:'
+        version: 0.27.1
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@vscode/tree-sitter-wasm':
+        specifier: 'catalog:'
+        version: 0.3.1
+      eslint:
+        specifier: 'catalog:'
+        version: 10.12.0(jiti@2.7.0)(supports-color@7.2.0)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/adapters/typescript:
     dependencies:
       '@epoch-dev/core':
@@ -241,6 +266,9 @@ importers:
 
   packages/engine:
     dependencies:
+      '@epoch-dev/adapter-python':
+        specifier: workspace:*
+        version: link:../adapters/python
       '@epoch-dev/adapter-typescript':
         specifier: workspace:*
         version: link:../adapters/typescript
@@ -2939,6 +2967,10 @@ packages:
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
+  smol-toml@1.9.0:
+    resolution: {integrity: sha512-hpd+HLON7HdZXqYchMM/+LaTTbdK0AU3NngIJ4KVyWbY9bfQqdL9cD+4yf6dUoU2Ap4VsU0JkQi6FxAI1B2mXQ==}
+    engines: {node: '>= 18'}
 
   source-map-js@1.2.2:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
@@ -5795,6 +5827,8 @@ snapshots:
       semver: 7.8.5
 
   sisteransi@1.0.5: {}
+
+  smol-toml@1.9.0: {}
 
   source-map-js@1.2.2: {}
 

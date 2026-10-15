@@ -1,0 +1,6 @@
+{
+  "description": "Imports under `if TYPE_CHECKING:` are type-only.",
+  "adapters": [
+    "python"
+  ]
+}

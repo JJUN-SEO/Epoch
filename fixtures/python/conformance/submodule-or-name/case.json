@@ -1,0 +1,6 @@
+{
+  "description": "`from . import x` is a submodule when x.py exists, else a name defined in __init__.py.",
+  "adapters": [
+    "python"
+  ]
+}

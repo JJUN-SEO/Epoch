@@ -1,0 +1,6 @@
+{
+  "description": "A try/except ImportError fallback records both imports.",
+  "adapters": [
+    "python"
+  ]
+}
