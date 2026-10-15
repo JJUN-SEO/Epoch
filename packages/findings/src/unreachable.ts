@@ -9,7 +9,13 @@ import {
   type RubricCap,
 } from "@epoch-dev/core";
 import { frameworkMatcher, type DetectedFramework } from "./frameworks.js";
-import { daysBetween, listSome, plural, type FindingsFile } from "./input.js";
+import {
+  daysBetween,
+  listSome,
+  plural,
+  type FindingsFile,
+  type HistoryStatus,
+} from "./input.js";
 
 /*
  * unreachable-file (CLAUDE.md "Unreachable files"): files no entry point
@@ -27,6 +33,18 @@ const ROOT_REASONS_WITH_MANIFEST = new Set<EntryPoint["reason"]>([
   "config",
 ]);
 
+const HISTORY_CAVEAT: Readonly<Record<HistoryStatus, string>> = {
+  usable:
+    "Git history was not available, so recent changes could not be checked.",
+  off: "Git history was off, so recent changes could not be checked.",
+  "not-a-repo":
+    "This is not a git repository, so recent changes could not be checked.",
+  shallow:
+    "Only part of the git history is present (a shallow clone), so recent changes could not be checked.",
+  "too-short":
+    "The git history is short, so recent changes could not be told apart from old code.",
+};
+
 const dirOf = (p: string): string =>
   p.includes("/") ? p.slice(0, p.lastIndexOf("/")) : "";
 const inside = (path: string, dir: string): boolean =>
@@ -41,7 +59,7 @@ export interface UnreachableInput {
   readonly frameworks: readonly DetectedFramework[];
   readonly suppressed: (path: string) => boolean;
   readonly history?: GitHistoryProvider;
-  readonly historyUsable: boolean;
+  readonly historyStatus: HistoryStatus;
   readonly now: Date;
   readonly staleAfterDays: number;
   readonly hash: (text: string) => string;
@@ -205,11 +223,9 @@ export async function unreachableFindings(
         "No manifest or config entry point was found for this project, so its entry points come from naming conventions and tests. Listing them in entryPoints in epoch.config.json makes this more reliable.",
       );
     }
-    if (!input.historyUsable || input.history === undefined) {
+    if (input.historyStatus !== "usable" || input.history === undefined) {
       caps.push("history-unusable");
-      caveats.push(
-        "Git history was not available, so recent changes could not be checked.",
-      );
+      caveats.push(HISTORY_CAVEAT[input.historyStatus]);
     } else {
       let newest: Date | undefined;
       for (const f of files) {

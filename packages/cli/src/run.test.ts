@@ -5,8 +5,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { Graph, serializeCanonical } from "@epoch-dev/core";
-import { analyze } from "@epoch-dev/engine";
-import { EXIT_ERROR, EXIT_OK, run } from "./run.js";
+import { DismissalStore, analyze } from "@epoch-dev/engine";
+import { EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, run } from "./run.js";
 
 // Every CLI run in this file uses a throwaway cache, never the user's.
 const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-cache-"));
@@ -199,5 +199,110 @@ describe("epoch cache", () => {
     const r = await cli(...argv);
     expect(r.code).toBe(EXIT_ERROR);
     expect(r.stderr).toContain(message);
+  });
+});
+
+describe("epoch findings", () => {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-data-"));
+  process.env.EPOCH_DATA_DIR = dataDir;
+  afterAll(() => {
+    fs.rmSync(dataDir, { recursive: true, force: true });
+  });
+  const fixture = (name: string) =>
+    fileURLToPath(
+      new URL(
+        `../../../fixtures/typescript/findings/${name}/`,
+        import.meta.url,
+      ),
+    );
+
+  it("lists candidates with hedged wording and exits 2 at --fail-on", async () => {
+    const r = await cli(
+      "findings",
+      fixture("dead-branch-literal"),
+      "--fail-on",
+      "high",
+    );
+    expect(r.code).toBe(EXIT_FINDINGS);
+    expect(r.stdout).toContain(
+      "[Worth a look] Branch that likely never runs: src/index.ts",
+    );
+    expect(r.stdout).toContain("at src/index.ts:2-4");
+    expect(r.stdout).toContain("These are candidates, not verdicts");
+    expect(r.stdout).toContain("Not a git repository");
+  });
+
+  it("exits 0 when nothing reaches --fail-on, and 1 on a bad level", async () => {
+    const none = await cli(
+      "findings",
+      fixture("dead-branch-reassigned"),
+      "--fail-on",
+      "low",
+    );
+    expect(none.code).toBe(EXIT_OK);
+    expect(none.stdout).toContain("No findings to review at this level.");
+    const bad = await cli(
+      "findings",
+      fixture("dead-branch-reassigned"),
+      "--fail-on",
+      "sure",
+    );
+    expect(bad.code).toBe(EXIT_ERROR);
+    expect(bad.stderr).toContain("--fail-on must be high, medium or low");
+  });
+
+  it("hides findings below --min-confidence and says how many", async () => {
+    // Outside a git repository the orphan is capped at Medium (history-unusable).
+    const dir = fixture("unreachable-orphan");
+    const shown = await cli("findings", dir);
+    expect(shown.stdout).toContain(
+      "[Maybe] Possibly unused file: src/orphan.ts",
+    );
+    expect(shown.stdout).toContain(
+      "rated Maybe because git history was not available",
+    );
+    const hidden = await cli(
+      "findings",
+      dir,
+      "--min-confidence",
+      "high",
+      "--json",
+    );
+    const out = JSON.parse(hidden.stdout) as {
+      findings: unknown[];
+      hidden: { belowMinConfidence: number };
+      history: string;
+    };
+    expect(out.findings).toEqual([]);
+    expect(out.hidden.belowMinConfidence).toBe(1);
+    expect(out.history).toBe("not-a-repo");
+  });
+
+  it("leaves dismissed findings out unless asked, and they no longer fail the run", async () => {
+    const dir = fixture("dead-branch-local-const");
+    const { graph, root } = await analyze(dir, { history: false });
+    const id = graph.findings[0]?.id;
+    expect(id).toBeDefined();
+    DismissalStore.forProject(root).dismiss(id ?? "", "on purpose");
+    const r = await cli("findings", dir, "--fail-on", "high");
+    expect(r.code).toBe(EXIT_OK);
+    expect(r.stdout).toContain(
+      "1 dismissed (use --include-dismissed to list them).",
+    );
+    const all = await cli(
+      "findings",
+      dir,
+      "--fail-on",
+      "high",
+      "--include-dismissed",
+      "--json",
+    );
+    expect(all.code).toBe(EXIT_FINDINGS);
+    const out = JSON.parse(all.stdout) as {
+      findings: { id: string; dismissed: boolean }[];
+    };
+    expect(out.findings).toEqual([
+      expect.objectContaining({ id, dismissed: true }),
+    ]);
   });
 });

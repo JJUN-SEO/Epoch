@@ -13,6 +13,10 @@
     "./parse-worker": {
       "types": "./dist/parse-worker.d.ts",
       "default": "./dist/parse-worker.js"
+    },
+    "./dismissals": {
+      "types": "./dist/dismissals.d.ts",
+      "default": "./dist/dismissals.js"
     }
   },
   "scripts": {
@@ -42,6 +46,7 @@
     "ignore": "7.0.12",
     "piscina": "catalog:",
     "smol-toml": "1.9.0",
-    "web-tree-sitter": "catalog:"
+    "web-tree-sitter": "catalog:",
+    "zod": "catalog:"
   }
 }

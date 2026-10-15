@@ -45,7 +45,7 @@ export async function runFindings(
       frameworks: input.frameworks,
       suppressed,
       ...(input.history ? { history: input.history } : {}),
-      historyUsable: usable,
+      historyStatus: usable ? "usable" : history === "usable" ? "off" : history,
       now: input.now,
       staleAfterDays,
       hash: input.hash,

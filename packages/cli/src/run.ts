@@ -1,15 +1,24 @@
 import fs from "node:fs";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { serializeCanonical, type Progress } from "@epoch-dev/core";
+import {
+  Confidence,
+  atLeast,
+  filterFindings,
+  serializeCanonical,
+  type Progress,
+} from "@epoch-dev/core";
 import {
   DEFAULT_MAX_CACHE_BYTES,
+  DismissalStore,
   ParsePool,
   analyze,
   changedSince,
   openCache,
+  type AnalyzeOptions,
   type SqliteCacheStore,
 } from "@epoch-dev/engine";
+import { formatFindings } from "./findings.js";
 import { formatSummary } from "./summary.js";
 
 /** Where the CLI writes; the real bin passes process.stdout and process.stderr. */
@@ -20,15 +29,22 @@ export interface CliIo {
 
 export const EXIT_OK = 0;
 export const EXIT_ERROR = 1;
+/** `epoch findings --fail-on`: findings at or above the level remain. */
+export const EXIT_FINDINGS = 2;
 
 const MIB = 1024 * 1024;
 
 export const USAGE = `Usage:
   epoch analyze <path> [--json] [--since <commit>] [--coverage <file>]
+  epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>]
+                        [--include-dismissed]
   epoch cache stats | clear | prune [--max-size <MB>]
 
 Commands:
   analyze <path>   Build the dependency graph of a project folder (read-only)
+  findings <path>  List likely-dead feature candidates for review: branches
+                   that likely never run, possibly stale flags, possibly
+                   unused files. Candidates, never verdicts
   cache stats      Show where the cache is and what it holds
   cache clear      Delete everything in the cache (it is derived data)
   cache prune      Evict least-recently-used entries down to --max-size
@@ -39,10 +55,19 @@ Options:
   --coverage <file>  Use this lcov or Cobertura report (default: look for
                      coverage/lcov.info, coverage/cobertura-coverage.xml,
                      coverage.xml or lcov.info in the project)
+  --min-confidence <level>
+                     high, medium or low: the lowest level listed (default:
+                     findings.minConfidence in epoch.config.json, else medium)
+  --fail-on <level>  Exit 2 when a non-dismissed finding is at or above level
+  --include-dismissed
+                     Also list findings dismissed in the app
   --max-size <MB>    Cache size cap for prune (default ${String(DEFAULT_MAX_CACHE_BYTES / MIB)})
   -h, --help         Show this help
 
 The cache lives in the per-user cache directory; set EPOCH_CACHE_DIR to move it.
+Dismissals live in the per-user data directory; set EPOCH_DATA_DIR to move it.
+
+Exit codes: 0 success, 1 error, 2 findings at or above --fail-on.
 `;
 
 class UsageError extends Error {}
@@ -73,6 +98,54 @@ function progressReporter(stderr: CliIo["stderr"]): (p: Progress) => void {
   };
 }
 
+/** A directory to analyze, from the single positional argument. */
+function targetOf(command: string, positionals: readonly string[]): string {
+  if (positionals.length !== 1 || positionals[0] === undefined) {
+    throw new UsageError(`${command} needs exactly one <path>`);
+  }
+  const target = path.resolve(positionals[0]);
+  let isDir = false;
+  try {
+    isDir = fs.statSync(target).isDirectory();
+  } catch {
+    // reported below
+  }
+  if (!isDir) throw new Error(`not a directory: ${positionals[0]}`);
+  return target;
+}
+
+/** Runs the engine with the shared cache and a worker pool, as the app does. */
+async function analyzeWithCache(
+  target: string,
+  io: CliIo,
+  opts: AnalyzeOptions,
+): Promise<Awaited<ReturnType<typeof analyze>>> {
+  let cache: SqliteCacheStore | undefined;
+  try {
+    cache = openCache();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    io.stderr.write(
+      `epoch: cache unavailable (${message}); analyzing without it\n`,
+    );
+  }
+  // Workers start only for a large batch of cache misses (DEFAULT_MIN_BATCH).
+  const pool = new ParsePool();
+  try {
+    const result = await analyze(target, {
+      onProgress: progressReporter(io.stderr),
+      pool,
+      ...(cache ? { cache } : {}),
+      ...opts,
+    });
+    cache?.prune(DEFAULT_MAX_CACHE_BYTES);
+    return result;
+  } finally {
+    cache?.close();
+    await pool.destroy();
+  }
+}
+
 async function analyzeCommand(
   args: readonly string[],
   io: CliIo,
@@ -87,57 +160,102 @@ async function analyzeCommand(
     allowPositionals: true,
     strict: true,
   });
-  if (positionals.length !== 1 || positionals[0] === undefined) {
-    throw new UsageError("analyze needs exactly one <path>");
-  }
-  const target = path.resolve(positionals[0]);
-  let isDir = false;
-  try {
-    isDir = fs.statSync(target).isDirectory();
-  } catch {
-    // reported below
-  }
-  if (!isDir) throw new Error(`not a directory: ${positionals[0]}`);
-
+  const target = targetOf("analyze", positionals);
   const forceReread =
     values.since === undefined
       ? undefined
       : new Set(changedSince(target, values.since));
-
-  let cache: SqliteCacheStore | undefined;
-  try {
-    cache = openCache();
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    io.stderr.write(
-      `epoch: cache unavailable (${message}); analyzing without it\n`,
-    );
-  }
-  // Workers start only for a large batch of cache misses (DEFAULT_MIN_BATCH).
-  const pool = new ParsePool();
-  let result: Awaited<ReturnType<typeof analyze>>;
-  try {
-    result = await analyze(target, {
-      onProgress: progressReporter(io.stderr),
-      pool,
-      ...(cache ? { cache } : {}),
-      ...(forceReread ? { forceReread } : {}),
-      ...(values.coverage === undefined
-        ? {}
-        : { coverageFile: path.resolve(values.coverage) }),
-    });
-    cache?.prune(DEFAULT_MAX_CACHE_BYTES);
-  } finally {
-    cache?.close();
-    await pool.destroy();
-  }
-  const { graph, meta } = result;
+  const { graph, meta } = await analyzeWithCache(target, io, {
+    ...(forceReread ? { forceReread } : {}),
+    ...(values.coverage === undefined
+      ? {}
+      : { coverageFile: path.resolve(values.coverage) }),
+  });
   if (values.json) {
     // stdout carries only the canonical, schema-validated Graph.
     io.stdout.write(serializeCanonical(graph));
     io.stderr.write(formatSummary(graph, meta));
   } else {
     io.stdout.write(formatSummary(graph, meta));
+  }
+  return EXIT_OK;
+}
+
+function level(
+  option: string,
+  raw: string | undefined,
+): Confidence | undefined {
+  if (raw === undefined) return undefined;
+  const parsed = Confidence.safeParse(raw);
+  if (!parsed.success) {
+    throw new UsageError(`${option} must be high, medium or low, got ${raw}`);
+  }
+  return parsed.data;
+}
+
+async function findingsCommand(
+  args: readonly string[],
+  io: CliIo,
+): Promise<number> {
+  const { values, positionals } = parseArgs({
+    args: [...args],
+    options: {
+      json: { type: "boolean", default: false },
+      "min-confidence": { type: "string" },
+      "fail-on": { type: "string" },
+      "include-dismissed": { type: "boolean", default: false },
+    },
+    allowPositionals: true,
+    strict: true,
+  });
+  const minFlag = level("--min-confidence", values["min-confidence"]);
+  const failOn = level("--fail-on", values["fail-on"]);
+  const target = targetOf("findings", positionals);
+  const { root, config, graph, meta } = await analyzeWithCache(target, io, {});
+  const dismissed = DismissalStore.forProject(root).ids();
+  const includeDismissed = values["include-dismissed"];
+  const minConfidence = minFlag ?? config.config.findings.minConfidence;
+  const open = filterFindings(graph.findings, { includeDismissed }, dismissed);
+  const shown = filterFindings(open, { minConfidence, includeDismissed: true });
+  const hidden = {
+    dismissed: includeDismissed
+      ? 0
+      : graph.findings.filter((f) => dismissed.has(f.id)).length,
+    belowMinConfidence: open.length - shown.length,
+  };
+  if (values.json) {
+    io.stdout.write(
+      `${JSON.stringify(
+        {
+          schemaVersion: graph.schemaVersion,
+          minConfidence,
+          findings: shown.map((f) => ({
+            ...f,
+            dismissed: dismissed.has(f.id),
+          })),
+          hidden,
+          history: meta.findings.history,
+          unassessableFlags: meta.findings.unassessableFlags,
+          frameworks: meta.findings.frameworks,
+          configWarnings: meta.config.warnings,
+        },
+        null,
+        2,
+      )}\n`,
+    );
+  } else {
+    io.stdout.write(
+      formatFindings({
+        findings: shown,
+        dismissed,
+        hidden,
+        minConfidence,
+        meta,
+      }),
+    );
+  }
+  if (failOn !== undefined && open.some((f) => atLeast(f.confidence, failOn))) {
+    return EXIT_FINDINGS;
   }
   return EXIT_OK;
 }
@@ -211,6 +329,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       return EXIT_OK;
     }
     if (command === "analyze") return await analyzeCommand(rest, io);
+    if (command === "findings") return await findingsCommand(rest, io);
     if (command === "cache") return cacheCommand(rest, io);
     throw new UsageError(
       command === undefined ? "missing command" : `unknown command: ${command}`,
