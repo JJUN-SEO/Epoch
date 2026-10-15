@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./parse-worker": {
+      "types": "./dist/parse-worker.d.ts",
+      "default": "./dist/parse-worker.js"
     }
   },
   "scripts": {
@@ -32,6 +36,7 @@
     "@vscode/tree-sitter-wasm": "catalog:",
     "better-sqlite3": "catalog:",
     "ignore": "7.0.12",
+    "piscina": "catalog:",
     "web-tree-sitter": "catalog:"
   }
 }

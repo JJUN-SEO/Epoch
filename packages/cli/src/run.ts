@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { serializeCanonical, type Progress } from "@epoch-dev/core";
 import {
   DEFAULT_MAX_CACHE_BYTES,
+  ParsePool,
   analyze,
   changedSince,
   openCache,
@@ -108,16 +109,20 @@ async function analyzeCommand(
       `epoch: cache unavailable (${message}); analyzing without it\n`,
     );
   }
+  // Workers start only for a large batch of cache misses (DEFAULT_MIN_BATCH).
+  const pool = new ParsePool();
   let result: Awaited<ReturnType<typeof analyze>>;
   try {
     result = await analyze(target, {
       onProgress: progressReporter(io.stderr),
+      pool,
       ...(cache ? { cache } : {}),
       ...(forceReread ? { forceReread } : {}),
     });
     cache?.prune(DEFAULT_MAX_CACHE_BYTES);
   } finally {
     cache?.close();
+    await pool.destroy();
   }
   const { graph, meta } = result;
   if (values.json) {

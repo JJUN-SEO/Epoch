@@ -9,8 +9,8 @@ const uiRoot = resolve(import.meta.dirname, "../ui");
  * are bundled. A package stays external (a runtime "dependency" in
  * package.json, shipped in the packaged app's node_modules) only when it loads
  * files next to itself at runtime: better-sqlite3 (native addon),
- * web-tree-sitter and @vscode/tree-sitter-wasm (WASM), and typescript (large
- * CommonJS; the TS adapter's resolver). electron-vite externalizes exactly the
+ * web-tree-sitter and @vscode/tree-sitter-wasm (WASM), piscina (its worker
+ * runtime), and typescript (large CommonJS; the TS adapter's resolver). electron-vite externalizes exactly the
  * "dependencies" list.
  */
 export default defineConfig({
@@ -19,8 +19,13 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(import.meta.dirname, "src/main/index.ts"),
-          // The analysis host, forked by main as a utilityProcess.
+          // The analysis host, forked by main as a utilityProcess, and its
+          // parse workers (worker threads).
           host: resolve(import.meta.dirname, "src/host/index.ts"),
+          "parse-worker": resolve(
+            import.meta.dirname,
+            "src/host/parse-worker.ts",
+          ),
         },
       },
     },

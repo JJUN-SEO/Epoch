@@ -21,7 +21,6 @@ import {
   type ResolveContext,
   type SkipReason,
 } from "@epoch-dev/core";
-import { typescriptRegistration } from "@epoch-dev/adapter-typescript";
 import {
   PARSER_FINGERPRINT,
   extractorConfigHash,
@@ -30,9 +29,12 @@ import {
 } from "./cache/keys.js";
 import { nowNs, scanChanges } from "./changes.js";
 import { discover } from "./discover.js";
+import { extractFile, type ExtractedFile } from "./extract-file.js";
 import { readHeadCommit } from "./git.js";
 import { Parsers } from "./parse.js";
+import type { ParsePool } from "./pool.js";
 import { FsReader } from "./reader.js";
+import { DEFAULT_REGISTRATIONS } from "./registrations.js";
 import manifest from "../package.json" with { type: "json" };
 
 export interface AnalyzeOptions {
@@ -47,6 +49,12 @@ export interface AnalyzeOptions {
   readonly cache?: CacheStore;
   /** Repo-relative files to re-read even if the manifest vouches for them (--since). */
   readonly forceReread?: ReadonlySet<string>;
+  /**
+   * Parse workers for large batches of cache misses. Without one, or for a
+   * batch under its minBatch, or with custom registrations, files parse
+   * in-process. The facts are identical either way.
+   */
+  readonly pool?: ParsePool;
   /** Called with every import's resolution (benchmarks and debugging tools). */
   readonly onResolution?: (
     from: string,
@@ -60,9 +68,7 @@ export interface AnalyzeResult {
   readonly meta: AnalysisMeta;
 }
 
-export const DEFAULT_REGISTRATIONS: readonly AdapterRegistration<Tree>[] = [
-  typescriptRegistration,
-];
+export { DEFAULT_REGISTRATIONS };
 
 // A JSON import, not a file read relative to this module, so the version
 // survives bundling into the desktop app.
@@ -188,60 +194,107 @@ export async function analyze(
   const cacheHits = sources.length;
   const t2 = performance.now();
 
-  // 3. Parse and Extract the misses only (grammars load only when needed)
+  // 3. Parse and Extract the misses only (grammars load only when needed).
+  // Files are read here, through the confined reader, in either mode.
   const fresh: { key: string; value: CachedFacts }[] = [];
-  if (misses.length > 0) {
-    const grammars = new Set<string>();
-    for (const m of misses) {
-      const g = m.reg.grammarFor(m.rel);
-      if (g !== undefined) grammars.add(g);
+  const work: {
+    rel: string;
+    reg: AdapterRegistration<Tree>;
+    grammar: string;
+    bytes: Buffer;
+    entry: ManifestEntry;
+  }[] = [];
+  for (const m of misses) {
+    const grammar = m.reg.grammarFor(m.rel);
+    if (grammar === undefined) continue;
+    const bytes = m.bytes ?? reader.readBytes(abs(m.rel));
+    if (bytes === undefined) {
+      skipped.push({ path: m.rel, reason: "unreadable" });
+      continue;
     }
-    const parsers = await Parsers.load(grammars);
-    try {
-      progress("parse", 0, misses.length);
-      for (const [i, m] of misses.entries()) {
-        const grammar = m.reg.grammarFor(m.rel);
-        const bytes = m.bytes ?? reader.readBytes(abs(m.rel));
-        if (grammar === undefined) continue;
-        if (bytes === undefined) {
-          skipped.push({ path: m.rel, reason: "unreadable" });
-          continue;
+    // Read late (an evicted entry): key by what was actually read.
+    const entry =
+      m.bytes === undefined
+        ? { ...m.entry, size: bytes.length, contentHash: sha256(bytes) }
+        : m.entry;
+    work.push({ rel: m.rel, reg: m.reg, grammar, bytes, entry });
+  }
+  if (work.length > 0) {
+    progress("parse", 0, work.length);
+    let parsed = 0;
+    const tick = () => {
+      progress("parse", ++parsed, work.length);
+    };
+    const pool = opts.pool;
+    const results: (ExtractedFile | undefined)[] = [];
+    if (
+      pool !== undefined &&
+      work.length >= pool.minBatch &&
+      work.every((w) => DEFAULT_REGISTRATIONS.includes(w.reg))
+    ) {
+      // Batches of one adapter's files, in work order.
+      const batches: number[][] = [];
+      for (const [i, w] of work.entries()) {
+        const last = batches.at(-1);
+        const head = last?.[0];
+        if (
+          last !== undefined &&
+          head !== undefined &&
+          last.length < pool.batchSize &&
+          work[head]?.reg === w.reg
+        ) {
+          last.push(i);
+        } else {
+          batches.push([i]);
         }
-        // Read late (an evicted entry): key by what was actually read.
-        const entry =
-          m.bytes === undefined
-            ? { ...m.entry, size: bytes.length, contentHash: sha256(bytes) }
-            : m.entry;
-        const text = bytes.toString("utf8").replace(/^\uFEFF/, "");
-        const tree = parsers.parse(grammar, text);
-        const partial = tree.rootNode.hasError;
-        let facts: FileFacts;
-        try {
-          facts = FileFacts.parse(
-            m.reg.adapter.extract(
-              { path: m.rel, text, tree },
-              EMPTY_EXTRACTOR_CONFIG,
+      }
+      await Promise.all(
+        batches.map(async (batch) => {
+          const files = batch.flatMap((i) => {
+            const w = work[i];
+            return w
+              ? [{ rel: w.rel, grammar: w.grammar, bytes: w.bytes }]
+              : [];
+          });
+          const adapterId = work[batch[0] ?? 0]?.reg.adapter.id ?? "";
+          const out = await pool.run({ adapterId, files });
+          for (const [j, i] of batch.entries()) {
+            results[i] = out[j];
+            tick();
+          }
+        }),
+      );
+    } else {
+      const parsers = await Parsers.load(new Set(work.map((w) => w.grammar)));
+      try {
+        for (const w of work) {
+          results.push(
+            extractFile(
+              parsers,
+              (file, cfg) => w.reg.adapter.extract(file, cfg),
+              w.rel,
+              w.grammar,
+              w.bytes,
             ),
           );
-        } finally {
-          tree.delete();
+          tick();
         }
-        sources.push({
-          rel: m.rel,
-          reg: m.reg,
-          contentHash: entry.contentHash,
-          facts,
-          partial,
-        });
-        manifest.push(entry);
-        fresh.push({
-          key: keyFor(m.reg, entry.contentHash),
-          value: { facts, syntaxErrors: partial },
-        });
-        progress("parse", i + 1, misses.length);
+      } finally {
+        parsers.dispose();
       }
-    } finally {
-      parsers.dispose();
+    }
+    for (const [i, w] of work.entries()) {
+      const r = results[i];
+      if (r === undefined) continue;
+      sources.push({
+        rel: w.rel,
+        reg: w.reg,
+        contentHash: w.entry.contentHash,
+        facts: r.facts,
+        partial: r.syntaxErrors,
+      });
+      manifest.push(w.entry);
+      fresh.push({ key: keyFor(w.reg, w.entry.contentHash), value: r });
     }
   }
   if (cache && fresh.length > 0) {

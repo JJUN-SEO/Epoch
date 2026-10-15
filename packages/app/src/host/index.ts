@@ -1,6 +1,7 @@
+import path from "node:path";
 import { performance } from "node:perf_hooks";
 import type { Progress } from "@epoch-dev/core";
-import { analyze, openCache } from "@epoch-dev/engine";
+import { ParsePool, analyze, openCache } from "@epoch-dev/engine";
 import { HostRequest, type HostEvent } from "../shared/host-protocol";
 
 /*
@@ -12,6 +13,10 @@ import { HostRequest, type HostEvent } from "../shared/host-protocol";
 
 const port = process.parentPort;
 const cache = openCache();
+// The bundled worker sits next to this file (electron.vite.config.ts).
+const pool = new ParsePool({
+  workerFile: path.join(import.meta.dirname, "parse-worker.js"),
+});
 let queue = Promise.resolve();
 
 /** At most one progress message per interval, plus every stage change and stage end. */
@@ -37,7 +42,11 @@ async function run(request: HostRequest): Promise<void> {
     }
   };
   try {
-    const { graph } = await analyze(request.root, { cache, onProgress });
+    const { graph } = await analyze(request.root, {
+      cache,
+      pool,
+      onProgress,
+    });
     send({ type: "result", id: request.id, graph });
   } catch (error) {
     send({

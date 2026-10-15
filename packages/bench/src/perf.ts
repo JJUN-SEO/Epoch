@@ -1,11 +1,12 @@
 /**
  * pnpm bench <repo>... [--runs <n>] [--out <file>]
  *
- * Measures cold, warm-unchanged and incremental (1, 5, 50 edited files)
- * analysis time on copies of pinned checkouts (PLAN.md M2, Benchmark
- * protocol). Each analysis runs in its own Node process through the engine
- * with the SQLite cache, as the CLI does. The repositories are never
- * installed, built or run; edits are comment lines appended to copies.
+ * Measures cold (with and without parse workers), warm-unchanged and
+ * incremental (1, 5, 50 edited files) analysis time on copies of pinned
+ * checkouts (PLAN.md M2, Benchmark protocol). Each analysis runs in its own
+ * Node process through the engine with the SQLite cache, as the CLI does. The
+ * repositories are never installed, built or run; edits are comment lines
+ * appended to copies.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -16,7 +17,12 @@ import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import type { AnalysisMeta } from "@epoch-dev/core";
 import { typescriptAdapter } from "@epoch-dev/adapter-typescript";
-import { RACY_MARGIN_NS, discover } from "@epoch-dev/engine";
+import {
+  DEFAULT_BATCH_SIZE,
+  DEFAULT_MIN_BATCH,
+  RACY_MARGIN_NS,
+  discover,
+} from "@epoch-dev/engine";
 import {
   hostInfo,
   median,
@@ -51,9 +57,10 @@ function prng(seed: number): () => number {
   };
 }
 
-function runOnce(dir: string, cacheDir: string): Sample {
+function runOnce(dir: string, cacheDir: string, inProcess = false): Sample {
   const t0 = performance.now();
-  const r = spawnSync(process.execPath, [RUN_ONCE, dir], {
+  const args = [RUN_ONCE, dir, ...(inProcess ? ["--in-process"] : [])];
+  const r = spawnSync(process.execPath, args, {
     encoding: "utf8",
     env: { ...process.env, EPOCH_CACHE_DIR: cacheDir },
     maxBuffer: 64 * 1024 * 1024,
@@ -93,6 +100,15 @@ async function measure(
     const cold: Sample[] = [];
     for (let i = 0; i < runs; i++) cold.push(runOnce(copy, freshCache()));
     scenarios.push({ name: "cold (empty cache)", samples: cold });
+
+    const coldInProcess: Sample[] = [];
+    for (let i = 0; i < runs; i++) {
+      coldInProcess.push(runOnce(copy, freshCache(), true));
+    }
+    scenarios.push({
+      name: "cold, parsing in-process",
+      samples: coldInProcess,
+    });
 
     const warmCache = freshCache();
     runOnce(copy, warmCache); // prime
@@ -143,6 +159,7 @@ function render(
     "",
     `- Each repository is a pinned shallow clone, copied to a temporary directory (without .git) and left to age past the ${String(Number(RACY_MARGIN_NS / 1_000_000_000n))} s racy-mtime margin, like a real checkout. It is never installed, built or run.`,
     "- Every analysis runs in a fresh Node process through the engine with the SQLite cache and serializes the canonical graph, as `epoch analyze --json` does. **Wall** includes process start-up; the stage columns come from AnalysisMeta.",
+    `- Parsing runs as in the CLI: a batch of at least ${String(DEFAULT_MIN_BATCH)} cache misses goes to ${String(Math.max(1, os.availableParallelism() - 1))} worker threads (one per core, minus one), in tasks of ${String(DEFAULT_BATCH_SIZE)} files; smaller batches parse in the main thread. **Cold, parsing in-process** parses everything in the main thread, for comparison. Parse includes starting the workers.`,
     `- **Cold:** an empty cache each run. **Warm:** the same cache, nothing changed. **Incremental:** comment lines appended to 1, 5 or 50 source files chosen by a fixed seed, then re-analyzed with the warm cache. Median of ${String(runs)} runs per scenario.`,
     "- Resolution and the graph are recomputed on every run by design (CLAUDE.md, ADR-004), so they bound warm and incremental runs.",
     "- **Files parsed** are cache misses. **Files re-hashed** were read because the manifest could not vouch for them; it exceeds the edited count because files edited just before the previous run are still inside the racy margin and are hashed once more (then hit the cache).",

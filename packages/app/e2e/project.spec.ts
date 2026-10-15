@@ -238,3 +238,29 @@ test("a symlink inside the project that points outside it is never read", async 
   ]);
   expect(JSON.stringify(graph)).not.toContain("SECRET_OUTSIDE_TOKEN");
 });
+
+test("a project large enough for the worker pool is analyzed in it", async () => {
+  // 300 cache misses exceed the pool's DEFAULT_MIN_BATCH (256), so the host's
+  // parse workers run, loaded from the app bundle (inside asar when packaged).
+  const project = tempDir();
+  const count = 300;
+  fs.mkdirSync(path.join(project, "src"));
+  for (let i = 0; i < count; i++) {
+    const next =
+      i + 1 < count
+        ? `import { v${String(i + 1)} } from "./m${String(i + 1)}";\n`
+        : "";
+    fs.writeFileSync(
+      path.join(project, "src", `m${String(i)}.ts`),
+      `${next}export const v${String(i)} = ${String(i)};\n`,
+    );
+  }
+  const { graph } = await openThroughDialog(project);
+  expect(graph.nodes).toHaveLength(count);
+  expect(graph.edges).toHaveLength(count - 1);
+  expect(graph.edges[0]).toMatchObject({
+    source: "src/m0.ts",
+    target: "src/m1.ts",
+    kind: "import",
+  });
+});

@@ -59,7 +59,7 @@ No file contents or excerpts are stored; a test scans the database file for ever
 
 **Eviction.** Least-recently-used facts and derived values are evicted until their payload fits a cap. The default cap is 1 GiB: a default, not a measured choice. `epoch cache stats | clear | prune [--max-size <MB>]` manage the cache by hand.
 
-**Resolution caching: not now.** From `docs/benchmarks/typescript-performance.md` (median of 5 runs, the host recorded there):
+**Resolution caching: not now.** From the M2 run of `pnpm bench` (`docs/benchmarks/typescript-performance.md` as of commit `dcca092`; median of 5 runs, the host recorded there):
 
 | Repository           | Cold analysis | Warm, unchanged | Resolution share of warm | 50 files edited |
 | -------------------- | ------------- | --------------- | ------------------------ | --------------- |
