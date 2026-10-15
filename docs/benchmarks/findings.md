@@ -8,11 +8,11 @@ Host: linux x64 (6.18.44-fc-v114), 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16
 
 | Repository              | Commit       | Files | History | Analysis cold / warm | Findings stage cold / warm |
 | ----------------------- | ------------ | ----- | ------- | -------------------- | -------------------------- |
-| pallets/flask           | 22d924701a6a | 83    | usable  | 0.7 s / 0.1 s        | 0.08 s / 0.06 s            |
-| cli/cli                 | d2535897fd14 | 1283  | usable  | 6.1 s / 0.4 s        | 0.17 s / 0.14 s            |
-| colinhacks/zod          | 680d19f7d1e0 | 523   | usable  | 8.2 s / 1.4 s        | 4.28 s / 1.18 s            |
-| vitest-dev/vitest       | 2899eb3e9793 | 2400  | usable  | 7.9 s / 2.0 s        | 1.37 s / 0.48 s            |
-| open-feature/playground | 8140a5a44291 | 98    | usable  | 3.3 s / 0.2 s        | 2.31 s / 0.08 s            |
+| pallets/flask           | 22d924701a6a | 83    | usable  | 0.5 s / 0.1 s        | 0.07 s / 0.06 s            |
+| cli/cli                 | d2535897fd14 | 1283  | usable  | 5.4 s / 0.5 s        | 0.14 s / 0.14 s            |
+| colinhacks/zod          | 680d19f7d1e0 | 523   | usable  | 6.2 s / 1.5 s        | 3.86 s / 1.19 s            |
+| vitest-dev/vitest       | 2899eb3e9793 | 2400  | usable  | 5.5 s / 1.8 s        | 0.72 s / 0.40 s            |
+| open-feature/playground | 8140a5a44291 | 98    | usable  | 0.8 s / 0.3 s        | 0.41 s / 0.09 s            |
 
 Each repository is analyzed twice with a fresh cache: the cold run pays for every git history lookup, the warm run (same HEAD) reads them from the cache.
 
@@ -85,6 +85,16 @@ Files Epoch reported as possibly unused at a commit about 365 days before HEAD, 
 | colinhacks/zod          | 5c2602ceb8be (2025-10-06) | 2 / 61 (3.3%)                 | 0 / 23 (0.0%)          | 0 / 12 (0.0%)           | 2 / 126 (1.6%)             |
 | vitest-dev/vitest       | 981b14db16e7 (2025-10-13) | 3 / 7 (42.9%)                 | 1 / 4 (25.0%)          | 0 / 2 (0.0%)            | 97 / 553 (17.5%)           |
 | open-feature/playground | 7297f0396abe (2024-12-23) | 0 / 3 (0.0%)                  | 0 / 0                  | 0 / 0                   | 0 / 94 (0.0%)              |
+
+Possibly stale flags reported at that commit, and how many have no usage left at HEAD in the files that used them (removed, or rewritten):
+
+| Repository              | Worth a look: gone / reported | Maybe: gone / reported | Unsure: gone / reported |
+| ----------------------- | ----------------------------- | ---------------------- | ----------------------- |
+| pallets/flask           | 0 / 0                         | 0 / 0                  | 0 / 0                   |
+| cli/cli                 | 0 / 0                         | 0 / 0                  | 0 / 0                   |
+| colinhacks/zod          | 0 / 0                         | 0 / 0                  | 0 / 0                   |
+| vitest-dev/vitest       | 0 / 0                         | 0 / 0                  | 0 / 0                   |
+| open-feature/playground | 0 / 0                         | 0 / 4                  | 0 / 0                   |
 
 ## Review sheet
 

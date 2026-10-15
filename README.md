@@ -1,6 +1,6 @@
 # Epoch
 
-> **Work in progress** (milestone M4 of [PLAN.md](PLAN.md)). The desktop app opens a project folder and shows its dependency graph for TypeScript/JavaScript, Python and Go (all tier A, precise resolution, with measured accuracy), keeps it up to date as files change, shows the blast radius of any file and scores each file for risk. Dead-feature alerts come in M5.
+> **Work in progress** (milestone M5 of [PLAN.md](PLAN.md)). The desktop app opens a project folder and shows its dependency graph for TypeScript/JavaScript, Python and Go (all tier A, precise resolution, with measured accuracy), keeps it up to date as files change, shows the blast radius of any file, scores each file for risk, and points out likely-dead features as candidates for review.
 
 Epoch is a local-first desktop app (macOS, Windows, Linux) that turns a codebase into an interactive dependency graph. It scores each file for risk, shows the blast radius of changing any file, and flags likely-dead features (constant branches, stale feature flags, unreachable files) as candidates for review.
 
@@ -27,6 +27,15 @@ Every number is measured on pinned public repositories; the reports say how.
 | Watcher: file write to updated graph                    | 0.34 s (Flask, 83 files), 1.27 s (vitest, 2,451 files), medians of 3                                 | [watcher.md](docs/benchmarks/watcher.md)                               |
 | 90-day churn query on a full history                    | 0.04 s (cli/cli, 399 commits in the window)                                                          | [watcher.md](docs/benchmarks/watcher.md)                               |
 | Analysis time, full vs incremental                      | see the report                                                                                       | [typescript-performance.md](docs/benchmarks/typescript-performance.md) |
+| Possibly unused files vs knip 6.38.0 (zod)              | 128 files both report, 28 only Epoch, 6 only knip; every disagreement categorized                    | [findings.md](docs/benchmarks/findings.md)                             |
+| Findings stage, cold / warm cache                       | 0.07–4.24 s / 0.06–1.35 s on five repositories (git history lookups included)                        | [findings.md](docs/benchmarks/findings.md)                             |
+| Finding precision on a human-reviewed sample            | not measured yet: the 50-row review sheet awaits its verdicts                                        | [findings-review.csv](docs/benchmarks/findings-review.csv)             |
+
+## How findings work
+
+Epoch flags three kinds of likely-dead code: **branches that likely never run** (a constant condition), **possibly stale flags** (OpenFeature calls, your own wrapper functions or prefixed environment variables, introduced long ago and untouched since) and **possibly unused files** (no entry point reaches them). Each finding is a candidate, never a verdict: it lists what static analysis cannot see first, then its evidence, a confidence level from a fixed rubric ("Worth a look", "Maybe", "Unsure") with the reason for any cap, and a suggested next step. Nothing is ever changed in your project; dismissals are kept in Epoch's own data folder.
+
+The main limit: files loaded by tooling (CI scripts, build configs that compute paths, plugin systems) or by languages Epoch does not analyze can look unused. List them under `entryPoints` in `epoch.config.json`. Details, the full rubric and configuration: [docs/findings.md](docs/findings.md).
 
 ## Development
 
@@ -108,6 +117,7 @@ docs/benchmarks/        generated and measured reports
 
 - [CLAUDE.md](CLAUDE.md): what Epoch is, the rules, and the data contracts (source of truth).
 - [PLAN.md](PLAN.md): build order, milestones and acceptance criteria.
+- [docs/findings.md](docs/findings.md): finding kinds, rubric, configuration and limits.
 - [docs/decisions/](docs/decisions/): architecture decision records.
 
 ## License

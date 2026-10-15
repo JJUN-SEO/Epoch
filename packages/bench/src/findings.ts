@@ -243,6 +243,8 @@ interface Hindsight {
   readonly thenDate: string;
   readonly byLevel: ReadonlyMap<Confidence, { flagged: number; gone: number }>;
   readonly unflagged: { files: number; gone: number };
+  /** stale-flag candidates then, and how many have no usage left at HEAD. */
+  readonly flags: ReadonlyMap<Confidence, { flagged: number; gone: number }>;
 }
 
 /** Findings at a commit `days` before HEAD; how many of their files are gone at HEAD. */
@@ -274,6 +276,37 @@ async function hindsight(
       }
       byLevel.set(f.confidence, s);
     }
+    const flags = new Map<Confidence, { flagged: number; gone: number }>();
+    for (const f of graph.findings) {
+      if (f.kind !== "stale-flag") continue;
+      const s = flags.get(f.confidence) ?? { flagged: 0, gone: 0 };
+      s.flagged++;
+      const files = [...new Set(f.locations.map((l) => l.file))].filter((p) =>
+        atHead.has(p),
+      );
+      let still = false;
+      if (files.length > 0) {
+        try {
+          // A fixed-string search (-F) at HEAD, in the files that used it.
+          git(
+            dir,
+            "grep",
+            "-q",
+            "-F",
+            "-e",
+            f.subject.name,
+            "HEAD",
+            "--",
+            ...files,
+          );
+          still = true;
+        } catch {
+          still = false; // git grep exits 1 when nothing matches
+        }
+      }
+      if (!still) s.gone++;
+      flags.set(f.confidence, s);
+    }
     const others = sourceFiles(
       git(tmp, "ls-tree", "-r", "--name-only", "HEAD").split("\n"),
     ).filter((f) => !flagged.has(f));
@@ -281,6 +314,7 @@ async function hindsight(
       then,
       thenDate: git(dir, "log", "-1", "--format=%cs", then).trim(),
       byLevel,
+      flags,
       unflagged: {
         files: others.length,
         gone: others.filter((f) => !atHead.has(f)).length,
@@ -547,6 +581,27 @@ async function main(): Promise<void> {
               `${String(h.unflagged.gone)} / ${String(h.unflagged.files)} (${pct(h.unflagged.gone / Math.max(1, h.unflagged.files))})`,
             ],
       ),
+    ),
+    "",
+  );
+
+  lines.push(
+    "Possibly stale flags reported at that commit, and how many have no usage left at HEAD in the files that used them (removed, or rewritten):",
+    "",
+    table(
+      [
+        "Repository",
+        ...LEVELS.map((l) => `${CONFIDENCE_LABELS[l]}: gone / reported`),
+      ],
+      hind.map(({ repo, h }) => [
+        repo.name,
+        ...LEVELS.map((l) => {
+          const s = h?.flags.get(l);
+          return s === undefined || s.flagged === 0
+            ? "0 / 0"
+            : `${String(s.gone)} / ${String(s.flagged)}`;
+        }),
+      ]),
     ),
     "",
   );
