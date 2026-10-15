@@ -1,6 +1,7 @@
 import ts from "typescript";
 import type { EntryPoint, ProjectContext } from "@epoch-dev/core";
 import { EXTENSIONS } from "./files.js";
+import { resolveImport } from "./resolve.js";
 
 /*
  * Entry points for TS/JS (CLAUDE.md "Unreachable files", ADR-007): the roots
@@ -167,6 +168,23 @@ const isSource = (p: string) => EXTENSIONS.some((e) => p.endsWith(e));
 
 const MAX_CONFIG_BYTES = 256 * 1024;
 
+/** JSON configs of workspace tools that name entry files (Nx, Angular, NestJS). */
+const JSON_TOOL_CONFIGS = new Set([
+  "project.json",
+  "angular.json",
+  "workspace.json",
+  "nest-cli.json",
+]);
+
+/** Component and page formats that import TS/JS but are not analyzed themselves. */
+const TEMPLATE_FILE = /\.(?:vue|svelte|astro|mdx)$/;
+const MAX_TEMPLATE_BYTES = 1024 * 1024;
+/** `from "x"`, `import "x"` and `import("x")`: bounded, so linear on any input. */
+const TEMPLATE_IMPORTS = [
+  /(?:\bfrom|\bimport)\s{0,20}["']([^"'\n]{1,300})["']/g,
+  /\bimport\s{0,20}\(\s{0,20}["']([^"'\n]{1,300})["']\s{0,20}\)/g,
+];
+
 /**
  * String literals of a config file that look like file paths, by a linear
  * scan (no regex over the file): quoted, no whitespace, no glob characters,
@@ -176,6 +194,20 @@ function pathStrings(text: string): string[] {
   const out: string[] = [];
   for (let i = 0; i < text.length; i++) {
     const q = text.charAt(i);
+    // Comments are skipped, so an apostrophe in one ("don't") cannot
+    // throw the quote pairing off for the rest of the file.
+    if (q === "/" && text.charAt(i + 1) === "/") {
+      const nl = text.indexOf("\n", i);
+      if (nl === -1) break;
+      i = nl;
+      continue;
+    }
+    if (q === "/" && text.charAt(i + 1) === "*") {
+      const close = text.indexOf("*/", i + 2);
+      if (close === -1) break;
+      i = close + 1;
+      continue;
+    }
     if (q !== '"' && q !== "'" && q !== "`") continue;
     const end = text.indexOf(q, i + 1);
     if (end === -1) break;
@@ -229,24 +261,37 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
       }
     }
   }
+  /** Roots for the source files a config file names by path, tried against each base folder. */
+  const namedPaths = (file: string, bases: readonly string[]) => {
+    const text = ctx.repo.reader.readFile(`${ctx.repo.root}/${file}`);
+    if (text === undefined || text.length > MAX_CONFIG_BYTES) return;
+    for (const value of pathStrings(text)) {
+      for (const base of bases) {
+        const target = join(base, value);
+        const hit = [
+          target,
+          ...ANY_SOURCE.map((e) => `${target}${e}`),
+          ...ANY_SOURCE.map((e) => `${target}/index${e}`),
+        ].find((c) => c !== file && files.has(c));
+        if (hit !== undefined) {
+          add(hit, "config", `${file} (names this path)`);
+          break;
+        }
+      }
+    }
+  };
+  // Workspace tools that name entry files in JSON (Nx, Angular, NestJS), often
+  // relative to the workspace root rather than to the file itself.
+  for (const file of ctx.repo.files) {
+    if (JSON_TOOL_CONFIGS.has(baseOf(file)))
+      namedPaths(file, [dirOf(file), ""]);
+  }
   for (const file of files) {
     const base = baseOf(file);
     if (CONFIG_FILE.test(base)) {
       add(file, "config", `${base} (tool configuration)`);
       // Files a tool config names by path: build entries, setup files...
-      const text = ctx.repo.reader.readFile(`${ctx.repo.root}/${file}`);
-      if (text !== undefined && text.length <= MAX_CONFIG_BYTES) {
-        for (const value of pathStrings(text)) {
-          const target = join(dirOf(file), value);
-          const hit = [
-            target,
-            ...ANY_SOURCE.map((e) => `${target}${e}`),
-            ...ANY_SOURCE.map((e) => `${target}/index${e}`),
-          ].find((c) => c !== file && files.has(c));
-          if (hit !== undefined)
-            add(hit, "config", `${file} (names this path)`);
-        }
-      }
+      namedPaths(file, [dirOf(file)]);
     } else if (CONVENTION_FILE.test(base))
       add(file, "convention", `${base} (entry-point name)`);
     else if (dirOf(file).split("/").at(-1) === "bin")
@@ -256,6 +301,32 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
       true
     ) {
       add(file, "convention", "executable script (#!)");
+    }
+  }
+  // Vue, Svelte, Astro and MDX files are not analyzed, but what they import
+  // is used: their import specifiers, resolved as TS would, count as roots.
+  for (const file of ctx.repo.files) {
+    const ext = TEMPLATE_FILE.exec(file)?.[0];
+    if (ext === undefined) continue;
+    const text = ctx.repo.reader.readFile(`${ctx.repo.root}/${file}`);
+    if (text === undefined || text.length > MAX_TEMPLATE_BYTES) continue;
+    for (const pattern of TEMPLATE_IMPORTS) {
+      for (const m of text.matchAll(pattern)) {
+        const specifier = m[1];
+        if (specifier === undefined) continue;
+        const res = resolveImport(
+          { kind: "static", specifier, typeOnly: false, names: [], line: 1 },
+          file,
+          ctx,
+        );
+        if (res.kind === "file") {
+          add(
+            res.target,
+            "convention",
+            `${file} imports it (${ext} files are not analyzed)`,
+          );
+        }
+      }
     }
   }
   for (const page of ctx.repo.files) {

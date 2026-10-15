@@ -151,8 +151,9 @@ describe("typescript entry points", () => {
       roots({
         "packages/v/rollup.config.js":
           "export default { input: { index: 'src/index.ts', 'workers/forks': './src/workers/forks' }, external: ['node:fs', 'src/**'] };",
+        // An apostrophe in a comment must not throw off the quote pairing.
         "packages/v/vitest.config.ts":
-          'export default { test: { setupFiles: ["./test-setup"] } };',
+          "// we don't bundle 'these'\n/* nor 'src/unrelated' */\nexport default { test: { setupFiles: [\"./test-setup\"] } };",
         "packages/v/src/index.ts": "",
         "packages/v/src/workers/forks.ts": "",
         "packages/v/test-setup.ts": "",
@@ -173,6 +174,87 @@ describe("typescript entry points", () => {
         "packages/v/test-setup.ts",
         "config",
         "packages/v/vitest.config.ts (names this path)",
+      ],
+    ]);
+  });
+
+  it("finds files Nx, Angular and NestJS configs name, relative to the file or the workspace", () => {
+    expect(
+      roots({
+        "packages/app/project.json": JSON.stringify({
+          targets: {
+            build: {
+              options: { main: "packages/app/src/main.ts" },
+              configurations: {
+                production: {
+                  fileReplacements: [
+                    {
+                      replace: "packages/app/src/environments/environment.ts",
+                      with: "packages/app/src/environments/environment.prod.ts",
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        }),
+        "packages/app/src/main.ts": "",
+        "packages/app/src/environments/environment.ts": "",
+        "packages/app/src/environments/environment.prod.ts": "",
+        "svc/nest-cli.json": JSON.stringify({
+          sourceRoot: "src",
+          entryFile: "main",
+        }),
+        "svc/src/main.ts": "",
+      }).filter(([, , source]) => source?.includes("names this path") === true),
+    ).toEqual([
+      [
+        "packages/app/src/main.ts",
+        "config",
+        "packages/app/project.json (names this path)",
+      ],
+      [
+        "packages/app/src/environments/environment.ts",
+        "config",
+        "packages/app/project.json (names this path)",
+      ],
+      [
+        "packages/app/src/environments/environment.prod.ts",
+        "config",
+        "packages/app/project.json (names this path)",
+      ],
+    ]);
+  });
+
+  it("counts what Vue, Svelte, Astro and MDX files import, resolved as TS would", () => {
+    expect(
+      roots({
+        "tsconfig.json": JSON.stringify({
+          compilerOptions: { baseUrl: ".", paths: { "~/*": ["src/*"] } },
+        }),
+        "src/App.vue":
+          '<script setup lang="ts">\nimport { useX } from "~/composables/x";\nimport Y from "./y.vue";\nconst lazy = () => import("./lazy");\n</script>',
+        "src/Page.svelte": '<script>\n  import "./side";\n</script>',
+        "src/composables/x.ts": "",
+        "src/lazy.ts": "",
+        "src/side.ts": "",
+        "src/unused.ts": "",
+      }),
+    ).toEqual([
+      [
+        "src/composables/x.ts",
+        "convention",
+        "src/App.vue imports it (.vue files are not analyzed)",
+      ],
+      [
+        "src/lazy.ts",
+        "convention",
+        "src/App.vue imports it (.vue files are not analyzed)",
+      ],
+      [
+        "src/side.ts",
+        "convention",
+        "src/Page.svelte imports it (.svelte files are not analyzed)",
       ],
     ]);
   });
