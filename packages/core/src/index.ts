@@ -9,6 +9,7 @@ export * from "./schemas/index.js";
 export * from "./canonical.js";
 export * from "./cache/index.js";
 export * from "./policy.js";
+export * from "./languages.js";
 export * from "./graph/reachability.js";
 export * from "./graph/scc.js";
 export type * from "./interfaces/adapter.js";
