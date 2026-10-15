@@ -27,7 +27,25 @@ export interface FileInput {
    * Lookups through such a file never conclude that a name is absent.
    */
   readonly partial?: boolean;
+  /**
+   * The package the file belongs to (ADR-013, Go). A member folds into the
+   * package node; a non-member (a test file) stays a file node with an edge
+   * to its package.
+   */
+  readonly package?: { readonly id: string; readonly member: boolean };
 }
+
+export interface BuildOptions {
+  /**
+   * A package node's contentHash from its members' hashes, sorted (CLAUDE.md
+   * data contracts). Required when any file has a package; the engine passes
+   * sha256, so core needs no Node APIs.
+   */
+  readonly packageHash?: (memberHashes: readonly string[]) => string;
+}
+
+/** Evidence on a test file's edge to the package of its directory (ADR-013). */
+export const PACKAGE_DIRECTORY_EVIDENCE = "test file in the package directory";
 
 /** Result of looking an exported name up through re-exports. */
 type Lookup =
@@ -81,12 +99,28 @@ function indexFile(f: FileInput): FileIndex {
  * (CLAUDE.md): an import of named exports through a barrel B becomes an edge
  * to each declaring file C (`via barrel B`), plus one `via-barrel` edge to B.
  * Anything that cannot be traced conservatively stays a direct edge to B.
- * Fan-in and fan-out count distinct direct neighbours over certain edges.
- * Pure: the same inputs always give the same (canonical) graph.
+ * Package members (ADR-013) fold into one package node: their edges start
+ * at the package, self-loops are dropped, and their unresolved imports keep
+ * the member file. Fan-in and fan-out count distinct direct neighbours over
+ * certain edges, after folding. Pure: the same inputs always give the same
+ * (canonical) graph.
  */
-export function buildGraph(files: readonly FileInput[]): Graph {
+export function buildGraph(
+  files: readonly FileInput[],
+  opts: BuildOptions = {},
+): Graph {
   const byId = new Map(files.map((f) => [f.id, f]));
   const indexes = new Map(files.map((f) => [f.id, indexFile(f)]));
+  const members = new Map<string, FileInput[]>();
+  for (const f of files) {
+    if (f.package?.member !== true) continue;
+    const list = members.get(f.package.id) ?? [];
+    list.push(f);
+    members.set(f.package.id, list);
+  }
+  /** The node a file's edges and attributes belong to. */
+  const nodeOf = (f: FileInput): string =>
+    f.package?.member === true ? f.package.id : f.id;
 
   const lookup = (
     fileId: string,
@@ -136,6 +170,7 @@ export function buildGraph(files: readonly FileInput[]): Graph {
     kind: EdgeKind,
     evidence?: string,
   ) => {
+    if (source === target) return;
     const key = `${source}\u0000${target}\u0000${kind}`;
     let entry = edges.get(key);
     if (!entry) {
@@ -148,15 +183,20 @@ export function buildGraph(files: readonly FileInput[]): Graph {
     if (evidence !== undefined) entry.evidence.add(evidence);
   };
 
-  const externals = new Map<string, Set<string>>(
-    files.map((f) => [f.id, new Set()]),
-  );
+  const externals = new Map<string, Set<string>>();
   const unresolved: UnresolvedImport[] = [];
 
   for (const f of files) {
+    const source = nodeOf(f);
+    const pkg = f.package;
+    if (pkg?.member === false && members.has(pkg.id)) {
+      addEdge(f.id, pkg.id, "import", PACKAGE_DIRECTORY_EVIDENCE);
+    }
     for (const { imp, res } of f.resolutions) {
       if (res.kind === "external") {
-        externals.get(f.id)?.add(res.name);
+        const set = externals.get(source) ?? new Set<string>();
+        set.add(res.name);
+        externals.set(source, set);
         continue;
       }
       if (res.kind === "unresolved") {
@@ -171,18 +211,20 @@ export function buildGraph(files: readonly FileInput[]): Graph {
         });
         continue;
       }
-      const target = res.target;
-      if (!byId.has(target)) {
+      const targetFile = res.kind === "file" ? byId.get(res.target) : undefined;
+      if (res.kind === "package" ? !members.has(res.target) : !targetFile) {
         throw new Error(
-          `buildGraph: ${f.id} resolves ${JSON.stringify(imp.specifier)} to ${target}, which is not among the analyzed files`,
+          `buildGraph: ${f.id} resolves ${JSON.stringify(imp.specifier)} to ${res.target}, which is not among the analyzed files`,
         );
       }
+      // A file inside a package stands for its package.
+      const target = targetFile ? nodeOf(targetFile) : res.target;
       if (imp.kind === "reexport") {
-        addEdge(f.id, target, "reexport");
+        addEdge(source, target, "reexport");
         continue;
       }
       if (imp.kind === "dynamic") {
-        addEdge(f.id, target, "dynamic-import");
+        addEdge(source, target, "dynamic-import");
         continue;
       }
       const kind: EdgeKind = imp.typeOnly ? "type-only" : "import";
@@ -194,7 +236,7 @@ export function buildGraph(files: readonly FileInput[]): Graph {
         !names.includes("*") &&
         targetIx?.isBarrel === true;
       if (!traceable) {
-        addEdge(f.id, target, kind);
+        addEdge(source, target, kind);
         continue;
       }
       let direct = false;
@@ -202,14 +244,14 @@ export function buildGraph(files: readonly FileInput[]): Graph {
       for (const name of names) {
         const r = lookup(target, name, new Set());
         if (r.kind === "found" && r.file !== target) {
-          addEdge(f.id, r.file, kind, `via barrel ${target}`);
+          addEdge(source, r.file, kind, `via barrel ${target}`);
           traced = true;
         } else {
           direct = true;
         }
       }
-      if (traced) addEdge(f.id, target, "via-barrel");
-      if (direct) addEdge(f.id, target, kind);
+      if (traced) addEdge(source, target, "via-barrel");
+      if (direct) addEdge(source, target, kind);
     }
   }
 
@@ -232,20 +274,48 @@ export function buildGraph(files: readonly FileInput[]): Graph {
     );
   }
 
-  const nodes: GraphNode[] = files.map((f) => ({
-    id: f.id,
-    kind: "file",
-    language: f.language,
-    loc: f.loc,
-    contentHash: f.contentHash,
-    exports: [...new Set(f.facts.exports.map((e) => e.name))],
-    externals: [...(externals.get(f.id) ?? [])],
-    flags: f.facts.flagUsages,
-    metrics: {
-      fanIn: fanIn.get(f.id)?.size ?? 0,
-      fanOut: fanOut.get(f.id)?.size ?? 0,
-    },
-  }));
+  const metrics = (id: string) => ({
+    fanIn: fanIn.get(id)?.size ?? 0,
+    fanOut: fanOut.get(id)?.size ?? 0,
+  });
+  const nodes: GraphNode[] = files
+    .filter((f) => f.package?.member !== true)
+    .map((f) => ({
+      id: f.id,
+      kind: "file",
+      language: f.language,
+      loc: f.loc,
+      contentHash: f.contentHash,
+      exports: [...new Set(f.facts.exports.map((e) => e.name))],
+      externals: [...(externals.get(f.id) ?? [])],
+      flags: f.facts.flagUsages,
+      metrics: metrics(f.id),
+    }));
+  if (members.size > 0 && opts.packageHash === undefined) {
+    throw new Error("buildGraph: package nodes need opts.packageHash");
+  }
+  for (const [id, list] of members) {
+    if (byId.has(id)) {
+      throw new Error(`buildGraph: package id ${id} is also a file id`);
+    }
+    const first = list[0];
+    if (first === undefined || opts.packageHash === undefined) continue;
+    nodes.push({
+      id,
+      kind: "package",
+      language: first.language,
+      loc: list.reduce((n, f) => n + f.loc, 0),
+      contentHash: opts.packageHash(
+        list.map((f) => f.contentHash).sort(compareCodeUnits),
+      ),
+      exports: [
+        ...new Set(list.flatMap((f) => f.facts.exports.map((e) => e.name))),
+      ],
+      externals: [...(externals.get(id) ?? [])],
+      flags: list.flatMap((f) => f.facts.flagUsages),
+      metrics: metrics(id),
+    });
+  }
 
   return canonicalizeGraph({
     schemaVersion: GRAPH_SCHEMA_VERSION,

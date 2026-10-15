@@ -90,4 +90,14 @@ export interface AdapterRegistration<TTree = unknown> {
   grammarFor(path: string): string | undefined;
   /** GraphNode.language for a repo-relative path. */
   languageFor(path: string): string;
+  /**
+   * The package a file belongs to, for languages whose imports name packages
+   * (ADR-013, Go): a member folds into the `pkg:` node `id`; a non-member (a
+   * test file) stays a file node linked to it. Undefined: the file is its own
+   * node. Pure, like the adapter.
+   */
+  packageFor?(
+    path: string,
+    ctx: ResolveContext,
+  ): { readonly id: string; readonly member: boolean } | undefined;
 }

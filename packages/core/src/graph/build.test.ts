@@ -448,3 +448,145 @@ describe("graph assembly", () => {
     ).toThrow(/x\.ts/);
   });
 });
+
+describe("package nodes (ADR-013)", () => {
+  const pkg = (id: string) => ({ kind: "package", target: id }) as const;
+  const ext = (name: string) => ({ kind: "external", name }) as const;
+  const inPackage = (
+    f: FileInput,
+    id: string,
+    member: boolean,
+    loc = 1,
+  ): FileInput => ({
+    ...f,
+    language: "go",
+    loc,
+    package: { id, member },
+  });
+  const hashes: string[][] = [];
+  const packageHash = (members: readonly string[]) => {
+    hashes.push([...members]);
+    return `pkg-hash(${members.join(",")})`;
+  };
+  const files = [
+    inPackage(
+      input("a/a2.go", {
+        imports: [
+          imp("static", "m/b", pkg("pkg:m/b"), ["*"], { line: 3 }),
+          imp("static", "m/a", pkg("pkg:m/a"), ["*"], { line: 4 }),
+          imp("static", "github.com/x/y", ext("github.com/x/y"), ["*"]),
+          imp(
+            "static",
+            "m/missing",
+            { kind: "unresolved", reason: "not-found" },
+            ["*"],
+            { line: 5 },
+          ),
+        ],
+        locals: ["A2"],
+      }),
+      "pkg:m/a",
+      true,
+      2,
+    ),
+    inPackage(
+      input("a/a.go", {
+        imports: [
+          imp("static", "m/b", pkg("pkg:m/b"), ["*"]),
+          imp("static", "fmt", ext("go:fmt"), ["*"]),
+        ],
+        locals: ["A"],
+      }),
+      "pkg:m/a",
+      true,
+      3,
+    ),
+    inPackage(input("b/b.go", { locals: ["B"] }), "pkg:m/b", true),
+    inPackage(
+      input("a/a_test.go", {
+        imports: [
+          imp("static", "m/b", pkg("pkg:m/b"), ["*"]),
+          imp("static", "testing", ext("go:testing"), ["*"]),
+        ],
+        locals: ["TestA"],
+      }),
+      "pkg:m/a",
+      false,
+    ),
+    inPackage(
+      input("b/b_test.go", {
+        imports: [imp("static", "m/b", pkg("pkg:m/b"), ["*"])],
+      }),
+      "pkg:m/b",
+      false,
+    ),
+    inPackage(input("c/c_test.go"), "pkg:m/c", false),
+  ];
+
+  it("folds members into one package node with merged attributes", () => {
+    hashes.length = 0;
+    const g = buildGraph(files, { packageHash });
+    expect(g.nodes.map((n) => `${n.kind} ${n.id}`)).toEqual([
+      "file a/a_test.go",
+      "file b/b_test.go",
+      "file c/c_test.go",
+      "package pkg:m/a",
+      "package pkg:m/b",
+    ]);
+    const a = g.nodes.find((n) => n.id === "pkg:m/a");
+    expect(a).toMatchObject({
+      language: "go",
+      loc: 5,
+      contentHash: "pkg-hash(h:a/a.go,h:a/a2.go)",
+      exports: ["A", "A2"],
+      externals: ["github.com/x/y", "go:fmt"],
+      metrics: { fanIn: 1, fanOut: 1 },
+    });
+    expect(hashes).toContainEqual(["h:a/a.go", "h:a/a2.go"]);
+    expect(g.nodes.find((n) => n.id === "pkg:m/b")?.metrics).toEqual({
+      fanIn: 3,
+      fanOut: 0,
+    });
+  });
+
+  it("lifts member edges to the package, drops self-loops and links tests to their package", () => {
+    expect(
+      buildGraph(files, { packageHash }).edges.map((e) => {
+        const ev = e.evidence.length ? ` [${e.evidence.join("; ")}]` : "";
+        return `${e.source} -> ${e.target} : ${e.kind}${ev}`;
+      }),
+    ).toEqual([
+      "a/a_test.go -> pkg:m/a : import [test file in the package directory]",
+      "a/a_test.go -> pkg:m/b : import",
+      "b/b_test.go -> pkg:m/b : import [test file in the package directory]",
+      "pkg:m/a -> pkg:m/b : import",
+    ]);
+  });
+
+  it("keeps the member file and line on unresolved imports", () => {
+    expect(buildGraph(files, { packageHash }).unresolved).toEqual([
+      { from: "a/a2.go", specifier: "m/missing", reason: "not-found", line: 5 },
+    ]);
+  });
+
+  it("needs a hash function for package nodes", () => {
+    expect(() => buildGraph(files)).toThrow(/packageHash/);
+  });
+
+  it("fails loudly when a resolution points at a package with no members", () => {
+    expect(() =>
+      buildGraph(
+        [
+          inPackage(
+            input("a/a.go", {
+              imports: [imp("static", "m/z", pkg("pkg:m/z"), ["*"])],
+            }),
+            "pkg:m/a",
+            true,
+          ),
+        ],
+        { packageHash },
+      ),
+    ).toThrow(/pkg:m\/z/);
+  });
+});
