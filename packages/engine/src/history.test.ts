@@ -60,7 +60,9 @@ function gitRepo() {
   return { dir, git, write, commit, open };
 }
 
-describe("GitHistory", () => {
+// Each test drives real git (init, commits, clones): process spawns are slow
+// on Windows runners, so these get more time than vitest's 5 s default.
+describe("GitHistory", { timeout: 60_000 }, () => {
   it("reports a missing repository, too-short history and a shallow clone", () => {
     const plain = toPosix(
       fs.realpathSync.native(
