@@ -97,6 +97,11 @@ describe("findings facts: flag usages", () => {
     expect(f.flagUsages.map((u) => u.flagName)).toEqual([null, null]);
   });
 
+  it("skips empty keys", () => {
+    const f = facts('client.getBooleanValue("", false); featureEnabled("");\n');
+    expect(f.flagUsages).toEqual([]);
+  });
+
   it("accepts a template literal without substitutions as a key", () => {
     const f = facts("client.getBooleanValue(`plain`, false);\n");
     expect(f.flagUsages.map((u) => u.flagName)).toEqual(["plain"]);

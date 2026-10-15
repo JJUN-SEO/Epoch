@@ -50,6 +50,21 @@ describe("python entry points", () => {
     ]);
   });
 
+  it("finds executable scripts and tool configuration files", () => {
+    expect(
+      roots({
+        "tools/run.py": "#!/usr/bin/env python3\nprint(1)\n",
+        "docs/conf.py": "project = 'x'\n",
+        "noxfile.py": "",
+        "lib.py": "x = 1\n",
+      }),
+    ).toEqual([
+      ["docs/conf.py", "config", "conf.py (tool configuration)"],
+      ["noxfile.py", "config", "noxfile.py (tool configuration)"],
+      ["tools/run.py", "convention", "executable script (#!)"],
+    ]);
+  });
+
   it("maps pyproject scripts, gui scripts, entry points and poetry scripts to modules", () => {
     expect(
       roots({
@@ -171,6 +186,7 @@ describe("python entry points", () => {
       "app/__init__.py",
       "app/core.py",
       "setup.py", // a top-level module of the flat layout
+      "setup.py", // and tool configuration
     ]);
   });
 

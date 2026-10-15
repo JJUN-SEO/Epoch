@@ -363,7 +363,12 @@ describe("file mapping", () => {
     expect(isTestFile("src/a.test.ts")).toBe(true);
     expect(isTestFile("src/a.spec.tsx")).toBe(true);
     expect(isTestFile("src/__tests__/helper.ts")).toBe(true);
+    expect(isTestFile("test/fixtures/a.ts")).toBe(true);
+    expect(isTestFile("packages/x/tests/helper.ts")).toBe(true);
+    expect(isTestFile("src/__mocks__/fs.ts")).toBe(true);
+    expect(isTestFile("src/__fixtures__/a.ts")).toBe(true);
     expect(isTestFile("src/contest.ts")).toBe(false);
     expect(isTestFile("src/testing/util.ts")).toBe(false);
+    expect(isTestFile("src/latest/util.ts")).toBe(false);
   });
 });

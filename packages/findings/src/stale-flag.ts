@@ -121,7 +121,11 @@ export async function staleFlagFindings(
   return out;
 }
 
-/** Usages whose key is not a string literal, which no rubric can assess. */
+/**
+ * Strong usages whose key is not a string literal, which no rubric can
+ * assess. Weak ones are left out: a bare method-name match with no SDK
+ * import and no literal key says too little to count as a flag usage.
+ */
 export function unassessableUsages(
   files: readonly FindingsFile[],
   suppressed: (path: string) => boolean,
@@ -129,7 +133,9 @@ export function unassessableUsages(
   let n = 0;
   for (const file of files) {
     if (file.facts.isGenerated || suppressed(file.path)) continue;
-    for (const u of file.facts.flagUsages) if (u.flagName === null) n++;
+    for (const u of file.facts.flagUsages) {
+      if (u.flagName === null && u.strength === "strong") n++;
+    }
   }
   return n;
 }

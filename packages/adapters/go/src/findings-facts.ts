@@ -31,6 +31,26 @@ function literal(n: Node | undefined): string | null {
 
 const isExported = (name: string): boolean => /^\p{Lu}/u.test(name);
 
+/**
+ * The name an import binds: its alias, else a guess from the path's last
+ * element (version suffixes and go-/-go affixes dropped), as goimports does.
+ */
+function importedName(spec: Node): string | undefined {
+  const alias = spec.childForFieldName("name");
+  if (alias?.type === "package_identifier") return alias.text;
+  if (alias) return undefined; // dot and blank imports bind no name
+  const path = literal(spec.childForFieldName("path") ?? undefined);
+  if (path === null) return undefined;
+  const parts = path.split("/");
+  let last = parts.pop() ?? "";
+  if (/^v\d+$/.test(last) && parts.length > 0) last = parts.pop() ?? "";
+  last = last
+    .replace(/\.v\d+$/, "")
+    .replace(/^go-/, "")
+    .replace(/-go$/, "");
+  return last.slice(last.lastIndexOf("-") + 1).replace(/\./g, "_");
+}
+
 /** Names this node binds (constants, variables, parameters, functions, types...). */
 function bindings(n: Node): string[] {
   switch (n.type) {
@@ -90,8 +110,13 @@ export function findingsFacts(
   }
 
   const bound = new Map<string, number>();
+  const packageNames = new Set<string>();
   for (const n of nodes) {
     for (const name of bindings(n)) bound.set(name, (bound.get(name) ?? 0) + 1);
+    if (n.type === "import_spec") {
+      const name = importedName(n);
+      if (name !== undefined) packageNames.add(name);
+    }
   }
   const constants = new Map<string, Constant>();
   for (const n of nodes) {
@@ -176,16 +201,31 @@ export function findingsFacts(
       const args = (
         n.childForFieldName("arguments")?.namedChildren ?? []
       ).filter((a) => a.type !== "comment");
-      const pattern = patterns.find((p) => p.callee === callee);
+      // SDK evaluations are client methods: `flag.String(...)` (a package
+      // function) or an unqualified call cannot be one.
+      const operand =
+        fn?.type === "selector_expression"
+          ? fn.childForFieldName("operand")
+          : null;
+      const isMethod =
+        operand !== null &&
+        !(operand.type === "identifier" && packageNames.has(operand.text));
+      const pattern = isMethod
+        ? patterns.find((p) => p.callee === callee)
+        : undefined;
       const env =
         fn?.type === "selector_expression" &&
         fn.childForFieldName("operand")?.text === "os" &&
         (callee === "Getenv" || callee === "LookupEnv")
           ? envName(literal(args[0]))
           : undefined;
+      const key = pattern
+        ? literal(args[pattern.keyArgIndex])
+        : literal(args[0]);
+      if (key === "") continue; // an empty key is not a flag
       if (pattern) {
         flagUsages.push({
-          flagName: literal(args[pattern.keyArgIndex]),
+          flagName: key,
           line: lineOf(n),
           endLine: endLineOf(n),
           detection: "sdk-call",
@@ -195,7 +235,7 @@ export function findingsFacts(
         });
       } else if (wrappers.has(callee)) {
         flagUsages.push({
-          flagName: literal(args[0]),
+          flagName: key,
           line: lineOf(n),
           endLine: endLineOf(n),
           detection: "wrapper-call",

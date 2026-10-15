@@ -25,7 +25,7 @@ export const pythonAdapter: LanguageAdapter<Tree> = {
   id: "python",
   tier: "A",
   extensions: EXTENSIONS,
-  version: "2", // bump whenever extract output can change (cache keys include it)
+  version: "3", // bump whenever extract output can change (cache keys include it)
   detectProjectRoots,
   extract,
   resolveImport,

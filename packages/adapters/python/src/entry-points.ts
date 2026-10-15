@@ -11,8 +11,9 @@ import {
 
 /*
  * Entry points for Python (CLAUDE.md "Unreachable files", ADR-007):
- * `__main__.py`, files with an `if __name__ == "__main__":` guard,
- * manage.py/wsgi.py/asgi.py, scripts and entry points declared in
+ * `__main__.py`, files with an `if __name__ == "__main__":` guard or a `#!`
+ * line, manage.py/wsgi.py/asgi.py, tool configuration files (Sphinx's
+ * conf.py, noxfile.py, setup.py), scripts and entry points declared in
  * pyproject.toml and setup.cfg, and the public modules of distributable
  * packages (a library's public API is reachable by definition). Config files
  * are read as data and source files as text; setup.py is never run or parsed.
@@ -32,6 +33,9 @@ const CONVENTION_NAMES = new Set([
   "wsgi.py",
   "asgi.py",
 ]);
+
+/** Files tools load by name: Sphinx's conf.py, nox's noxfile.py, setuptools' setup.py. */
+const CONFIG_NAMES = new Set(["conf.py", "noxfile.py", "setup.py"]);
 
 /** A `__name__ == "__main__"` guard, by fixed-string search (no regex over the file). */
 function hasMainGuard(text: string): boolean {
@@ -227,8 +231,14 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
       add(f, "convention", `${base} (entry-point name)`);
       continue;
     }
+    if (CONFIG_NAMES.has(base)) {
+      add(f, "config", `${base} (tool configuration)`);
+      continue;
+    }
     const text = repo.reader.readFile(`${repo.root}/${f}`);
-    if (text !== undefined && hasMainGuard(text)) {
+    if (text?.startsWith("#!") === true) {
+      add(f, "convention", "executable script (#!)");
+    } else if (text !== undefined && hasMainGuard(text)) {
       add(f, "convention", 'if __name__ == "__main__"');
     }
   }

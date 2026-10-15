@@ -72,6 +72,33 @@ describe("typescript entry points", () => {
     ]);
   });
 
+  it("maps a bundler's dist/ back to src/ when tsconfig names no outDir", () => {
+    expect(
+      roots({
+        "packages/p/package.json": JSON.stringify({
+          exports: {
+            ".": { import: "./dist/index.mjs", require: "./dist/index.cjs" },
+            "./tool": "./lib/tool.js",
+          },
+        }),
+        "packages/p/src/index.ts": "",
+        "packages/p/src/tool.ts": "",
+      }),
+    ).toEqual([
+      [
+        "packages/p/src/index.ts",
+        "manifest",
+        "packages/p/package.json exports",
+      ],
+      [
+        "packages/p/src/index.ts",
+        "manifest",
+        "packages/p/package.json exports",
+      ],
+      ["packages/p/src/tool.ts", "manifest", "packages/p/package.json exports"],
+    ]);
+  });
+
   it("finds files named in package scripts", () => {
     expect(
       roots({
@@ -116,6 +143,60 @@ describe("typescript entry points", () => {
       ["src/main.tsx", "convention", "main.tsx (entry-point name)"],
       ["vite.config.ts", "config", "vite.config.ts (tool configuration)"],
       ["src/app.ts", "convention", "index.html <script>"],
+    ]);
+  });
+
+  it("finds files a tool config names by path", () => {
+    expect(
+      roots({
+        "packages/v/rollup.config.js":
+          "export default { input: { index: 'src/index.ts', 'workers/forks': './src/workers/forks' }, external: ['node:fs', 'src/**'] };",
+        "packages/v/vitest.config.ts":
+          'export default { test: { setupFiles: ["./test-setup"] } };',
+        "packages/v/src/index.ts": "",
+        "packages/v/src/workers/forks.ts": "",
+        "packages/v/test-setup.ts": "",
+        "packages/v/src/unrelated.ts": "",
+      }).filter(([, , source]) => source?.includes("names this path") === true),
+    ).toEqual([
+      [
+        "packages/v/src/index.ts",
+        "config",
+        "packages/v/rollup.config.js (names this path)",
+      ],
+      [
+        "packages/v/src/workers/forks.ts",
+        "config",
+        "packages/v/rollup.config.js (names this path)",
+      ],
+      [
+        "packages/v/test-setup.ts",
+        "config",
+        "packages/v/vitest.config.ts (names this path)",
+      ],
+    ]);
+  });
+
+  it("reads script tags of every HTML page", () => {
+    expect(
+      roots({
+        "src/client/tester.html":
+          '<script type="module" src="./tester.ts"></script>',
+        "src/client/tester.ts": "",
+      }),
+    ).toEqual([
+      ["src/client/tester.ts", "convention", "src/client/tester.html <script>"],
+    ]);
+  });
+
+  it("finds executable scripts", () => {
+    expect(
+      roots({
+        "scripts/release.mjs": "#!/usr/bin/env node\n",
+        "src/lib.ts": "export {};\n",
+      }),
+    ).toEqual([
+      ["scripts/release.mjs", "convention", "executable script (#!)"],
     ]);
   });
 

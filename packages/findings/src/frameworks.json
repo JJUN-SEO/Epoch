@@ -122,5 +122,43 @@
       "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/topics/settings.txt",
       "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/topics/http/urls.txt"
     ]
+  },
+  {
+    "id": "vitepress",
+    "name": "VitePress",
+    "ecosystem": "npm",
+    "dependencies": ["vitepress"],
+    "markerFiles": [],
+    "conventions": ["**/.vitepress/**", "**/*.{paths,data}.{js,ts,mjs,mts}"],
+    "sources": [
+      "https://github.com/vuejs/vitepress/blob/8ffc07c44eb9a688354d62202336a88c3609ed09/docs/en/guide/custom-theme.md",
+      "https://github.com/vuejs/vitepress/blob/8ffc07c44eb9a688354d62202336a88c3609ed09/docs/en/guide/routing.md",
+      "https://github.com/vuejs/vitepress/blob/8ffc07c44eb9a688354d62202336a88c3609ed09/docs/en/guide/data-loading.md"
+    ]
+  },
+  {
+    "id": "storybook",
+    "name": "Storybook",
+    "ecosystem": "npm",
+    "dependencies": [
+      "storybook",
+      "@storybook/react",
+      "@storybook/react-vite",
+      "@storybook/react-webpack5",
+      "@storybook/nextjs",
+      "@storybook/vue3",
+      "@storybook/vue3-vite",
+      "@storybook/angular",
+      "@storybook/svelte",
+      "@storybook/sveltekit",
+      "@storybook/web-components",
+      "@storybook/html"
+    ],
+    "markerFiles": [],
+    "conventions": [".storybook/**", "**/*.stories.{js,jsx,mjs,ts,tsx}"],
+    "sources": [
+      "https://github.com/storybookjs/storybook/blob/323f10d623978e97e5596d3ba80f353d1266a850/docs/configure/index.mdx",
+      "https://github.com/storybookjs/storybook/blob/323f10d623978e97e5596d3ba80f353d1266a850/docs/api/main-config/main-config-stories.mdx"
+    ]
   }
 ]

@@ -123,6 +123,29 @@ describe("findings facts: flag usages", () => {
   });
 });
 
+describe("findings facts: what is not a flag", () => {
+  it("skips package functions, unqualified calls and empty keys", () => {
+    const f = facts(
+      lines(
+        "package a",
+        'import "flag"',
+        'import pf "github.com/spf13/pflag"',
+        'import yaml "gopkg.in/yaml.v3"',
+        "func f() {",
+        '\tflag.String("listen", "0.0.0.0:80", "address")',
+        '\tpf.Boolean(ctx, "x", false, nil)',
+        '\tBooleanValue(ctx, "y", false, nil)',
+        '\tcmd.Flags().String("json", "", "fields")',
+        '\tclient.BooleanValue(ctx, "real", false, nil)',
+        "}",
+      ),
+    );
+    expect(f.flagUsages.map((u) => [u.flagName, u.line])).toEqual([
+      ["real", 10],
+    ]);
+  });
+});
+
 describe("findings facts: constant conditions", () => {
   it("finds literal and constant conditions with their scope and dead branch", () => {
     const f = facts(

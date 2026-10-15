@@ -265,9 +265,13 @@ export function findingsFacts(
           (callee === "get" && isOsEnviron(fn.childForFieldName("object"))))
           ? envName(literal(args[0]))
           : undefined;
+      const key = pattern
+        ? literal(args[pattern.keyArgIndex])
+        : literal(args[0]);
+      if (key === "") continue; // an empty key is not a flag
       if (pattern) {
         flagUsages.push({
-          flagName: literal(args[pattern.keyArgIndex]),
+          flagName: key,
           line: lineOf(n),
           endLine: endLineOf(n),
           detection: "sdk-call",
@@ -277,7 +281,7 @@ export function findingsFacts(
         });
       } else if (wrappers.has(callee)) {
         flagUsages.push({
-          flagName: literal(args[0]),
+          flagName: key,
           line: lineOf(n),
           endLine: endLineOf(n),
           detection: "wrapper-call",

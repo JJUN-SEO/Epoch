@@ -5,7 +5,7 @@ import { EXTENSIONS } from "./files.js";
 /*
  * Entry points for TS/JS (CLAUDE.md "Unreachable files", ADR-007): the roots
  * reachability starts from. Everything is read as data: package.json and
- * tsconfig as JSON, index.html as text; nothing is run.
+ * tsconfig as JSON, HTML pages and `#!` lines as text; nothing is run.
  */
 
 const dirOf = (p: string): string =>
@@ -53,6 +53,18 @@ const SOURCE_FOR: Readonly<Record<string, readonly string[]>> = {
   ".d.cts": [".cts"],
 };
 
+const BUNDLER_OUT_DIRS = ["dist", "lib", "build", "out", "esm", "cjs"] as const;
+const ANY_SOURCE = [
+  ".ts",
+  ".tsx",
+  ".mts",
+  ".cts",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+] as const;
+
 const CONFIG_FILE = /(?:^|\.)config\.[cm]?[jt]s$|^\.[\w-]+rc\.[cm]?[jt]s$/;
 const CONVENTION_FILE = /^(?:main|cli)\.[cm]?[jt]sx?$/;
 
@@ -83,7 +95,9 @@ function tsconfigDirs(ctx: ProjectContext, dir: string): TsconfigDirs {
 /**
  * The source file a manifest target names: itself if it is source, else
  * mapped from tsconfig's outDir back to rootDir (or `src`) with the source
- * extension. Undefined when it cannot be mapped.
+ * extension, else, without an outDir, from a bundler's usual output folder
+ * (dist, lib, build, out, esm, cjs) back to `src`. Undefined when it cannot
+ * be mapped.
  */
 function sourceFor(
   target: string,
@@ -99,16 +113,27 @@ function sourceFor(
   const stem = target.slice(0, -ext.length);
   const outDir = dirs.outDir;
   const rootDir = dirs.rootDir ?? join(pkgDir, "src");
-  const candidates = [stem];
+  for (const srcExt of SOURCE_FOR[ext] ?? []) {
+    if (files.has(`${stem}${srcExt}`)) return `${stem}${srcExt}`;
+  }
   if (
     outDir !== undefined &&
     (stem === outDir || stem.startsWith(`${outDir}/`))
   ) {
-    candidates.push(`${rootDir}${stem.slice(outDir.length)}`);
-  }
-  for (const c of candidates) {
+    const mapped = `${rootDir}${stem.slice(outDir.length)}`;
     for (const srcExt of SOURCE_FOR[ext] ?? []) {
-      if (files.has(`${c}${srcExt}`)) return `${c}${srcExt}`;
+      if (files.has(`${mapped}${srcExt}`)) return `${mapped}${srcExt}`;
+    }
+    return undefined;
+  }
+  // No tsconfig outDir: a bundler (tsup, rollup, unbuild...) usually builds
+  // <pkg>/src into <pkg>/dist (or lib, build, out), any extension to any.
+  for (const out of BUNDLER_OUT_DIRS) {
+    const dir = join(pkgDir, out);
+    if (!stem.startsWith(`${dir}/`)) continue;
+    const mapped = `${join(pkgDir, "src")}${stem.slice(dir.length)}`;
+    for (const srcExt of ANY_SOURCE) {
+      if (files.has(`${mapped}${srcExt}`)) return `${mapped}${srcExt}`;
     }
   }
   return undefined;
@@ -139,6 +164,35 @@ function scriptSources(html: string): string[] {
 }
 
 const isSource = (p: string) => EXTENSIONS.some((e) => p.endsWith(e));
+
+const MAX_CONFIG_BYTES = 256 * 1024;
+
+/**
+ * String literals of a config file that look like file paths, by a linear
+ * scan (no regex over the file): quoted, no whitespace, no glob characters,
+ * and either relative (./, ../) or containing a slash.
+ */
+function pathStrings(text: string): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const q = text.charAt(i);
+    if (q !== '"' && q !== "'" && q !== "`") continue;
+    const end = text.indexOf(q, i + 1);
+    if (end === -1) break;
+    const value = text.slice(i + 1, end);
+    i = end;
+    if (
+      value.length > 0 &&
+      value.length <= 300 &&
+      !/[\s*?{}$\\]/.test(value) &&
+      (value.startsWith(".") || value.includes("/")) &&
+      !/^[a-z]+:/i.test(value)
+    ) {
+      out.push(value);
+    }
+  }
+  return out;
+}
 
 export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
   const files = new Set(ctx.repo.files.filter(isSource));
@@ -177,15 +231,35 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
   }
   for (const file of files) {
     const base = baseOf(file);
-    if (CONFIG_FILE.test(base))
+    if (CONFIG_FILE.test(base)) {
       add(file, "config", `${base} (tool configuration)`);
-    else if (CONVENTION_FILE.test(base))
+      // Files a tool config names by path: build entries, setup files...
+      const text = ctx.repo.reader.readFile(`${ctx.repo.root}/${file}`);
+      if (text !== undefined && text.length <= MAX_CONFIG_BYTES) {
+        for (const value of pathStrings(text)) {
+          const target = join(dirOf(file), value);
+          const hit = [
+            target,
+            ...ANY_SOURCE.map((e) => `${target}${e}`),
+            ...ANY_SOURCE.map((e) => `${target}/index${e}`),
+          ].find((c) => c !== file && files.has(c));
+          if (hit !== undefined)
+            add(hit, "config", `${file} (names this path)`);
+        }
+      }
+    } else if (CONVENTION_FILE.test(base))
       add(file, "convention", `${base} (entry-point name)`);
     else if (dirOf(file).split("/").at(-1) === "bin")
       add(file, "convention", "bin/ directory");
+    else if (
+      ctx.repo.reader.readFile(`${ctx.repo.root}/${file}`)?.startsWith("#!") ===
+      true
+    ) {
+      add(file, "convention", "executable script (#!)");
+    }
   }
   for (const page of ctx.repo.files) {
-    if (baseOf(page) !== "index.html") continue;
+    if (!page.endsWith(".html")) continue;
     const html = ctx.repo.reader.readFile(`${ctx.repo.root}/${page}`);
     if (html === undefined || html.length > 1024 * 1024) continue;
     for (const src of scriptSources(html)) {

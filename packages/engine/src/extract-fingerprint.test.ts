@@ -45,6 +45,7 @@ const ADAPTERS: readonly {
       "2": "7b4596afcf409ec576fad84df17053c121e887132cd73fb53b93dbf03909d17c",
       "3": "96f756fc7ab66755421042464d1f368f10c85b7867149da9c4717af684dbc240",
       "4": "4401ee4744eca6534f4484d35cc090db018b84574fdb72609ea59b001238640e",
+      "5": "4401ee4744eca6534f4484d35cc090db018b84574fdb72609ea59b001238640e",
     },
   },
   {
@@ -55,6 +56,7 @@ const ADAPTERS: readonly {
     fingerprints: {
       "1": "8f37d071cfb040a5f4e5e86e0ce58876756d4aa5460edab29f98cb2dcbcb54dc",
       "2": "68db627cf3d3a9726d5a25b8f83617a058562415c2d81e4f7e6312dc7349e730",
+      "3": "68db627cf3d3a9726d5a25b8f83617a058562415c2d81e4f7e6312dc7349e730",
     },
   },
   {
@@ -65,6 +67,7 @@ const ADAPTERS: readonly {
     fingerprints: {
       "1": "1ca97380485a034c9f90a2fd880c247128edf9e163f525d7c7287f4e970d686d",
       "2": "e7eb329c3ca3ed4e93b4444a3a5f8e60c7b18e2f7e98bb6a86aa2bb3f09d9ae9",
+      "3": "e7eb329c3ca3ed4e93b4444a3a5f8e60c7b18e2f7e98bb6a86aa2bb3f09d9ae9",
     },
   },
 ];

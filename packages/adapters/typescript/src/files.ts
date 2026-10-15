@@ -27,9 +27,14 @@ export function languageFor(path: string): string {
 }
 
 const TEST_FILE = /\.(?:test|spec)\.[cm]?[jt]sx?$/;
-const TEST_DIR = /(?:^|\/)__tests__\//;
+const TEST_DIR = /(?:^|\/)(?:__tests__|__mocks__|__fixtures__|tests?)\//;
 
-/** Test files are roots for reachability (M5) and never reported as unreachable. */
+/**
+ * Test code: *.test.* and *.spec.* files, and anything under a test/,
+ * tests/, __tests__/, __mocks__/ or __fixtures__/ directory (helpers and
+ * fixtures that tests load). Roots for reachability (M5), never reported as
+ * unreachable.
+ */
 export function isTestFile(path: string): boolean {
   return TEST_FILE.test(path) || TEST_DIR.test(path);
 }
