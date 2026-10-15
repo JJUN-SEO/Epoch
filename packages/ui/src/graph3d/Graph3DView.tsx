@@ -161,6 +161,7 @@ export function Graph3DView(props: Graph3DViewProps) {
       <div
         ref={labels}
         className="pointer-events-none absolute inset-0 overflow-hidden"
+        data-testid="graph3d-labels"
         aria-hidden="true"
       />
       {busy && (

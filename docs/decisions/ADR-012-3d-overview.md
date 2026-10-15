@@ -90,7 +90,7 @@ Ship the 3D overview as an option of the graph view, off by default, behind a 2D
 
 - **Large repositories are slow on computers without a GPU:** about 5 s to lay out vitest, and 7 frames per second under software rendering. GPU performance is not measured. Measuring it on a real machine (a Mac with Apple silicon) is the next step before claiming anything about it.
 - **Positions are cached for the session only:** switching back to 3D is instant, but reopening the project lays it out again.
-- **The e2e tests opt into software WebGL** with `--enable-unsafe-swiftshader` as a launch argument (`packages/app/e2e/graph3d.spec.ts`). The app never sets this switch. A separate test launches with `--disable-webgl` and checks that the option is disabled with its reason.
+- **The e2e tests opt into software WebGL** with `--enable-unsafe-swiftshader` as a launch argument (`packages/app/e2e/graph3d.spec.ts`). The app never sets this switch. A separate test removes WebGL from the page with a Playwright init script (software WebGL stays on, so nothing else could explain it) and checks that the option is disabled with its reason. Chromium's `--disable-webgl` switch was tried first: it disabled nothing on the macOS and Windows CI runners.
 - **New runtime dependencies:** `three` 0.186.1 and `d3-force-3d` 3.0.6 (plus five small d3 packages); `@types/three` 0.186.0 for development.
 
 ## Sources

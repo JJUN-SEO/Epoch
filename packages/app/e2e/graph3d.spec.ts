@@ -80,6 +80,25 @@ test("the 3D overview draws the files, and clicking picks them", async () => {
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
     await expect(detailsTitle(page)).toHaveText("src/app.ts");
 
+    // The pointer now rests on src/app.ts. Choosing another file moves the
+    // camera, and the highlight follows the new selection, not the stale
+    // hover (its label is the bold one).
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    const bold = page.getByTestId("graph3d-labels").locator(".font-semibold");
+    await expect(bold).toHaveText("app.ts");
+    const other = page.locator('button[data-node3d-id="lib/d.ts"]');
+    await other.focus();
+    await other.press("Enter");
+    await expect(detailsTitle(page)).toHaveText("lib/d.ts");
+    await expect(bold).toHaveText("d.ts");
+    await page.waitForTimeout(1200);
+    await page.mouse.click(box.x + 12, box.y + 12);
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(detailsTitle(page)).toHaveText("lib/d.ts");
+    await listed.focus();
+    await listed.press("Enter");
+    await page.waitForTimeout(1200);
+
     // Double-clicking it opens the focus view on it.
     await page.mouse.dblclick(box.x + box.width / 2, box.y + box.height / 2);
     await expect(
@@ -102,8 +121,23 @@ test("the 3D overview draws the files, and clicking picks them", async () => {
 });
 
 test("without WebGL the 3D option is off, with the reason", async () => {
-  const epoch = await launch({}, undefined, ["--disable-webgl"]);
+  // Software WebGL is on, so only the page-level override below removes it:
+  // the page then sees what a computer without WebGL shows it.
+  const epoch = await launch({}, undefined, SOFTWARE_WEBGL);
   try {
+    await epoch.page.addInitScript(() => {
+      const proto = HTMLCanvasElement.prototype;
+      const original = Object.getOwnPropertyDescriptor(proto, "getContext")
+        ?.value as (this: HTMLCanvasElement, ...args: unknown[]) => unknown;
+      Object.defineProperty(proto, "getContext", {
+        value(this: HTMLCanvasElement, type: string, ...rest: unknown[]) {
+          if (type.startsWith("webgl")) return null;
+          return original.call(this, type, ...rest);
+        },
+      });
+    });
+    await epoch.page.reload();
+    await epoch.page.waitForLoadState("load");
     await open(epoch, project({ "a.ts": "export const a = 1;\n" }));
     const option = dimensions(epoch.page).getByRole("button", { name: "3D" });
     await expect(option).toBeDisabled();

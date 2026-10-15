@@ -127,6 +127,7 @@ export class Scene3D {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.12;
     this.controls.addEventListener("change", this.requestRender);
+    this.controls.addEventListener("start", this.clearHover);
 
     const canvas = this.renderer.domElement;
     canvas.addEventListener("pointermove", this.onPointerMove);
@@ -304,6 +305,7 @@ export class Scene3D {
     canvas.removeEventListener("pointerleave", this.onPointerLeave);
     canvas.removeEventListener("dblclick", this.onDoubleClick);
     this.controls.removeEventListener("change", this.requestRender);
+    this.controls.removeEventListener("start", this.clearHover);
     this.controls.dispose();
     this.removeMeshes();
     this.sphere.dispose();
@@ -507,7 +509,19 @@ export class Scene3D {
     if (again) this.requestRender();
   };
 
+  /**
+   * Forgets the hovered file when the camera starts to move: the file under
+   * a still pointer changes, and a stale hover would hide the selection.
+   */
+  private readonly clearHover = (): void => {
+    if (this.hovered !== undefined) {
+      this.hovered = undefined;
+      this.paint();
+    }
+  };
+
   private startFlight(to: Vector3, toTarget: Vector3, ms: number): void {
+    this.clearHover();
     this.flight = {
       from: this.camera.position.clone(),
       to,
