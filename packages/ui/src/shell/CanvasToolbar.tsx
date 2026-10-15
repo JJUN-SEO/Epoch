@@ -24,6 +24,10 @@ export function CanvasToolbar(props: {
   readonly onHops: (hops: Hops) => void;
   readonly onExpandAll: () => void;
   readonly onCollapseAll: () => void;
+  readonly dimensions: "2d" | "3d";
+  readonly onDimensions: (d: "2d" | "3d") => void;
+  /** This computer can draw the 3D view. */
+  readonly webgl: boolean;
 }) {
   return (
     <div
@@ -35,7 +39,25 @@ export function CanvasToolbar(props: {
       <IconButton icon={ZoomIn} label="Zoom in" onClick={props.onZoomIn} />
       <IconButton icon={Maximize} label="Fit to window" onClick={props.onFit} />
       <div className="bg-line mx-1 h-5 w-px" aria-hidden="true" />
-      {props.view === "graph" ? (
+      {props.view === "graph" && (
+        <Segmented
+          label="Dimensions"
+          options={[
+            { value: "2d", label: "2D", title: "2D graph" },
+            {
+              value: "3d",
+              label: "3D",
+              disabled: !props.webgl,
+              title: props.webgl
+                ? "3D overview"
+                : "3D needs WebGL, which is unavailable on this computer",
+            },
+          ]}
+          value={props.dimensions}
+          onChange={props.onDimensions}
+        />
+      )}
+      {props.view === "graph" && props.dimensions === "2d" && (
         <>
           <IconButton
             icon={ChevronsUpDown}
@@ -48,7 +70,8 @@ export function CanvasToolbar(props: {
             onClick={props.onCollapseAll}
           />
         </>
-      ) : (
+      )}
+      {props.view === "focus" && (
         <Segmented
           label="Hops"
           options={HOP_OPTIONS}

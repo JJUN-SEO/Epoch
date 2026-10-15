@@ -58,13 +58,14 @@ export interface Launched {
 export async function launch(
   env: Readonly<Record<string, string>> = {},
   reuse?: { readonly home: string },
+  chromiumArgs: readonly string[] = [],
 ): Promise<Launched> {
   const home = reuse?.home ?? mkdtempSync(path.join(os.tmpdir(), "epoch-e2e-"));
   const options = {
     // Keep Chromium's OS-level sandbox on under Playwright (it adds
     // --no-sandbox on Linux otherwise); CI runs as a non-root user.
     chromiumSandbox: true,
-    args: [`--user-data-dir=${path.join(home, "user-data")}`],
+    args: [`--user-data-dir=${path.join(home, "user-data")}`, ...chromiumArgs],
     env: {
       ...(process.env as Record<string, string>),
       EPOCH_CACHE_DIR: path.join(home, "cache"),

@@ -11,6 +11,7 @@ describe("parsePrefs", () => {
         hops: 7,
         colorBy: "taste",
         inspectorTab: 1,
+        graphMode: "4d",
       }),
     ).toEqual(DEFAULT_PREFS);
   });
@@ -25,6 +26,7 @@ describe("parsePrefs", () => {
         colorBy: "language",
         hops: 3,
         inspectorTab: "neighbors",
+        graphMode: "3d",
       }),
     ).toEqual({
       sidebar: false,
@@ -34,6 +36,7 @@ describe("parsePrefs", () => {
       colorBy: "language",
       hops: 3,
       inspectorTab: "neighbors",
+      graphMode: "3d",
     });
   });
 });

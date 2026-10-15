@@ -8,7 +8,15 @@ import {
   PanelRight,
   Search,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { Graph, ProjectInfo } from "@epoch-dev/core";
 import type { Shell } from "../api";
 import { DetailsPanel } from "../components/DetailsPanel";
@@ -28,6 +36,8 @@ import { focusLayout, isGroupId, MAX_PER_COLUMN } from "../graph/focus-layout";
 import { FocusView } from "../graph/FocusView";
 import { GraphView } from "../graph/GraphView";
 import { neighborhood } from "../graph/neighborhood";
+import { graph3dData } from "../graph3d/data";
+import { webglAvailable } from "../graph3d/support";
 import { isMac } from "../platform";
 import { loadPrefs, savePrefs, type Prefs } from "../prefs";
 import { CanvasToolbar } from "./CanvasToolbar";
@@ -45,6 +55,9 @@ import { isTyping, matches, shortcutLabel } from "./shortcuts";
 import { Sidebar, type View } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
 import { TitleBar } from "./TitleBar";
+
+/** The 3D overview (three.js) is its own chunk, loaded on first use. */
+const Graph3DView = lazy(() => import("../graph3d/Graph3DView"));
 
 export interface WorkspaceProps {
   readonly project: ProjectInfo;
@@ -109,6 +122,13 @@ export function Workspace({
     { x: number; y: number; items: ContextMenuItem[] } | undefined
   >();
   const graphControls = useRef<CanvasControls | undefined>(undefined);
+  const graph3dControls = useRef<CanvasControls | undefined>(undefined);
+  const webgl = useMemo(webglAvailable, []);
+  const mode3d = prefs.graphMode === "3d" && webgl;
+  const data3d = useMemo(
+    () => (mode3d ? graph3dData(graph, showViaBarrel) : undefined),
+    [mode3d, graph, showViaBarrel],
+  );
   const focusControls = useRef<CanvasControls | undefined>(undefined);
 
   const center = history.stack[history.index];
@@ -220,7 +240,11 @@ export function Workspace({
   );
   const canFocus = center !== undefined || isFileNode(selected);
   const controls = () =>
-    view === "graph" ? graphControls.current : focusControls.current;
+    view === "focus"
+      ? focusControls.current
+      : mode3d
+        ? graph3dControls.current
+        : graphControls.current;
 
   const runners: Record<CommandId, () => void> = {
     palette: () => {
@@ -262,6 +286,10 @@ export function Workspace({
     },
     "graph.collapseAll": () => {
       setExpanded(new Set());
+    },
+    "graph.dimensions": () => {
+      updatePrefs({ graphMode: mode3d ? "2d" : "3d" });
+      setView("graph");
     },
     "graph.colorBy": () => {
       updatePrefs({
@@ -314,6 +342,11 @@ export function Workspace({
       id: "graph.collapseAll",
       title: "Collapse All Folders",
       enabled: view === "graph",
+    },
+    {
+      id: "graph.dimensions",
+      title: mode3d ? "Show 2D Graph" : "Show 3D Graph",
+      enabled: webgl,
     },
     {
       id: "graph.colorBy",
@@ -573,9 +606,9 @@ export function Workspace({
         )}
 
         <main className="bg-canvas relative min-w-0 flex-1" aria-label="Canvas">
-          <div className={view === "graph" ? "h-full" : "hidden"}>
+          <div className={view === "graph" && !mode3d ? "h-full" : "hidden"}>
             <GraphView
-              active={view === "graph"}
+              active={view === "graph" && !mode3d}
               visible={visible}
               colors={colors}
               selected={selected}
@@ -589,6 +622,28 @@ export function Workspace({
               controlsRef={graphControls}
             />
           </div>
+          {mode3d && data3d !== undefined && (
+            <div className={view === "graph" ? "h-full" : "hidden"}>
+              <Suspense
+                fallback={
+                  <p className="text-muted pt-[30vh] text-center">
+                    Loading the 3D view…
+                  </p>
+                }
+              >
+                <Graph3DView
+                  active={view === "graph"}
+                  data={data3d}
+                  colors={colors}
+                  selected={selected}
+                  reveal={reveal}
+                  onSelect={setSelected}
+                  onActivate={focusOn}
+                  controlsRef={graph3dControls}
+                />
+              </Suspense>
+            </div>
+          )}
           {layout !== undefined && (
             <div className={view === "focus" ? "h-full" : "hidden"}>
               <FocusView
@@ -649,6 +704,11 @@ export function Workspace({
             onCollapseAll={() => {
               setExpanded(new Set());
             }}
+            dimensions={mode3d ? "3d" : "2d"}
+            onDimensions={(d) => {
+              updatePrefs({ graphMode: d });
+            }}
+            webgl={webgl}
           />
           {menu && (
             <ContextMenu

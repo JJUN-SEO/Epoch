@@ -15,6 +15,8 @@ export interface Prefs {
   readonly colorBy: ColorBy;
   readonly hops: 1 | 2 | 3;
   readonly inspectorTab: "details" | "neighbors";
+  /** The graph view's drawing: the 2D graph, or the optional 3D overview. */
+  readonly graphMode: "2d" | "3d";
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -25,6 +27,7 @@ export const DEFAULT_PREFS: Prefs = {
   colorBy: "folder",
   hops: 1,
   inspectorTab: "details",
+  graphMode: "2d",
 };
 
 export const PANEL_MIN = 200;
@@ -58,6 +61,8 @@ export function parsePrefs(raw: unknown): Prefs {
       r.inspectorTab === "details" || r.inspectorTab === "neighbors"
         ? r.inspectorTab
         : d.inspectorTab,
+    graphMode:
+      r.graphMode === "2d" || r.graphMode === "3d" ? r.graphMode : d.graphMode,
   };
 }
 
