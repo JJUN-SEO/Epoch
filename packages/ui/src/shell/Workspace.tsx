@@ -193,7 +193,7 @@ export function Workspace({
       return;
     }
     setView("graph");
-    setExpanded((e) => expandTo(e, id));
+    setExpanded((e) => expandTo(e, id, graph));
     setSelected(id);
     setReveal({ id });
   };
@@ -235,7 +235,7 @@ export function Workspace({
   };
 
   const allDirs = useMemo(
-    () => new Set(graph.nodes.flatMap((n) => ancestors(n.id))),
+    () => new Set(graph.nodes.flatMap((n) => ancestors(n.id, graph))),
     [graph],
   );
   const canFocus = center !== undefined || isFileNode(selected);
@@ -254,7 +254,7 @@ export function Workspace({
     "view.graph": () => {
       setView("graph");
       if (selected !== undefined) {
-        setExpanded((e) => expandTo(e, selected));
+        setExpanded((e) => expandTo(e, selected, graph));
         setReveal({ id: selected });
       }
     },
@@ -436,7 +436,7 @@ export function Workspace({
               label: "Show in graph",
               run: () => {
                 setView("graph");
-                setExpanded((e) => expandTo(e, id));
+                setExpanded((e) => expandTo(e, id, graph));
                 setSelected(id);
                 setReveal({ id });
               },

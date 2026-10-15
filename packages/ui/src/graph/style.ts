@@ -79,6 +79,8 @@ export function graphStylesheet(t: CanvasTheme): StylesheetJson {
         "border-width": 0,
       },
     },
+    // A Go package (ADR-013): several files, one node.
+    { selector: "node[kind = 'package']", style: { shape: "hexagon" } },
     {
       selector: "node[kind = 'dir']",
       style: {

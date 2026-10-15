@@ -18,6 +18,9 @@ describe("ancestors and representative", () => {
     expect(ancestors("a/b/c.ts")).toEqual(["a", "a/b"]);
     expect(ancestors("top.ts")).toEqual([]);
     expect(ancestors("pkg:example.com/x/y")).toEqual([]);
+    const g = graph(["pkg:example.com/x", "pkg:example.com/x/y/z"]);
+    expect(ancestors("pkg:example.com/x/y/z", g)).toEqual(["y", "y/z"]);
+    expect(ancestors("pkg:example.com/x", g)).toEqual([]);
   });
 
   it("draws a node as its outermost collapsed directory", () => {
@@ -134,12 +137,21 @@ describe("aggregate", () => {
     expect(ids(shown.edges)).toContain("a.ts->index.ts");
   });
 
-  it("keeps Go package nodes at the top level", () => {
-    const p = graph(["pkg:example.com/m/a", "pkg:example.com/m/b"]);
-    const v = aggregate(p, { expanded: new Set(), showViaBarrel: false });
+  it("puts Go package nodes in their folders (ADR-013)", () => {
+    const p = graph([
+      "pkg:example.com/m",
+      "pkg:example.com/m/a",
+      "pkg:example.com/m/b",
+    ]);
+    const v = aggregate(p, {
+      expanded: new Set(["a"]),
+      showViaBarrel: false,
+    });
     expect(v.nodes.map((n) => [n.id, n.kind, n.parent])).toEqual([
-      ["pkg:example.com/m/a", "package", undefined],
-      ["pkg:example.com/m/b", "package", undefined],
+      [dirId("a"), "dir", undefined],
+      [dirId("b"), "dir", undefined],
+      ["pkg:example.com/m", "package", undefined],
+      ["pkg:example.com/m/a", "package", dirId("a")],
     ]);
   });
 });

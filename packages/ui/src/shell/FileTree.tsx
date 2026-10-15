@@ -1,4 +1,10 @@
-import { ChevronRight, FileCode, Folder, FolderOpen } from "lucide-react";
+import {
+  ChevronRight,
+  FileCode,
+  Folder,
+  FolderOpen,
+  Package,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Graph } from "@epoch-dev/core";
 import {
@@ -46,7 +52,7 @@ export function buildTree(graph: Graph): TreeFolder {
     return folder;
   };
   for (const n of graph.nodes) {
-    const dirs = ancestors(n.id);
+    const dirs = ancestors(n.id, graph);
     const parent = folderAt(dirs.at(-1) ?? "");
     parent.files.push(n.id);
     root.count++;
@@ -61,8 +67,7 @@ export function buildTree(graph: Graph): TreeFolder {
   return root;
 }
 
-const fileName = (id: string): string =>
-  id.startsWith("pkg:") ? id : id.slice(id.lastIndexOf("/") + 1);
+const fileName = (id: string): string => id.slice(id.lastIndexOf("/") + 1);
 
 export function FileTree(props: {
   readonly graph: Graph;
@@ -82,7 +87,7 @@ export function FileTree(props: {
     const id = props.selected;
     if (id === undefined) return;
     const path = isDirId(id) ? dirPath(id) : id;
-    const above = ancestors(path);
+    const above = ancestors(path, props.graph);
     setOpen((o) =>
       above.every((a) => o.has(a)) ? o : new Set([...o, ...above]),
     );
@@ -92,7 +97,7 @@ export function FileTree(props: {
       );
       row?.scrollIntoView({ block: "nearest" });
     });
-  }, [props.selected]);
+  }, [props.selected, props.graph]);
 
   const toggle = (path: string) => {
     setOpen((o) => {
@@ -176,11 +181,19 @@ export function FileTree(props: {
             props.onActivate(id);
           }}
         >
-          <FileCode
-            size={14}
-            aria-hidden="true"
-            className="text-faint shrink-0"
-          />
+          {id.startsWith("pkg:") ? (
+            <Package
+              size={14}
+              aria-label="Package"
+              className="text-faint shrink-0"
+            />
+          ) : (
+            <FileCode
+              size={14}
+              aria-hidden="true"
+              className="text-faint shrink-0"
+            />
+          )}
           <span className="min-w-0 flex-1 truncate">{fileName(id)}</span>
         </button>,
       );

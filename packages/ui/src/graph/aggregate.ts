@@ -6,6 +6,8 @@ import {
   type GraphEdge,
 } from "@epoch-dev/core";
 
+import { packageFolders } from "./packages.js";
+
 export { isHintEdge };
 
 /*
@@ -73,15 +75,21 @@ export const isShownEdge = (e: GraphEdge, showViaBarrel: boolean): boolean =>
   DISPLAY_EDGE_KINDS.has(e.kind) ||
   (e.kind === "via-barrel" && showViaBarrel);
 
-/** "a/b/c.ts" -> ["a", "a/b"]; package and root-level nodes have none. */
-export function ancestors(id: string): string[] {
-  if (id.startsWith("pkg:")) return [];
-  const parts = id.split("/");
-  const out: string[] = [];
-  for (let i = 1; i < parts.length; i++) {
-    out.push(parts.slice(0, i).join("/"));
-  }
-  return out;
+/**
+ * The folders above a node: "a/b/c.ts" -> ["a", "a/b"]. A Go package sits in
+ * its directory (packageFolders), so "pkg:m/a/b" in folder "a/b" gives
+ * ["a", "a/b"]; without the graph, packages have none.
+ */
+export function ancestors(id: string, graph?: Graph): string[] {
+  const pkg = id.startsWith("pkg:");
+  const folder = pkg
+    ? ((graph ? packageFolders(graph).get(id) : undefined) ?? "")
+    : id.includes("/")
+      ? id.slice(0, id.lastIndexOf("/"))
+      : "";
+  if (folder === "") return [];
+  const parts = folder.split("/");
+  return parts.map((_, i) => parts.slice(0, i + 1).join("/"));
 }
 
 export const basename = (p: string): string => p.slice(p.lastIndexOf("/") + 1);
@@ -104,7 +112,7 @@ export function initialExpanded(
     else children.set(dir, new Set([child]));
   };
   for (const n of graph.nodes) {
-    const dirs = ancestors(n.id);
+    const dirs = ancestors(n.id, graph);
     add(dirs.at(-1) ?? "", n.id);
     for (const [i, d] of dirs.entries()) add(dirs[i - 1] ?? "", d);
   }
@@ -128,16 +136,21 @@ export function initialExpanded(
 export function expandTo(
   expanded: ReadonlySet<string>,
   id: string,
+  graph?: Graph,
 ): Set<string> {
-  return new Set([...expanded, ...ancestors(isDirId(id) ? dirPath(id) : id)]);
+  return new Set([
+    ...expanded,
+    ...ancestors(isDirId(id) ? dirPath(id) : id, graph),
+  ]);
 }
 
 /** The visible node a graph node is drawn as: itself, or its outermost collapsed directory. */
 export function representative(
   id: string,
   expanded: ReadonlySet<string>,
+  graph?: Graph,
 ): string {
-  for (const a of ancestors(id)) {
+  for (const a of ancestors(id, graph)) {
     if (!expanded.has(a)) return dirId(a);
   }
   return id;
@@ -152,7 +165,7 @@ export function aggregate(
   const fileCounts = new Map<string, number>();
 
   for (const n of graph.nodes) {
-    const dirs = ancestors(n.id);
+    const dirs = ancestors(n.id, graph);
     for (const d of dirs) fileCounts.set(d, (fileCounts.get(d) ?? 0) + 1);
     // Directories along the path, down to the first collapsed one.
     for (const [i, d] of dirs.entries()) {
@@ -169,12 +182,12 @@ export function aggregate(
       }
       if (!expanded.has(d)) break;
     }
-    if (representative(n.id, expanded) === n.id) {
+    if (representative(n.id, expanded, graph) === n.id) {
       const parent = dirs.at(-1);
       nodes.set(n.id, {
         id: n.id,
         kind: n.kind,
-        label: n.kind === "package" ? n.id : basename(n.id),
+        label: basename(n.id),
         ...(parent === undefined ? {} : { parent: dirId(parent) }),
         collapsed: false,
         fileCount: 1,
@@ -201,8 +214,8 @@ export function aggregate(
   for (const e of graph.edges) {
     if (!isShownEdge(e, options.showViaBarrel)) continue;
     const hint = isHintEdge(e);
-    const source = representative(e.source, expanded);
-    const target = representative(e.target, expanded);
+    const source = representative(e.source, expanded, graph);
+    const target = representative(e.target, expanded, graph);
     if (source === target) continue;
     const key = `${source}\u0000${target}\u0000${hint ? "h" : "f"}`;
     const m = merged.get(key);
