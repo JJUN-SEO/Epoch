@@ -1,4 +1,5 @@
 import type {
+  AnalysisMeta,
   Confidence,
   EntryPoint,
   Finding,
@@ -17,6 +18,23 @@ import type {
 
 /** @provisional */
 export type Unsubscribe = () => void;
+
+/** @provisional The file watcher's state (the desktop app; the demo never watches). */
+export type WatchStatus =
+  /** Waiting for changes. */
+  | { readonly state: "watching" }
+  /** Re-analyzing after a batch of changes. */
+  | { readonly state: "updating" }
+  /** A re-analysis failed; still watching, and the last graph stays. */
+  | { readonly state: "error"; readonly message: string }
+  /** Watching stopped for good (the OS watch limit); the last graph stays. */
+  | { readonly state: "stopped"; readonly message: string };
+
+/** @provisional What the latest analysis used: git history and a coverage report. */
+export interface AnalysisInfo {
+  readonly git: AnalysisMeta["git"];
+  readonly coverage: AnalysisMeta["coverage"];
+}
 
 /** @provisional */
 export interface ProjectInfo {

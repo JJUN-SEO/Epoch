@@ -80,8 +80,15 @@ export interface AnalyzeOptions {
 }
 
 export interface AnalyzeResult {
+  /** The analyzed folder: absolute, forward slashes. */
+  readonly root: string;
   readonly graph: Graph;
   readonly meta: AnalysisMeta;
+  /** Directories Discover walked and skipped (repo-relative), for the watcher. */
+  readonly dirs: {
+    readonly walked: readonly string[];
+    readonly skipped: readonly string[];
+  };
 }
 
 export { DEFAULT_REGISTRATIONS };
@@ -484,5 +491,10 @@ export async function analyze(
     },
   });
   progress("done", 1, 1);
-  return { graph, meta };
+  return {
+    root: found.root,
+    graph,
+    meta,
+    dirs: { walked: found.dirs, skipped: found.skippedDirs },
+  };
 }

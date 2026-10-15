@@ -64,6 +64,10 @@ export interface DiscoverResult {
   readonly files: string[];
   /** Files seen but not analyzed, with the reason. Ignored paths are not listed. */
   readonly skipped: { path: string; reason: SkipReason }[];
+  /** Directories walked, repo-relative ("" for the root), sorted. */
+  readonly dirs: string[];
+  /** Directories seen but not walked (skipped, ignored, environments), sorted. The watcher leaves them alone. */
+  readonly skippedDirs: string[];
 }
 
 /** Converts an OS path to forward slashes (Windows backslashes, drive letters kept). */
@@ -137,6 +141,8 @@ export function discover(
   const tracked = trackedLookup(readTrackedPaths(new FsReader(root), root));
   const files: string[] = [];
   const skipped: { path: string; reason: SkipReason }[] = [];
+  const dirs: string[] = [];
+  const skippedDirs: string[] = [];
 
   /** `gitIgnored`: an ancestor directory is gitignored, so only tracked files survive below it. */
   const walk = (
@@ -158,8 +164,10 @@ export function discover(
         (ENVIRONMENT_MARKERS as readonly string[]).includes(e.name),
       )
     ) {
+      skippedDirs.push(rel);
       return;
     }
+    dirs.push(rel);
     let here = scopes;
     for (const { name, git } of IGNORE_FILES) {
       if (!entries.some((e) => e.name === name && e.isFile())) continue;
@@ -183,14 +191,16 @@ export function discover(
         continue;
       }
       if (entry.isDirectory()) {
-        if (
-          DEFAULT_SKIPPED_DIRS.has(entry.name) &&
-          (ALWAYS_SKIPPED_DIRS.has(entry.name) || !tracked.dir(childRel))
-        )
-          continue;
-        if (isIgnored(here, childRel, true, false)) continue;
         const ignoredHere = gitIgnored || isIgnored(here, childRel, true, true);
-        if (ignoredHere && !tracked.dir(childRel)) continue;
+        if (
+          (DEFAULT_SKIPPED_DIRS.has(entry.name) &&
+            (ALWAYS_SKIPPED_DIRS.has(entry.name) || !tracked.dir(childRel))) ||
+          isIgnored(here, childRel, true, false) ||
+          (ignoredHere && !tracked.dir(childRel))
+        ) {
+          skippedDirs.push(childRel);
+          continue;
+        }
         walk(childRel, here, ignoredHere);
         continue;
       }
@@ -222,5 +232,7 @@ export function discover(
   const byCodeUnits = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
   files.sort(byCodeUnits);
   skipped.sort((a, b) => byCodeUnits(a.path, b.path));
-  return { root, files, skipped };
+  dirs.sort(byCodeUnits);
+  skippedDirs.sort(byCodeUnits);
+  return { root, files, skipped, dirs, skippedDirs };
 }

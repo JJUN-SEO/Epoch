@@ -37,6 +37,7 @@
     "@epoch-dev/core": "workspace:*",
     "@vscode/tree-sitter-wasm": "catalog:",
     "better-sqlite3": "catalog:",
+    "chokidar": "5.0.0",
     "ignore": "7.0.12",
     "piscina": "catalog:",
     "web-tree-sitter": "catalog:"
