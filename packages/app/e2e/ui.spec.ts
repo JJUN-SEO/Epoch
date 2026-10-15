@@ -180,21 +180,31 @@ test("the window and the dismissed privacy note survive a restart", async () => 
   const home = first.home;
   try {
     await first.page.getByRole("button", { name: "Got it" }).click();
-    await first.app.evaluate(({ BrowserWindow }) => {
-      BrowserWindow.getAllWindows()[0]?.setBounds({
-        x: 40,
-        y: 30,
-        width: 1000,
-        height: 700,
+    // Well inside the work area, so no OS adjusts it (macOS keeps windows
+    // clear of the menu bar); and compare with what the window actually got.
+    const before = await first.app.evaluate(({ BrowserWindow, screen }) => {
+      const area = screen.getPrimaryDisplay().workArea;
+      const win = BrowserWindow.getAllWindows()[0];
+      win?.setBounds({
+        x: area.x + 40,
+        y: area.y + 40,
+        width: 900,
+        height: Math.min(600, area.height - 80),
       });
+      return win?.getBounds();
     });
+    expect(before).toBeDefined();
+    expect(before).not.toMatchObject({ width: 1280, height: 800 }); // not the default
     await first.app.close();
     const second = await launch({}, { home });
     try {
-      const bounds = await second.app.evaluate(({ BrowserWindow }) =>
+      const after = await second.app.evaluate(({ BrowserWindow }) =>
         BrowserWindow.getAllWindows()[0]?.getBounds(),
       );
-      expect(bounds).toMatchObject({ width: 1000, height: 700 });
+      expect(after).toMatchObject({
+        width: before?.width,
+        height: before?.height,
+      });
       await expect(
         second.page.getByRole("complementary", { name: "Privacy" }),
       ).toHaveCount(0);
