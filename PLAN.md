@@ -187,6 +187,27 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 
 ---
 
+## M3.5: UX pass (from the M3 gate review)
+
+**Goal:** any file can be understood from its neighbors, and the app looks and behaves like a desktop app, not a web page in a window. Added after the M3 gate review: the graph was hard to digest and the window felt like a web page.
+**Spec refs:** App UX basics, Electron security (unchanged), principles 3 and 9, Edge traversal policy (default display set).
+
+**Tasks**
+- [x] **Focus view:** the selected file in the center, its imports in columns to the right and its dependents to the left (1–3 hops), crowded columns grouped by folder, animated re-centering, Back/Forward history. Pure `neighborhood()` and `focusLayout()` with unit tests. It follows the default display edge set; beyond one hop the dependents side previews, but is not, blast radius (M4).
+- [x] **Neighbors** tab in the inspector; hover highlighting with direction colors in the full graph; color by folder or language; projects open as a folder map (folders open breadth-first within a node budget).
+- [x] **Desktop shell:** the UI draws the title bar (macOS inset traffic lights; Windows and Linux native buttons through the Window Controls Overlay, plus a menu button for the hidden menu bar); sidebar with project switcher, views and file tree; resizable inspector; status bar with each language's tier; welcome screen; progress inside the window.
+- [x] **Command palette** (⌘K / Ctrl+K) with a tested fuzzy matcher; View menu commands reach the window; one command registry for keys, menu and palette.
+- [x] Design tokens shared by chrome and canvas, light and dark. No `webPreferences` change; new IPC (`show-app-menu`, `menu-command`) zod-validated and sender-checked.
+- [ ] **Optional 3D overview** (low priority, after the review of the above): ADR-012 with a measured prototype (CSP compatibility, bundle size, frame rate on a large repo), then a 2D/3D toggle in the graph view. Cytoscape stays the main renderer.
+
+**Acceptance**
+- Unit tests for the neighborhood, focus layout, fuzzy matching, shortcuts, colors and preferences.
+- e2e (dev and packaged, three OSes): the focus view and neighbors, the palette, menu commands, the app-menu channel's payload checks, the window-controls check, and every earlier e2e and security test, with no CSP violations.
+
+**Gate:** I review the shell and the focus view; then the 3D prototype, or M4.
+
+---
+
 ## M4: Watcher, blast radius, risk score, Go adapter
 
 **Goal:** the core value, blast radius with risk, live as files change.
