@@ -1,3 +1,4 @@
+import type { ExtractorConfig } from "@epoch-dev/core";
 import { EXTRACTORS } from "./extractors.js";
 import { extractFile, type ExtractedFile } from "./extract-file.js";
 import { Parsers } from "./parse.js";
@@ -9,6 +10,8 @@ import { Parsers } from "./parse.js";
  */
 export interface ParseTask {
   readonly adapterId: string;
+  /** Flag patterns, wrappers and env prefixes (part of the facts' cache key). */
+  readonly config: ExtractorConfig;
   readonly files: readonly {
     readonly rel: string;
     readonly grammar: string;
@@ -45,6 +48,7 @@ export default async function parseTask(
         f.rel,
         f.grammar,
         f.bytes,
+        task.config,
       ),
     );
   }

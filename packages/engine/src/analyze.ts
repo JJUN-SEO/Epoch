@@ -1,14 +1,15 @@
+import path from "node:path";
 import { performance } from "node:perf_hooks";
 import type { Tree } from "web-tree-sitter";
 import {
   AnalysisMeta,
   CERTAIN_EDGE_KINDS,
-  EMPTY_EXTRACTOR_CONFIG,
   FileFacts,
   GRAPH_SCHEMA_VERSION,
   Graph,
   Resolution,
   buildGraph,
+  globMatcher,
   stronglyConnectedComponents,
   type AdapterRegistration,
   type CacheStore,
@@ -28,7 +29,8 @@ import {
   sha256,
 } from "./cache/keys.js";
 import { nowNs, scanChanges } from "./changes.js";
-import { discover } from "./discover.js";
+import { extractorConfigOf, loadConfig, type LoadedConfig } from "./config.js";
+import { discover, toPosix } from "./discover.js";
 import { extractFile, type ExtractedFile } from "./extract-file.js";
 import { readHeadCommit, type GitRunner } from "./git.js";
 import { Parsers } from "./parse.js";
@@ -82,6 +84,8 @@ export interface AnalyzeOptions {
 export interface AnalyzeResult {
   /** The analyzed folder: absolute, forward slashes. */
   readonly root: string;
+  /** epoch.config.json as used (defaults where absent or invalid). */
+  readonly config: LoadedConfig;
   readonly graph: Graph;
   readonly meta: AnalysisMeta;
   /** Directories Discover walked and skipped (repo-relative), for the watcher. */
@@ -143,10 +147,14 @@ export async function analyze(
     registrations.find((r) => r.grammarFor(rel) !== undefined);
   const t0 = performance.now();
 
-  // 1. Discover
+  // 1. Discover, with epoch.config.json read first (it can ignore paths).
   progress("discover", 0, 1);
+  const configRoot = toPosix(path.resolve(rootDir));
+  const loaded = loadConfig(configRoot, new FsReader(configRoot));
+  const ignored = globMatcher(loaded.config.ignore);
   const found = discover(rootDir, {
     isSource: (rel) => regFor(rel) !== undefined,
+    ignore: ignored,
     ...(opts.maxFileBytes !== undefined
       ? { maxFileBytes: opts.maxFileBytes }
       : {}),
@@ -171,7 +179,8 @@ export async function analyze(
   );
   for (const rel of scan.unreadable)
     skipped.push({ path: rel, reason: "unreadable" });
-  const configHash = extractorConfigHash(EMPTY_EXTRACTOR_CONFIG);
+  const extractorConfig = extractorConfigOf(loaded.config);
+  const configHash = extractorConfigHash(extractorConfig);
   const keyFor = (reg: AdapterRegistration<Tree>, contentHash: string) =>
     factsKey({
       contentHash,
@@ -280,7 +289,11 @@ export async function analyze(
               : [];
           });
           const adapterId = work[batch[0] ?? 0]?.reg.adapter.id ?? "";
-          const out = await pool.run({ adapterId, files });
+          const out = await pool.run({
+            adapterId,
+            config: extractorConfig,
+            files,
+          });
           for (const [j, i] of batch.entries()) {
             results[i] = out[j];
             tick();
@@ -298,6 +311,7 @@ export async function analyze(
               w.rel,
               w.grammar,
               w.bytes,
+              extractorConfig,
             ),
           );
           tick();
@@ -493,6 +507,7 @@ export async function analyze(
   progress("done", 1, 1);
   return {
     root: found.root,
+    config: loaded,
     graph,
     meta,
     dirs: { walked: found.dirs, skipped: found.skippedDirs },

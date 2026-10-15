@@ -8,6 +8,7 @@
  * (CLAUDE.md, "Repo layout").
  */
 export * from "./analyze.js";
+export * from "./config.js";
 export * from "./extract-file.js";
 export * from "./pool.js";
 export type { ParseTask } from "./parse-worker.js";

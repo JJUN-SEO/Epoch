@@ -55,6 +55,12 @@ export interface DiscoverOptions {
   /** Whether a repo-relative path is a source file some adapter analyzes. */
   readonly isSource: (path: string) => boolean;
   readonly maxFileBytes?: number;
+  /**
+   * Files removed from analysis entirely (epoch.config.json `ignore`), on top
+   * of the ignore files. Applied to files, so a pattern never hides a file it
+   * does not match.
+   */
+  readonly ignore?: (path: string) => boolean;
 }
 
 export interface DiscoverResult {
@@ -206,6 +212,7 @@ export function discover(
       }
       if (!entry.isFile()) continue; // sockets, FIFOs, devices
       if (isIgnored(here, childRel, false, false)) continue;
+      if (opts.ignore?.(childRel) === true) continue;
       if (
         (gitIgnored || isIgnored(here, childRel, false, true)) &&
         !tracked.file(childRel)

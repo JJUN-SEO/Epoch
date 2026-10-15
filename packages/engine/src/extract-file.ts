@@ -1,7 +1,7 @@
 import type { Tree } from "web-tree-sitter";
 import {
-  EMPTY_EXTRACTOR_CONFIG,
   FileFacts,
+  type ExtractorConfig,
   type LanguageAdapter,
 } from "@epoch-dev/core";
 import type { Parsers } from "./parse.js";
@@ -23,6 +23,7 @@ export function extractFile(
   rel: string,
   grammar: string,
   bytes: Uint8Array,
+  config: ExtractorConfig,
 ): ExtractedFile {
   const text = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength)
     .toString("utf8")
@@ -30,9 +31,7 @@ export function extractFile(
   const tree = parsers.parse(grammar, text);
   try {
     const syntaxErrors = tree.rootNode.hasError;
-    const facts = FileFacts.parse(
-      extract({ path: rel, text, tree }, EMPTY_EXTRACTOR_CONFIG),
-    );
+    const facts = FileFacts.parse(extract({ path: rel, text, tree }, config));
     return { facts, syntaxErrors };
   } finally {
     tree.delete();

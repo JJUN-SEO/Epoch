@@ -35,6 +35,7 @@
     "@epoch-dev/adapter-python": "workspace:*",
     "@epoch-dev/adapter-typescript": "workspace:*",
     "@epoch-dev/core": "workspace:*",
+    "@epoch-dev/findings": "workspace:*",
     "@vscode/tree-sitter-wasm": "catalog:",
     "better-sqlite3": "catalog:",
     "chokidar": "5.0.0",
