@@ -1,0 +1,3 @@
+# Ground truth for pnpm bench:accuracy-python (never part of Epoch; ADR-006).
+# Install into a throwaway virtualenv: python -m venv <dir> && <dir>/bin/pip install --only-binary=:all: -r requirements.txt
+grimp==3.17
