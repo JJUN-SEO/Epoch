@@ -168,12 +168,12 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Architecture, `EpochApi`, Electron security, App UX basics, Known hard problems (Python).
 
 **Tasks**
-- [ ] ADR-005 (Electron vs Tauri) and ADR-006 (precision upgrades; before writing the Python adapter).
-- [ ] Electron via `electron-vite`: main, preload, renderer. The analysis host is a `utilityProcess` using a `piscina` worker pool. Heavy work never runs in main or renderer.
-- [ ] `EpochApi` implemented over IPC (zod-validated payloads, sender verification, no generic channels) plus a static-JSON stub for the future demo site.
-- [ ] **Security config and tests first**, before feature work: `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content, navigation and `window.open` denied, external links via allowlist to the default browser, path checks restricted to the opened folder (including symlink escape).
-- [ ] **UI:** open-folder (dialog, drag-drop, recent list), streaming progress, Cytoscape graph with directory compound nodes (collapsed by default for large graphs), layout (fcose or ELK) in a Web Worker, search, node details panel, solid edges for facts and dashed for hints, toggle for `via-barrel` edges (hidden by default).
-- [ ] **Python adapter** (`extract`, `resolveImport`, `isTestFile`; flags, constants, and entry points come in M5): absolute and relative imports, `__init__.py` packages, namespace packages, src layouts and `pyproject.toml` roots, stdlib vs third-party vs internal (bundle a stdlib module list; `sys.stdlib_module_names` exists only on Python 3.10+, so don't depend on a runtime Python), `from . import x` ambiguity (submodule vs name). Conformance cases for each.
+- [x] ADR-005 (Electron vs Tauri) and ADR-006 (precision upgrades; before writing the Python adapter).
+- [x] Electron via `electron-vite`: main, preload, renderer. The analysis host is a `utilityProcess` using a `piscina` worker pool. Heavy work never runs in main or renderer.
+- [x] `EpochApi` implemented over IPC (zod-validated payloads, sender verification, no generic channels) plus a static-JSON stub for the future demo site.
+- [x] **Security config and tests first**, before feature work: `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content, navigation and `window.open` denied, external links via allowlist to the default browser, path checks restricted to the opened folder (including symlink escape).
+- [x] **UI:** open-folder (dialog, drag-drop, recent list), streaming progress, Cytoscape graph with directory compound nodes (collapsed by default for large graphs), layout (fcose or ELK) in a Web Worker, search, node details panel, solid edges for facts and dashed for hints, toggle for `via-barrel` edges (hidden by default).
+- [x] **Python adapter** (`extract`, `resolveImport`, `isTestFile`; flags, constants, and entry points come in M5): absolute and relative imports, `__init__.py` packages, namespace packages, src layouts and `pyproject.toml` roots, stdlib vs third-party vs internal (bundle a stdlib module list; `sys.stdlib_module_names` exists only on Python 3.10+, so don't depend on a runtime Python), `from . import x` ambiguity (submodule vs name). Conformance cases for each.
 
 **Acceptance**
 - Playwright e2e: open a fixture folder, graph renders, clicking a node shows details.
