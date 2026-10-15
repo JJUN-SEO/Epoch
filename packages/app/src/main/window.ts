@@ -1,19 +1,16 @@
 import { BrowserWindow, nativeTheme } from "electron";
 
 export interface WindowOptions {
-  /** URL of the UI: the app origin when built, the dev server in development. */
-  readonly url: string;
   readonly preload?: string;
 }
 
 /**
- * The project window. The webPreferences below are fixed by CLAUDE.md
- * "Electron security" and must never be relaxed; the e2e suite reads them back
- * from the running app.
+ * The project window, not yet loaded (the caller registers it first, so the
+ * UI's first IPC call already comes from a known window). The webPreferences
+ * below are fixed by CLAUDE.md "Electron security" and must never be relaxed;
+ * the e2e suite reads them back from the running app.
  */
-export async function createProjectWindow(
-  options: WindowOptions,
-): Promise<BrowserWindow> {
+export function createProjectWindow(options: WindowOptions): BrowserWindow {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -39,6 +36,5 @@ export async function createProjectWindow(
   win.once("ready-to-show", () => {
     win.show();
   });
-  await win.loadURL(options.url);
   return win;
 }

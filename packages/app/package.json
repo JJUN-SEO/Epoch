@@ -35,6 +35,7 @@
     "electron-vite": "5.0.0",
     "eslint": "catalog:",
     "vite": "catalog:",
-    "vitest": "catalog:"
+    "vitest": "catalog:",
+    "zod": "catalog:"
   }
 }

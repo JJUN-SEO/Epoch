@@ -19,7 +19,20 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(import.meta.dirname, "src/main/index.ts"),
+          // The analysis host, forked by main as a utilityProcess.
+          host: resolve(import.meta.dirname, "src/host/index.ts"),
         },
+      },
+    },
+  },
+  preload: {
+    build: {
+      rollupOptions: {
+        input: {
+          index: resolve(import.meta.dirname, "src/preload/index.ts"),
+        },
+        // Sandboxed preloads must be CommonJS (Electron "Process Sandboxing").
+        output: { format: "cjs", entryFileNames: "[name].cjs" },
       },
     },
   },

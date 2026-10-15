@@ -16,6 +16,7 @@ catalog:
   vite: 7.3.6
   vitest: 5.0.4
   web-tree-sitter: 0.27.1
+  zod: 4.6.7
 
 # Fail install when the running Node does not satisfy `engines`. pnpm's docs say
 # a root mismatch always fails, but pnpm 11.28.2 only warns without this

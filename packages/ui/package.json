@@ -5,6 +5,11 @@
   "description": "Epoch renderer: React + Cytoscape UI written against EpochApi (used by the app and the static demo site).",
   "license": "MIT",
   "type": "module",
+  "exports": {
+    "./bridge": {
+      "types": "./src/bridge.ts"
+    }
+  },
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "build": "pnpm run clean && vite build",
