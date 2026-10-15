@@ -12,3 +12,6 @@ fixtures
 
 # Benchmark reports keep the exact output of the scripts that generate them.
 docs/benchmarks/typescript*.md
+
+# Generated from queries/ by scripts/gen-queries.mjs (checked by pnpm lint).
+**/*.generated.ts

@@ -12,7 +12,7 @@
   "scripts": {
     "build": "node scripts/turbo.mjs run build",
     "typecheck": "node scripts/turbo.mjs run typecheck",
-    "lint": "prettier --check . && eslint eslint.config.mjs scripts && node scripts/turbo.mjs run lint",
+    "lint": "prettier --check . && eslint eslint.config.mjs scripts && node scripts/gen-queries.mjs --check && node scripts/turbo.mjs run lint",
     "test": "node scripts/turbo.mjs run test",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "format": "prettier --write .",

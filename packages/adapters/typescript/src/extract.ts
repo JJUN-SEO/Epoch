@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { Query, type Language, type Node, type Tree } from "web-tree-sitter";
 import type {
   ExportInfo,
@@ -8,22 +7,14 @@ import type {
   ParsedFile,
   RawImport,
 } from "@epoch-dev/core";
-
-/**
- * The query lives in the repo-level queries/ directory (CLAUDE.md layout).
- * src/ and dist/ sit at the same depth, so this URL works from both.
- */
-const QUERY_SOURCE = fs.readFileSync(
-  new URL("../../../../queries/typescript/imports.scm", import.meta.url),
-  "utf8",
-);
+import { IMPORTS_QUERY } from "./queries.generated.js";
 
 const queries = new WeakMap<Language, Query>();
 
 function queryFor(language: Language): Query {
   let q = queries.get(language);
   if (!q) {
-    q = new Query(language, QUERY_SOURCE);
+    q = new Query(language, IMPORTS_QUERY);
     queries.set(language, q);
   }
   return q;

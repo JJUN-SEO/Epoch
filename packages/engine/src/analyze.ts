@@ -1,4 +1,3 @@
-import fs from "node:fs";
 import { performance } from "node:perf_hooks";
 import type { Tree } from "web-tree-sitter";
 import {
@@ -34,6 +33,7 @@ import { discover } from "./discover.js";
 import { readHeadCommit } from "./git.js";
 import { Parsers } from "./parse.js";
 import { FsReader } from "./reader.js";
+import manifest from "../package.json" with { type: "json" };
 
 export interface AnalyzeOptions {
   readonly onProgress?: (p: Progress) => void;
@@ -64,16 +64,9 @@ export const DEFAULT_REGISTRATIONS: readonly AdapterRegistration<Tree>[] = [
   typescriptRegistration,
 ];
 
-const EPOCH_VERSION = ((): string => {
-  const manifest: unknown = JSON.parse(
-    fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-  );
-  const version =
-    typeof manifest === "object" && manifest !== null && "version" in manifest
-      ? manifest.version
-      : undefined;
-  return typeof version === "string" ? version : "0.0.0";
-})();
+// A JSON import, not a file read relative to this module, so the version
+// survives bundling into the desktop app.
+const EPOCH_VERSION: string = manifest.version;
 
 /** Non-blank lines, CRLF-safe; binary files (any NUL byte) count as 0. */
 function countBytesLoc(bytes: Buffer): number {
