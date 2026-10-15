@@ -30,7 +30,7 @@ async function open(epoch: Launched, folder: string): Promise<void> {
       Promise.resolve({ canceled: false, filePaths: [f] });
   }, folder);
   await epoch.page.getByRole("button", { name: "Open Project…" }).click();
-  await expect(epoch.page.getByTestId("graph-stats")).toContainText("files");
+  await expect(epoch.page.getByTestId("graph-stats")).toContainText(" edges");
 }
 
 const dimensions = (page: Page) =>

@@ -17,9 +17,16 @@ import {
   useRef,
   useState,
 } from "react";
-import type { Graph, ProjectInfo } from "@epoch-dev/core";
+import {
+  blastRadius,
+  type AnalysisInfo,
+  type Graph,
+  type ProjectInfo,
+  type WatchStatus,
+} from "@epoch-dev/core";
 import type { Shell } from "../api";
 import { DetailsPanel } from "../components/DetailsPanel";
+import { ImpactPanel, type ImpactSettings } from "../components/ImpactPanel";
 import { NeighborsPanel, type Hops } from "../components/NeighborsPanel";
 import { IconButton, Kbd, Segmented } from "../components/ui";
 import {
@@ -29,6 +36,7 @@ import {
   expandTo,
   initialExpanded,
   isDirId,
+  representative,
 } from "../graph/aggregate";
 import { nodeColors, type ColorBy } from "../graph/colors";
 import type { CanvasControls } from "../graph/cy";
@@ -62,6 +70,12 @@ const Graph3DView = lazy(() => import("../graph3d/Graph3DView"));
 export interface WorkspaceProps {
   readonly project: ProjectInfo;
   readonly graph: Graph;
+  /** The file watcher's state (the desktop app). */
+  readonly watch?: WatchStatus | undefined;
+  /** What the latest analysis used: git history, coverage. */
+  readonly analysis?: AnalysisInfo | null;
+  /** When the watcher last changed the graph. */
+  readonly updatedAt?: Date | undefined;
   /** Absent in the static demo, which opens nothing. */
   readonly shell?: Shell;
   readonly onOpenAnother?: () => void;
@@ -76,6 +90,17 @@ interface FocusHistory {
 /** Two runs of one command this close together came from the menu and the key at once. */
 const ECHO_MS = 150;
 
+const NEXT_COLOR_BY: Readonly<Record<ColorBy, ColorBy>> = {
+  folder: "language",
+  language: "risk",
+  risk: "folder",
+};
+const COLOR_BY_NAMES: Readonly<Record<ColorBy, string>> = {
+  folder: "Folder",
+  language: "Language",
+  risk: "Risk",
+};
+
 /**
  * The project window: title bar, sidebar (views and files), the canvas
  * (graph or focus view), the inspector, and the status bar.
@@ -83,6 +108,9 @@ const ECHO_MS = 150;
 export function Workspace({
   project,
   graph,
+  watch,
+  analysis,
+  updatedAt,
   shell,
   onOpenAnother,
   onOpenRecent,
@@ -166,6 +194,59 @@ export function Workspace({
     if (selected === center && focusHood) return focusHood;
     return neighborhood(graph, selected, { hops, showViaBarrel });
   }, [graph, isFileNode, selected, center, focusHood, hops, showViaBarrel]);
+
+  const [watchNoticeClosed, setWatchNoticeClosed] = useState(false);
+
+  // Blast radius of the selection (core's pure function, as the API uses).
+  const [impactOn, setImpactOn] = useState(false);
+  const [impactSettings, setImpactSettings] = useState<ImpactSettings>({
+    includeTypeOnly: true,
+    maxDepth: undefined,
+  });
+  useEffect(() => {
+    setImpactSettings((s) =>
+      s.maxDepth === undefined ? s : { ...s, maxDepth: undefined },
+    );
+  }, [selected]);
+  const impactFull = useMemo(
+    () =>
+      isFileNode(selected)
+        ? blastRadius(graph, selected, {
+            mode: "certain",
+            includeTypeOnly: impactSettings.includeTypeOnly,
+          })
+        : undefined,
+    [graph, isFileNode, selected, impactSettings.includeTypeOnly],
+  );
+  const impact = useMemo(() => {
+    const max = impactSettings.maxDepth;
+    if (!impactFull || max === undefined || max >= impactFull.maxDepth) {
+      return impactFull;
+    }
+    return blastRadius(graph, impactFull.nodeId, {
+      mode: "certain",
+      includeTypeOnly: impactSettings.includeTypeOnly,
+      maxDepth: max,
+    });
+  }, [graph, impactFull, impactSettings]);
+  /** Drawn node -> distance from the selection (folders: their nearest file). */
+  const visibleImpact = useMemo(() => {
+    if (!impactOn || !impact) return undefined;
+    const depth = new Map<string, number>();
+    const put = (id: string, d: number) => {
+      const rep = representative(id, expanded, graph);
+      depth.set(rep, Math.min(depth.get(rep) ?? d, d));
+    };
+    for (const a of impact.affected) put(a.id, a.depth);
+    put(impact.nodeId, 0);
+    return depth;
+  }, [impactOn, impact, expanded, graph]);
+  const toggleImpact = () => {
+    setImpactOn((on) => {
+      if (!on) updatePrefs({ inspector: true, inspectorTab: "impact" });
+      return !on;
+    });
+  };
 
   const inFocus = (id: string) =>
     layout?.nodes.some((n) => n.id === id) ?? false;
@@ -292,9 +373,10 @@ export function Workspace({
       setView("graph");
     },
     "graph.colorBy": () => {
-      updatePrefs({
-        colorBy: prefs.colorBy === "folder" ? "language" : "folder",
-      });
+      updatePrefs({ colorBy: NEXT_COLOR_BY[prefs.colorBy] });
+    },
+    "graph.blastRadius": () => {
+      toggleImpact();
     },
   };
 
@@ -350,9 +432,13 @@ export function Workspace({
     },
     {
       id: "graph.colorBy",
-      title:
-        prefs.colorBy === "folder" ? "Color by Language" : "Color by Folder",
+      title: `Color by ${COLOR_BY_NAMES[NEXT_COLOR_BY[prefs.colorBy]]}`,
       enabled: true,
+    },
+    {
+      id: "graph.blastRadius",
+      title: impactOn ? "Hide Blast Radius" : "Show Blast Radius",
+      enabled: impactOn || isFileNode(selected),
     },
   ];
   const commands: Command[] = entries.map((c) => {
@@ -612,6 +698,7 @@ export function Workspace({
               visible={visible}
               colors={colors}
               selected={selected}
+              impact={visibleImpact}
               reveal={reveal}
               onSelect={setSelected}
               onActivate={(id) => {
@@ -665,6 +752,46 @@ export function Workspace({
               />
             </div>
           )}
+          {view === "graph" && !mode3d && visibleImpact && (
+            <div
+              data-testid="impact-legend"
+              className="bg-raised/90 border-line text-muted pointer-events-none absolute top-3 left-3 flex items-center gap-3 rounded-lg border px-2.5 py-1.5 text-[11px] backdrop-blur"
+            >
+              <span className="text-fg font-medium">Blast radius</span>
+              {[
+                ["border-accent", "Changed"],
+                ["border-danger", "Direct"],
+                ["border-dependents", "2 away"],
+                ["border-dependents/60", "3+ away"],
+              ].map(([ring, label]) => (
+                <span key={label} className="inline-flex items-center gap-1.5">
+                  <span
+                    aria-hidden="true"
+                    className={`size-2.5 rounded-full border-2 ${ring ?? ""}`}
+                  />
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+          {watch?.state === "stopped" && !watchNoticeClosed && (
+            <div
+              role="status"
+              className="bg-raised border-line shadow-pop absolute top-3 right-3 flex max-w-sm items-start gap-2 rounded-lg border px-3 py-2 text-[12px]"
+            >
+              <p className="selectable">{watch.message}</p>
+              <button
+                type="button"
+                className="text-muted hover:text-fg shrink-0"
+                aria-label="Dismiss"
+                onClick={() => {
+                  setWatchNoticeClosed(true);
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
           {view === "focus" && center !== undefined && (
             <div className="bg-raised/90 border-line text-muted pointer-events-none absolute top-3 left-3 flex items-center gap-3 rounded-lg border px-2.5 py-1.5 text-[11px] backdrop-blur">
               <span className="inline-flex items-center gap-1.5">
@@ -709,6 +836,9 @@ export function Workspace({
               updatePrefs({ graphMode: d });
             }}
             webgl={webgl}
+            impact={impactOn}
+            impactEnabled={impactOn || isFileNode(selected)}
+            onImpact={toggleImpact}
           />
           {menu && (
             <ContextMenu
@@ -741,6 +871,7 @@ export function Workspace({
               details={
                 <DetailsPanel
                   graph={graph}
+                  analysis={analysis ?? null}
                   selected={selected}
                   onShow={show}
                   onFocus={focusOn}
@@ -748,6 +879,20 @@ export function Workspace({
                     selected !== undefined && expanded.has(dirPath(selected))
                   }
                   onToggleFolder={toggleDir}
+                />
+              }
+              impact={
+                <ImpactPanel
+                  selected={isFileNode(selected) ? selected : undefined}
+                  full={impactFull}
+                  result={impact}
+                  settings={impactSettings}
+                  onSettings={setImpactSettings}
+                  shown={impactOn}
+                  onShown={(on) => {
+                    if (on !== impactOn) toggleImpact();
+                  }}
+                  onShow={show}
                 />
               }
               neighbors={
@@ -768,7 +913,12 @@ export function Workspace({
         )}
       </div>
 
-      <StatusBar graph={graph} />
+      <StatusBar
+        graph={graph}
+        watch={watch}
+        analysis={analysis ?? null}
+        updatedAt={updatedAt}
+      />
 
       {palette && (
         <CommandPalette

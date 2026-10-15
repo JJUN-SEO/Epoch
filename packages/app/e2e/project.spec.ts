@@ -91,10 +91,14 @@ test("the bridge exposes only its named functions", async () => {
   expect(surface).toEqual({
     keys: [
       "chooseProject",
+      "getAnalysisInfo",
       "getGraph",
+      "onAnalysisInfo",
+      "onGraphDelta",
       "onMenuCommand",
       "onProgress",
       "onProjectOpened",
+      "onWatchStatus",
       "openDroppedFolder",
       "openProject",
       "recentProjects",

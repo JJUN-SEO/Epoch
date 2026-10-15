@@ -1,8 +1,11 @@
 import type {
+  AnalysisInfo,
   Graph,
+  GraphDelta,
   Progress,
   ProjectInfo,
   Unsubscribe,
+  WatchStatus,
 } from "@epoch-dev/core";
 
 /**
@@ -17,6 +20,12 @@ export interface DesktopBridge {
   /** The graph of the open project, once its analysis finishes. */
   getGraph(): Promise<Graph>;
   onProgress(cb: (p: Progress) => void): Unsubscribe;
+  /** The file watcher changed the graph (already applied in main). */
+  onGraphDelta(cb: (d: GraphDelta) => void): Unsubscribe;
+  onWatchStatus(cb: (s: WatchStatus) => void): Unsubscribe;
+  /** What the latest analysis used; null until it finishes. */
+  getAnalysisInfo(): Promise<AnalysisInfo | null>;
+  onAnalysisInfo(cb: (info: AnalysisInfo) => void): Unsubscribe;
   /** Shows the native folder dialog; null when the user cancels. */
   chooseProject(): Promise<ProjectInfo | null>;
   /** A folder dropped on the window. Only real drops carry a path. */

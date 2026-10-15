@@ -2,6 +2,7 @@ import {
   ChevronsDownUp,
   ChevronsUpDown,
   Maximize,
+  Radar,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -28,6 +29,10 @@ export function CanvasToolbar(props: {
   readonly onDimensions: (d: "2d" | "3d") => void;
   /** This computer can draw the 3D view. */
   readonly webgl: boolean;
+  /** The blast radius of the selection is drawn on the graph. */
+  readonly impact: boolean;
+  readonly impactEnabled: boolean;
+  readonly onImpact: () => void;
 }) {
   return (
     <div
@@ -59,6 +64,21 @@ export function CanvasToolbar(props: {
       )}
       {props.view === "graph" && props.dimensions === "2d" && (
         <>
+          <button
+            type="button"
+            aria-pressed={props.impact}
+            disabled={!props.impactEnabled}
+            title={
+              props.impactEnabled
+                ? "Blast radius: color what depends on the selected file, by distance"
+                : "Select a file to see its blast radius"
+            }
+            onClick={props.onImpact}
+            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:opacity-35 ${props.impact ? "bg-active text-fg" : "text-muted hover:text-fg hover:bg-hover"}`}
+          >
+            <Radar size={14} aria-hidden="true" />
+            Blast radius
+          </button>
           <IconButton
             icon={ChevronsUpDown}
             label="Expand all folders"
@@ -85,6 +105,7 @@ export function CanvasToolbar(props: {
         options={[
           { value: "folder", label: "Folder" },
           { value: "language", label: "Language" },
+          { value: "risk", label: "Risk" },
         ]}
         value={props.colorBy}
         onChange={props.onColorBy}

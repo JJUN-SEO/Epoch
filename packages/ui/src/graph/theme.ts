@@ -9,6 +9,7 @@ export interface CanvasTheme {
   readonly accent: string;
   readonly imports: string;
   readonly dependents: string;
+  readonly danger: string;
   readonly edge: string;
 }
 
@@ -22,6 +23,7 @@ const FALLBACK: CanvasTheme = {
   accent: "#5b5bd6",
   imports: "#0f9d8f",
   dependents: "#dd6b20",
+  danger: "#c4320a",
   edge: "#b9bcc6",
 };
 
@@ -39,6 +41,7 @@ export function readCanvasTheme(): CanvasTheme {
     accent: get("accent", FALLBACK.accent),
     imports: get("imports", FALLBACK.imports),
     dependents: get("dependents", FALLBACK.dependents),
+    danger: get("danger", FALLBACK.danger),
     edge: get("edge", FALLBACK.edge),
   };
 }

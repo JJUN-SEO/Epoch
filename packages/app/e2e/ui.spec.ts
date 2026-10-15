@@ -155,7 +155,7 @@ test("clicking a node on the canvas selects it", async () => {
   await answerDialogWith(project({ "index.ts": "export const x = 1;\n" }));
   await epoch.page.getByRole("button", { name: "Open Project…" }).click();
   await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
-    "1 files · 0 edges",
+    "1 file · 0 edges",
   );
   await laidOut(epoch.page);
   await epoch.page.getByTestId("graph-canvas").click();

@@ -4,7 +4,12 @@ import {
   webUtils,
   type IpcRendererEvent,
 } from "electron";
-import type { Graph, Progress, ProjectInfo } from "@epoch-dev/core";
+import type {
+  AnalysisInfo,
+  Graph,
+  Progress,
+  ProjectInfo,
+} from "@epoch-dev/core";
 import type { DesktopBridge } from "@epoch-dev/ui/bridge";
 import { CHANNELS, EVENTS } from "../shared/channels";
 
@@ -19,9 +24,27 @@ function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
   return ipcRenderer.invoke(channel, ...args) as Promise<T>;
 }
 
+/**
+ * Subscribes to one main-to-renderer event; returns the unsubscribe function.
+ * Main sends each event's payload type (shared/channels.ts).
+ */
+function on(event: string, cb: (payload: never) => void): () => void {
+  const listener = (_event: IpcRendererEvent, payload: unknown) => {
+    cb(payload as never);
+  };
+  ipcRenderer.on(event, listener);
+  return () => {
+    ipcRenderer.removeListener(event, listener);
+  };
+}
+
 const bridge: DesktopBridge = {
   openProject: (folder) => invoke<ProjectInfo>(CHANNELS.openProject, folder),
   getGraph: () => invoke<Graph>(CHANNELS.getGraph),
+  onGraphDelta: (cb) => on(EVENTS.graphDelta, cb),
+  onWatchStatus: (cb) => on(EVENTS.watchStatus, cb),
+  getAnalysisInfo: () => invoke<AnalysisInfo | null>(CHANNELS.getAnalysisInfo),
+  onAnalysisInfo: (cb) => on(EVENTS.analysisInfo, cb),
   onProgress: (cb) => {
     const listener = (_event: IpcRendererEvent, progress: Progress) => {
       cb(progress);

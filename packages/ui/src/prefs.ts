@@ -14,7 +14,7 @@ export interface Prefs {
   readonly inspectorWidth: number;
   readonly colorBy: ColorBy;
   readonly hops: 1 | 2 | 3;
-  readonly inspectorTab: "details" | "neighbors";
+  readonly inspectorTab: "details" | "neighbors" | "impact";
   /** The graph view's drawing: the 2D graph, or the optional 3D overview. */
   readonly graphMode: "2d" | "3d";
 }
@@ -53,12 +53,14 @@ export function parsePrefs(raw: unknown): Prefs {
     sidebarWidth: clampWidth(r.sidebarWidth, d.sidebarWidth),
     inspectorWidth: clampWidth(r.inspectorWidth, d.inspectorWidth),
     colorBy:
-      r.colorBy === "language" || r.colorBy === "folder"
+      r.colorBy === "language" || r.colorBy === "folder" || r.colorBy === "risk"
         ? r.colorBy
         : d.colorBy,
     hops: r.hops === 1 || r.hops === 2 || r.hops === 3 ? r.hops : d.hops,
     inspectorTab:
-      r.inspectorTab === "details" || r.inspectorTab === "neighbors"
+      r.inspectorTab === "details" ||
+      r.inspectorTab === "neighbors" ||
+      r.inspectorTab === "impact"
         ? r.inspectorTab
         : d.inspectorTab,
     graphMode:

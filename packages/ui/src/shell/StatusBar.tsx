@@ -1,11 +1,114 @@
-import { LANGUAGE_TIERS, type Graph } from "@epoch-dev/core";
+import {
+  LANGUAGE_TIERS,
+  type AnalysisInfo,
+  type Graph,
+  type WatchStatus,
+} from "@epoch-dev/core";
 import { languageName } from "../languages";
 
+const plural = (n: number, one: string, many = `${one}s`) =>
+  `${String(n)} ${n === 1 ? one : many}`;
+
+/** Packages and files separately: Go mixes both granularities (ADR-013). */
+export function nodeCounts(graph: Graph): string {
+  let packages = 0;
+  for (const n of graph.nodes) if (n.kind === "package") packages++;
+  const files = graph.nodes.length - packages;
+  return packages > 0
+    ? `${plural(packages, "package")} · ${plural(files, "file")}`
+    : plural(files, "file");
+}
+
+/** One line on the git history the risk score used, or why there is none. */
+export function gitSummary(info: AnalysisInfo | null): {
+  text: string;
+  title: string;
+} | null {
+  const git = info?.git;
+  if (!git) return null;
+  switch (git.status) {
+    case "usable": {
+      const until =
+        git.churnUntil === undefined
+          ? ""
+          : ` to ${new Date(git.churnUntil * 1000).toISOString().slice(0, 10)}`;
+      return {
+        text: `Churn: 90 days${until}${git.shallow === true ? " (shallow clone)" : ""}`,
+        title:
+          git.shallow === true
+            ? "A shallow clone: only the fetched history counts toward churn and risk."
+            : "Risk uses commits in the 90 days before the last commit.",
+      };
+    }
+    case "not-a-repo":
+      return {
+        text: "No git history",
+        title:
+          "Risk needs git history; this folder isn't a git repository. Fan-in and coverage are still shown.",
+      };
+    case "no-commits":
+      return {
+        text: "No commits yet",
+        title: "Risk needs git history; this repository has no commits yet.",
+      };
+    case "git-unavailable":
+      return {
+        text: "git not found",
+        title:
+          "Risk needs git history, and git is not installed or not on PATH.",
+      };
+    case "off":
+      return null;
+  }
+}
+
+function watchLabel(watch: WatchStatus, updatedAt: Date | undefined) {
+  switch (watch.state) {
+    case "watching":
+      return {
+        text:
+          updatedAt === undefined
+            ? "Watching"
+            : `Updated ${updatedAt.toLocaleTimeString()}`,
+        title: "Watching the folder: the graph updates as files change.",
+        tone: "text-muted",
+        live: true,
+      };
+    case "updating":
+      return {
+        text: "Updating…",
+        title: "Files changed; analyzing again.",
+        tone: "text-muted",
+        live: true,
+      };
+    case "error":
+      return {
+        text: "Update failed",
+        title: watch.message,
+        tone: "text-danger",
+        live: false,
+      };
+    case "stopped":
+      return {
+        text: "Not watching",
+        title: watch.message,
+        tone: "text-danger",
+        live: false,
+      };
+  }
+}
+
 /**
- * Counts, and each analyzed language with its support tier (CLAUDE.md
- * principle 9: show what is resolved precisely and what is best-effort).
+ * Counts, the watcher, what the analysis used (git history, coverage), and
+ * each analyzed language with its support tier (CLAUDE.md principle 9: show
+ * what is resolved precisely and what is best-effort).
  */
-export function StatusBar(props: { readonly graph: Graph }) {
+export function StatusBar(props: {
+  readonly graph: Graph;
+  readonly watch?: WatchStatus | undefined;
+  readonly analysis?: AnalysisInfo | null;
+  readonly updatedAt?: Date | undefined;
+}) {
   const { graph } = props;
   const byLanguage = new Map<string, number>();
   let other = 0;
@@ -13,15 +116,51 @@ export function StatusBar(props: { readonly graph: Graph }) {
     if (LANGUAGE_TIERS[n.language] === undefined) other++;
     else byLanguage.set(n.language, (byLanguage.get(n.language) ?? 0) + 1);
   }
+  const git = gitSummary(props.analysis ?? null);
+  const coverage = props.analysis?.coverage;
+  const watch = props.watch && watchLabel(props.watch, props.updatedAt);
   return (
-    <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px]">
+    <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px] whitespace-nowrap">
       <span data-testid="graph-stats">
-        {graph.nodes.length} files · {graph.edges.length} edges
+        {nodeCounts(graph)} · {graph.edges.length} edges
         {graph.unresolved.length > 0
           ? ` · ${String(graph.unresolved.length)} unresolved imports`
           : ""}
       </span>
-      <span className="ml-auto flex items-center gap-3" aria-label="Languages">
+      {watch && (
+        <span
+          data-testid="watch-status"
+          className={`inline-flex items-center gap-1.5 ${watch.tone}`}
+          title={watch.title}
+        >
+          <span
+            aria-hidden="true"
+            className={`size-1.5 rounded-full ${watch.live ? "bg-imports" : "bg-danger"}`}
+          />
+          {watch.text}
+        </span>
+      )}
+      {git && (
+        <span data-testid="git-status" title={git.title}>
+          {git.text}
+        </span>
+      )}
+      {props.analysis && (
+        <span
+          data-testid="coverage-status"
+          title={
+            coverage
+              ? `Coverage from ${coverage.source} (${coverage.format}): ${String(coverage.files)} files matched${coverage.unmatched > 0 ? `, ${String(coverage.unmatched)} unmatched` : ""}. The report may be older than the code.`
+              : "No coverage report found (coverage/lcov.info, coverage/cobertura-coverage.xml, coverage.xml or lcov.info); risk uses fan-in and churn only."
+          }
+        >
+          {coverage ? `Coverage: ${coverage.source}` : "No coverage report"}
+        </span>
+      )}
+      <span
+        className="ml-auto flex min-w-0 items-center gap-3 overflow-hidden"
+        aria-label="Languages"
+      >
         {[...byLanguage.entries()]
           .sort(([a], [b]) => (a < b ? -1 : 1))
           .map(([language, count]) => {

@@ -44,6 +44,10 @@ export function registerRoutes(
     args: z.tuple([]),
     handle: (win) => sessionFor(win).graph(),
   });
+  handle(CHANNELS.getAnalysisInfo, {
+    args: z.tuple([]),
+    handle: (win) => Promise.resolve(sessionFor(win).analysisInfo()),
+  });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),
     handle: (win, x, y) => {

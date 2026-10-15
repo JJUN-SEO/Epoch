@@ -1,9 +1,27 @@
 import { utilityProcess, type UtilityProcess } from "electron";
-import type { Graph, Progress } from "@epoch-dev/core";
+import type {
+  AnalysisInfo,
+  Graph,
+  GraphDelta,
+  Progress,
+  WatchStatus,
+} from "@epoch-dev/core";
 import { HostEvent, type HostRequest } from "../shared/host-protocol";
 
+/** A finished analysis: the graph and what it used. */
+export interface Analysis {
+  readonly graph: Graph;
+  readonly info: AnalysisInfo;
+}
+
+/** What the host reports on its own after an analysis: the watcher's work. */
+export interface HostListeners {
+  readonly onDelta: (delta: GraphDelta, info: AnalysisInfo) => void;
+  readonly onWatchStatus: (status: WatchStatus) => void;
+}
+
 interface Pending {
-  readonly resolve: (graph: Graph) => void;
+  readonly resolve: (analysis: Analysis) => void;
   readonly reject: (error: Error) => void;
   readonly onProgress: (p: Progress) => void;
 }
@@ -15,11 +33,13 @@ interface Pending {
  */
 export class HostClient {
   private readonly child: UtilityProcess;
+  private readonly listeners: HostListeners;
   private readonly pending = new Map<number, Pending>();
   private nextId = 0;
   private exited = false;
 
-  constructor(entry: string) {
+  constructor(entry: string, listeners: HostListeners) {
+    this.listeners = listeners;
     this.child = utilityProcess.fork(entry, [], {
       serviceName: "Epoch analysis host",
     });
@@ -34,12 +54,12 @@ export class HostClient {
     });
   }
 
-  analyze(root: string, onProgress: (p: Progress) => void): Promise<Graph> {
+  analyze(root: string, onProgress: (p: Progress) => void): Promise<Analysis> {
     if (this.exited) {
       return Promise.reject(new Error("The analysis host has stopped."));
     }
     const id = this.nextId++;
-    return new Promise<Graph>((resolve, reject) => {
+    return new Promise<Analysis>((resolve, reject) => {
       this.pending.set(id, { resolve, reject, onProgress });
       const request: HostRequest = { type: "analyze", id, root };
       this.child.postMessage(request);
@@ -55,6 +75,15 @@ export class HostClient {
     const parsed = HostEvent.safeParse(message);
     if (!parsed.success) return;
     const event = parsed.data;
+    if (event.type === "delta") {
+      // Computed by core's diffGraphs from validated graphs (host-protocol.ts).
+      this.listeners.onDelta(event.delta as GraphDelta, event.info);
+      return;
+    }
+    if (event.type === "watch-status") {
+      this.listeners.onWatchStatus(event.status);
+      return;
+    }
     const pending = this.pending.get(event.id);
     if (pending === undefined) return;
     switch (event.type) {
@@ -64,7 +93,7 @@ export class HostClient {
       case "result":
         this.pending.delete(event.id);
         // Validated by the engine before it left the host (host-protocol.ts).
-        pending.resolve(event.graph as Graph);
+        pending.resolve({ graph: event.graph as Graph, info: event.info });
         break;
       case "error":
         this.pending.delete(event.id);

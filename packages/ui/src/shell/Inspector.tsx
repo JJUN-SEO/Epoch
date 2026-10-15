@@ -1,19 +1,21 @@
 import type { ReactNode } from "react";
 import { cx } from "../components/ui";
 
-export type InspectorTab = "details" | "neighbors";
+export type InspectorTab = "details" | "neighbors" | "impact";
 
-/** The right-hand panel: details of the selection, or the files around it. */
+/** The right-hand panel: details of the selection, the files around it, or its blast radius. */
 export function Inspector(props: {
   readonly width: number;
   readonly tab: InspectorTab;
   readonly onTab: (tab: InspectorTab) => void;
   readonly details: ReactNode;
   readonly neighbors: ReactNode;
+  readonly impact: ReactNode;
 }) {
   const tabs: { id: InspectorTab; label: string }[] = [
     { id: "details", label: "Details" },
     { id: "neighbors", label: "Neighbors" },
+    { id: "impact", label: "Impact" },
   ];
   return (
     <aside
@@ -54,7 +56,11 @@ export function Inspector(props: {
         aria-labelledby={`inspector-tab-${props.tab}`}
         className="min-h-0 flex-1 overflow-auto"
       >
-        {props.tab === "details" ? props.details : props.neighbors}
+        {props.tab === "details"
+          ? props.details
+          : props.tab === "neighbors"
+            ? props.neighbors
+            : props.impact}
       </div>
     </aside>
   );

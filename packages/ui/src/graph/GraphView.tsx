@@ -17,6 +17,7 @@ import {
   controlsFor,
   createCy,
   fitWithin,
+  highlightImpact,
   highlightNeighbors,
   type CanvasControls,
 } from "./cy";
@@ -30,6 +31,8 @@ export interface GraphViewProps {
   readonly visible: VisibleGraph;
   readonly colors: NodeColors;
   readonly selected: string | undefined;
+  /** Blast radius to draw: drawn node -> distance from the changed node. */
+  readonly impact?: ReadonlyMap<string, number> | undefined;
   /** Center the view on this node once it is laid out (a new object re-centers). */
   readonly reveal: { readonly id: string } | undefined;
   readonly onSelect: (id: string | undefined) => void;
@@ -131,11 +134,14 @@ export function GraphView(props: GraphViewProps) {
       const p = e.renderedPosition;
       handlers.current.onContextMenu(nodeId(e), p.x, p.y);
     });
+    // While a blast radius is drawn, hovering leaves it alone.
     cy.on("mouseover", "node", (e) => {
-      highlightNeighbors(cy, nodeId(e));
+      if (!handlers.current.impact) highlightNeighbors(cy, nodeId(e));
     });
     cy.on("mouseout", "node", () => {
-      highlightNeighbors(cy, handlers.current.selected);
+      if (!handlers.current.impact) {
+        highlightNeighbors(cy, handlers.current.selected);
+      }
     });
     const stopTheme = onThemeChange(() => {
       cy.style(graphStylesheet(readCanvasTheme()));
@@ -156,8 +162,15 @@ export function GraphView(props: GraphViewProps) {
     const elements = elementsOf(props.visible, props.colors);
     let cancelled = false;
     setBusy(true);
+    // Where the drawn nodes are now, so a changed graph or an opened folder
+    // refines the current picture instead of starting over.
+    const seed: Record<string, { x: number; y: number }> = {};
+    cy.nodes().forEach((n) => {
+      if (!n.isParent()) seed[n.id()] = { ...n.position() };
+    });
     void layout
       .layout({
+        ...(Object.keys(seed).length > 0 ? { seed } : {}),
         nodes: props.visible.nodes.map((n) => ({
           id: n.id,
           size: nodeSize(n.kind, n.collapsed, n.fileCount),
@@ -222,8 +235,9 @@ export function GraphView(props: GraphViewProps) {
     if (!cy) return;
     cy.$(":selected").unselect();
     if (props.selected !== undefined) cy.$id(props.selected).select();
-    highlightNeighbors(cy, props.selected);
-  }, [props.selected, laidOut]);
+    if (props.impact) highlightImpact(cy, props.impact);
+    else highlightNeighbors(cy, props.selected);
+  }, [props.selected, props.impact, laidOut]);
 
   useEffect(() => {
     const cy = cyRef.current;

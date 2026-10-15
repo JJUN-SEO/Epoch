@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { EpochApi, Graph, Progress, ProjectInfo } from "@epoch-dev/core";
+import {
+  applyDelta,
+  type AnalysisInfo,
+  type EpochApi,
+  type Graph,
+  type Progress,
+  type ProjectInfo,
+  type WatchStatus,
+} from "@epoch-dev/core";
 import type { Shell } from "./api";
 import { errorMessage } from "./errors";
 import { ProgressPane } from "./shell/ProgressPane";
@@ -26,24 +34,45 @@ export interface AppProps {
 export function App({ api, shell }: AppProps) {
   const [view, setView] = useState<View>({ kind: "start" });
   const [progress, setProgress] = useState<Progress | undefined>();
+  const [watch, setWatch] = useState<WatchStatus | undefined>();
+  const [analysis, setAnalysis] = useState<AnalysisInfo | null>(null);
+  const [updatedAt, setUpdatedAt] = useState<Date | undefined>();
   /** Only the newest open request may update the view. */
   const generation = useRef(0);
 
   useEffect(() => api.onProgress(setProgress), [api]);
+  // Watcher updates, already applied in main; applying one twice changes nothing.
+  useEffect(
+    () =>
+      api.onGraphDelta((d) => {
+        setView((v) =>
+          v.kind === "graph" ? { ...v, graph: applyDelta(v.graph, d) } : v,
+        );
+        setUpdatedAt(new Date());
+      }),
+    [api],
+  );
+  useEffect(() => shell?.onWatchStatus(setWatch), [shell]);
+  useEffect(() => shell?.onAnalysisInfo(setAnalysis), [shell]);
 
   /** Runs `start` (which opens a project in main), then waits for its graph. */
   const open = useCallback(
     (start: () => Promise<ProjectInfo | null>) => {
       const mine = ++generation.current;
       setProgress(undefined);
+      setWatch(undefined);
+      setAnalysis(null);
+      setUpdatedAt(undefined);
       void (async () => {
         try {
           const project = await start();
           if (project === null || mine !== generation.current) return;
           setView({ kind: "analyzing", project });
           const graph = await api.getGraph();
+          const info = (await shell?.getAnalysisInfo()) ?? null;
           if (mine === generation.current) {
             setView({ kind: "graph", project, graph });
+            setAnalysis((a) => a ?? info);
           }
         } catch (error) {
           if (mine === generation.current) {
@@ -52,7 +81,7 @@ export function App({ api, shell }: AppProps) {
         }
       })();
     },
-    [api],
+    [api, shell],
   );
 
   // Projects opened from the native menu.
@@ -132,6 +161,9 @@ export function App({ api, shell }: AppProps) {
           key={view.project.root}
           project={view.project}
           graph={view.graph}
+          watch={watch}
+          analysis={analysis}
+          updatedAt={updatedAt}
           {...(shell
             ? {
                 shell,

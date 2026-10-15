@@ -16,7 +16,8 @@ export type CommandId =
   | "graph.expandAll"
   | "graph.collapseAll"
   | "graph.colorBy"
-  | "graph.dimensions";
+  | "graph.dimensions"
+  | "graph.blastRadius";
 
 /** What the native menu may ask for (main sends one of these; anything else is ignored). */
 export const MENU_COMMANDS: readonly CommandId[] = [

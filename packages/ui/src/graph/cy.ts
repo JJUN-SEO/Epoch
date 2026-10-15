@@ -91,6 +91,31 @@ export function fitWithin(cy: Core, maxZoom: number, animate: boolean): void {
 }
 
 /**
+ * Blast radius on the canvas: fades everything except the changed node
+ * (depth 0) and what depends on it, each marked with its distance (capped at
+ * 3 for styling), and the edges among them.
+ */
+export function highlightImpact(
+  cy: Core,
+  depths: ReadonlyMap<string, number>,
+): void {
+  cy.batch(() => {
+    cy.elements().removeClass("faded hl out in");
+    cy.nodes().removeData("impact");
+    cy.elements().addClass("faded");
+    let kept = cy.collection();
+    for (const [id, depth] of depths) {
+      const node = cy.$id(id);
+      if (node.empty()) continue;
+      node.data("impact", Math.min(depth, 3));
+      kept = kept.union(node);
+    }
+    kept.union(kept.ancestors()).removeClass("faded");
+    kept.edgesWith(kept).removeClass("faded").addClass("in");
+  });
+}
+
+/**
  * Fades everything except `id`, its direct neighbors and the edges between
  * them; outgoing edges (its imports) and incoming ones (its dependents) get
  * their direction colors. For an open folder, its files count as one node.
@@ -98,6 +123,7 @@ export function fitWithin(cy: Core, maxZoom: number, animate: boolean): void {
 export function highlightNeighbors(cy: Core, id: string | undefined): void {
   cy.batch(() => {
     cy.elements().removeClass("faded hl out in");
+    cy.nodes().removeData("impact");
     if (id === undefined) return;
     const node = cy.$id(id);
     if (node.empty()) return;

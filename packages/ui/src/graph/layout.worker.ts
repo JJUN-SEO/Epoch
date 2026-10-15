@@ -1,6 +1,7 @@
 import cytoscape, { type ElementDefinition } from "cytoscape";
 import fcose from "cytoscape-fcose";
 import type { LayoutRequest, LayoutResponse } from "./layout-protocol";
+import { seedPositions } from "./seed";
 
 /*
  * Runs the fcose layout on a headless Cytoscape instance, off the UI thread
@@ -14,15 +15,21 @@ cytoscape.use(fcose);
 self.onmessage = (event: MessageEvent<LayoutRequest>) => {
   const started = performance.now();
   const { id, nodes, edges } = event.data;
+  // With previous positions, refine from them (fcose's incremental layout).
+  const start = seedPositions(event.data);
   const elements: ElementDefinition[] = [
-    ...nodes.map((n) => ({
-      group: "nodes" as const,
-      data: {
-        id: n.id,
-        size: n.size,
-        ...(n.parent === undefined ? {} : { parent: n.parent }),
-      },
-    })),
+    ...nodes.map((n) => {
+      const position = start?.[n.id];
+      return {
+        group: "nodes" as const,
+        data: {
+          id: n.id,
+          size: n.size,
+          ...(n.parent === undefined ? {} : { parent: n.parent }),
+        },
+        ...(position ? { position: { ...position } } : {}),
+      };
+    }),
     ...edges.map((e) => ({ group: "edges" as const, data: { ...e } })),
   ];
   const cy = cytoscape({
@@ -40,7 +47,7 @@ self.onmessage = (event: MessageEvent<LayoutRequest>) => {
   cy.layout({
     name: "fcose",
     animate: false,
-    randomize: true,
+    randomize: start === undefined,
     quality: "default",
     nodeDimensionsIncludeLabels: false,
     // Packing needs the layout-utilities extension; components spread instead.

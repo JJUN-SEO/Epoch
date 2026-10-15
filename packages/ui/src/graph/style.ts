@@ -81,6 +81,27 @@ export function graphStylesheet(t: CanvasTheme): StylesheetJson {
     },
     // A Go package (ADR-013): several files, one node.
     { selector: "node[kind = 'package']", style: { shape: "hexagon" } },
+    // Blast radius: the changed node, then what depends on it by distance.
+    {
+      selector: "node[impact = 0]",
+      style: { "border-width": 3, "border-color": t.accent },
+    },
+    {
+      selector: "node[impact = 1]",
+      style: { "border-width": 4, "border-color": t.danger },
+    },
+    {
+      selector: "node[impact = 2]",
+      style: { "border-width": 3, "border-color": t.dependents },
+    },
+    {
+      selector: "node[impact = 3]",
+      style: {
+        "border-width": 2,
+        "border-color": t.dependents,
+        "border-opacity": 0.6,
+      },
+    },
     {
       selector: "node[kind = 'dir']",
       style: {

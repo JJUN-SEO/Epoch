@@ -10,6 +10,8 @@ export const CHANNELS = {
   chooseProject: "epoch:choose-project",
   recentProjects: "epoch:recent-projects",
   getGraph: "epoch:get-graph",
+  /** What the latest analysis used (git history, coverage report); no payload. */
+  getAnalysisInfo: "epoch:get-analysis-info",
   /** Pops up the application menu (Windows, Linux: the title bar has no menu bar). */
   showAppMenu: "epoch:show-app-menu",
 } as const;
@@ -17,6 +19,12 @@ export const CHANNELS = {
 /** Main-to-renderer events. */
 export const EVENTS = {
   progress: "epoch:progress",
+  /** The watcher changed the graph; payload: GraphDelta. */
+  graphDelta: "epoch:graph-delta",
+  /** The watcher's state; payload: WatchStatus. */
+  watchStatus: "epoch:watch-status",
+  /** What the latest analysis used; payload: AnalysisInfo. */
+  analysisInfo: "epoch:analysis-info",
   /** A project opened from the native menu; payload: ProjectInfo. */
   projectOpened: "epoch:project-opened",
   /** A command chosen in the native menu; payload: one of MENU_COMMANDS. */

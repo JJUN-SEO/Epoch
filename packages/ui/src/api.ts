@@ -1,4 +1,12 @@
-import type { EpochApi, Graph, ProjectInfo } from "@epoch-dev/core";
+import {
+  applyDelta,
+  blastRadius,
+  type AnalysisInfo,
+  type EpochApi,
+  type Graph,
+  type ProjectInfo,
+  type WatchStatus,
+} from "@epoch-dev/core";
 import type { DesktopBridge } from "./bridge";
 
 /**
@@ -15,6 +23,11 @@ export interface Shell {
   showAppMenu(x: number, y: number): void;
   /** Commands chosen in the native menu. */
   onMenuCommand(cb: (id: string) => void): () => void;
+  /** The file watcher's state. */
+  onWatchStatus(cb: (status: WatchStatus) => void): () => void;
+  /** What the latest analysis used (git history, coverage); null before it ends. */
+  getAnalysisInfo(): Promise<AnalysisInfo | null>;
+  onAnalysisInfo(cb: (info: AnalysisInfo) => void): () => void;
 }
 
 const unavailable = (what: string) => (): Promise<never> =>
@@ -22,7 +35,6 @@ const unavailable = (what: string) => (): Promise<never> =>
 
 /** EpochApi methods that later milestones implement. */
 const later = {
-  getBlastRadius: unavailable("Blast radius arrives in M4"),
   getFindings: unavailable("Findings arrive in M5"),
   dismissFinding: unavailable("Findings arrive in M5"),
   undismissFinding: unavailable("Findings arrive in M5"),
@@ -38,13 +50,27 @@ export function createIpcApi(bridge: DesktopBridge): {
   api: EpochApi;
   shell: Shell;
 } {
+  // The latest graph, kept current with the watcher's deltas, so blast
+  // radius runs here (core's pure function) without fetching the graph again.
+  let current: Graph | undefined;
+  bridge.onGraphDelta((d) => {
+    if (current) current = applyDelta(current, d);
+  });
+  const graph = async (): Promise<Graph> => {
+    current = await bridge.getGraph();
+    return current;
+  };
   return {
     api: {
-      openProject: (folder) => bridge.openProject(folder),
-      getGraph: () => bridge.getGraph(),
+      openProject: (folder) => {
+        current = undefined;
+        return bridge.openProject(folder);
+      },
+      getGraph: graph,
+      getBlastRadius: async (nodeId, opts) =>
+        blastRadius(current ?? (await graph()), nodeId, opts),
       onProgress: (cb) => bridge.onProgress(cb),
-      // The file watcher arrives in M4; until then nothing changes a graph.
-      onGraphDelta: () => () => undefined,
+      onGraphDelta: (cb) => bridge.onGraphDelta(cb),
       ...later,
     },
     shell: {
@@ -56,6 +82,9 @@ export function createIpcApi(bridge: DesktopBridge): {
         void bridge.showAppMenu(x, y);
       },
       onMenuCommand: (cb) => bridge.onMenuCommand(cb),
+      onWatchStatus: (cb) => bridge.onWatchStatus(cb),
+      getAnalysisInfo: () => bridge.getAnalysisInfo(),
+      onAnalysisInfo: (cb) => bridge.onAnalysisInfo(cb),
     },
   };
 }
@@ -70,6 +99,8 @@ export function createStaticApi(project: ProjectInfo, graph: Graph): EpochApi {
     getGraph: () => Promise.resolve(graph),
     onProgress: () => () => undefined,
     onGraphDelta: () => () => undefined,
+    getBlastRadius: (nodeId, opts) =>
+      Promise.resolve(blastRadius(graph, nodeId, opts)),
     ...later,
     getCodePreview: unavailable("The demo includes no source code"),
     getSettings: unavailable("The demo has no settings"),

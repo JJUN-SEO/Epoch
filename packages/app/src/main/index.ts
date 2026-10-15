@@ -73,12 +73,20 @@ async function openWindow(stateFile: string): Promise<BrowserWindow> {
   const contents = win.webContents;
   sessions.set(
     contents,
-    new ProjectSession(
-      () => new HostClient(hostEntry),
-      (progress) => {
+    new ProjectSession((listeners) => new HostClient(hostEntry, listeners), {
+      onProgress: (progress) => {
         if (!contents.isDestroyed()) contents.send(EVENTS.progress, progress);
       },
-    ),
+      onDelta: (delta) => {
+        if (!contents.isDestroyed()) contents.send(EVENTS.graphDelta, delta);
+      },
+      onWatchStatus: (status) => {
+        if (!contents.isDestroyed()) contents.send(EVENTS.watchStatus, status);
+      },
+      onAnalysisInfo: (info) => {
+        if (!contents.isDestroyed()) contents.send(EVENTS.analysisInfo, info);
+      },
+    }),
   );
   win.on("close", () => {
     saveWindowState(stateFile, {

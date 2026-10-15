@@ -1,11 +1,25 @@
 import { Crosshair, FolderOpen, FolderClosed } from "lucide-react";
-import { LANGUAGE_TIERS, type Graph, type GraphEdge } from "@epoch-dev/core";
-import { dirPath, isDirId } from "../graph/aggregate";
+import { useMemo } from "react";
+import {
+  LANGUAGE_TIERS,
+  isScoredNode,
+  riskBreakdowns,
+  type AnalysisInfo,
+  type Graph,
+  type GraphEdge,
+  type GraphNode,
+  type RiskBreakdown,
+} from "@epoch-dev/core";
+import { ancestors, dirPath, isDirId } from "../graph/aggregate";
+import { riskColor } from "../graph/colors";
 import { languageName } from "../languages";
+import { gitSummary } from "../shell/StatusBar";
 import { Button, PathLabel, SectionTitle } from "./ui";
 
 export interface DetailsPanelProps {
   readonly graph: Graph;
+  /** What the analysis used (git history, coverage), to explain a missing risk score. */
+  readonly analysis?: AnalysisInfo | null;
   readonly selected: string | undefined;
   /** Select and show a node (expanding folders as needed). */
   readonly onShow: (id: string) => void;
@@ -110,15 +124,108 @@ function Header(props: {
   );
 }
 
+const INPUT_NAMES = {
+  fanIn: "Imported by",
+  churn: "Changes in 90 days",
+  coverage: "Test coverage",
+} as const;
+
+const ordinal = (p: number): string => {
+  const n = Math.round(p * 100);
+  const s =
+    n % 100 >= 11 && n % 100 <= 13
+      ? "th"
+      : (["th", "st", "nd", "rd"][n % 10] ?? "th");
+  return `${String(n)}${s}`;
+};
+
+/**
+ * The risk score and how it was computed (CLAUDE.md "Risk score": percentile
+ * ranks across the repository; coverage counts inverted), or why there is none.
+ */
+function RiskSection(props: {
+  readonly node: GraphNode;
+  readonly risk: RiskBreakdown | undefined;
+  readonly analysis: AnalysisInfo | null;
+}) {
+  const { node, risk } = props;
+  if (!isScoredNode(node)) return null;
+  if (!risk) {
+    const why =
+      gitSummary(props.analysis)?.title ??
+      "Risk needs git history (90 days of commits).";
+    return (
+      <section data-testid="risk">
+        <SectionTitle>Risk</SectionTitle>
+        <p className="text-muted px-3 text-[12px]">{why}</p>
+      </section>
+    );
+  }
+  return (
+    <section data-testid="risk">
+      <SectionTitle>Risk</SectionTitle>
+      <div className="flex items-baseline gap-2 px-3">
+        <span
+          aria-hidden="true"
+          className="size-2.5 rounded-full"
+          style={{ backgroundColor: riskColor(risk.score) }}
+        />
+        <span
+          data-testid="risk-score"
+          className="text-[18px] font-semibold tabular-nums"
+        >
+          {risk.score.toFixed(1)}
+        </span>
+        <span className="text-muted text-[12px]">of 100</span>
+      </div>
+      <table className="mt-1.5 w-full text-[12px]">
+        <thead className="text-muted text-[11px]">
+          <tr>
+            <th className="px-3 text-left font-normal">Input</th>
+            <th className="text-right font-normal">Value</th>
+            <th className="text-right font-normal">Percentile</th>
+            <th className="px-3 text-right font-normal">Weight</th>
+          </tr>
+        </thead>
+        <tbody>
+          {risk.components.map((c) => (
+            <tr key={c.input}>
+              <td className="px-3">{INPUT_NAMES[c.input]}</td>
+              <td className="text-right tabular-nums">
+                {c.input === "coverage"
+                  ? `${(c.value * 100).toFixed(0)}%`
+                  : c.input === "churn"
+                    ? `${String(c.value)} commits`
+                    : String(c.value)}
+              </td>
+              <td className="text-right tabular-nums">
+                {ordinal(c.percentile)}
+              </td>
+              <td className="px-3 text-right tabular-nums">{c.weight}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-muted mt-1.5 px-3 text-[11px]">
+        {risk.missing.includes("coverage")
+          ? "No coverage for this file: fan-in and churn only (weights 0.55 and 0.45)."
+          : "Lower coverage raises risk (its percentile counts inverted)."}
+      </p>
+    </section>
+  );
+}
+
 /** Facts about the selected node. Repository strings render as text only. */
 export function DetailsPanel({
   graph,
+  analysis = null,
   selected,
   onShow,
   onFocus,
   folderOpen,
   onToggleFolder,
 }: DetailsPanelProps) {
+  const risks = useMemo(() => riskBreakdowns(graph), [graph]);
   if (selected === undefined) {
     return (
       <p className="text-muted px-4 py-6 text-center text-[13px]">
@@ -130,7 +237,9 @@ export function DetailsPanel({
 
   if (isDirId(selected)) {
     const dir = dirPath(selected);
-    const files = graph.nodes.filter((n) => n.id.startsWith(`${dir}/`));
+    const files = graph.nodes.filter((n) =>
+      ancestors(n.id, graph).includes(dir),
+    );
     return (
       <div data-testid="details">
         <Header
@@ -160,7 +269,7 @@ export function DetailsPanel({
                   onShow(f.id);
                 }}
               >
-                {f.id.slice(dir.length + 1)}
+                {f.id.startsWith(`${dir}/`) ? f.id.slice(dir.length + 1) : f.id}
               </button>
             </li>
           ))}
@@ -202,6 +311,7 @@ export function DetailsPanel({
         <Stat label="Imported by" value={String(node.metrics.fanIn)} />
         <Stat label="Imports" value={String(node.metrics.fanOut)} />
       </dl>
+      <RiskSection node={node} risk={risks.get(node.id)} analysis={analysis} />
       {node.exports.length > 0 && (
         <section>
           <SectionTitle>Exports ({node.exports.length})</SectionTitle>

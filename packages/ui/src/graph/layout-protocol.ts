@@ -13,6 +13,12 @@ export interface LayoutRequest {
     readonly source: string;
     readonly target: string;
   }[];
+  /**
+   * Positions nodes had before this request (the graph changed or a folder
+   * opened). With enough of them, the layout refines from there instead of
+   * starting over, so the picture stays put.
+   */
+  readonly seed?: Readonly<Record<string, { x: number; y: number }>>;
 }
 
 export interface LayoutResponse {
