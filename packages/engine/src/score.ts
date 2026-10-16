@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import {
-  withRiskScores,
+  withRiskTiers,
   type AnalysisMeta,
   type Graph,
   type GraphNode,
@@ -21,9 +21,10 @@ import type { FsReader } from "./reader.js";
 
 /*
  * The Score stage (CLAUDE.md "Pipeline", stage 7): git churn and coverage
- * into each node's metrics, then the risk score. Churn and coverage are read
+ * into each node's metrics, then each node's dependents and risk tier
+ * (ADR-015). Churn and coverage are read
  * here (git log, a report file); the scoring itself is core's pure
- * withRiskScores().
+ * withRiskTiers().
  */
 
 /** Churn per repository and HEAD, so watcher re-runs do not re-read history. */
@@ -99,7 +100,7 @@ export interface ScoreResult {
 }
 
 /**
- * Sets churn90d, coverage and riskScore on the graph's nodes. `members`
+ * Sets churn90d, coverage, dependents and the risk tier on the graph's nodes. `members`
  * names the files of each package node (Go); a package's churn counts the
  * distinct commits that touched any member, its coverage sums theirs.
  */
@@ -117,7 +118,13 @@ export function scoreGraph(
   const history = churn?.status.usable === true ? churn : undefined;
 
   const nodes = graph.nodes.map((n) => {
-    const { churn90d: _c, coverage: _v, riskScore: _r, ...metrics } = n.metrics;
+    const {
+      churn90d: _c,
+      coverage: _v,
+      dependents: _d,
+      risk: _r,
+      ...metrics
+    } = n.metrics;
     const files = filesOf(n);
     let churn90d: number | undefined;
     if (history) {
@@ -147,7 +154,7 @@ export function scoreGraph(
 
   const status = churn?.status;
   return {
-    graph: withRiskScores({ ...graph, nodes }),
+    graph: withRiskTiers({ ...graph, nodes }),
     git:
       status === undefined
         ? { status: "off" }

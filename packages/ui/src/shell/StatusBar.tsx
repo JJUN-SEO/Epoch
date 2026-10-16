@@ -20,7 +20,7 @@ export function nodeCounts(graph: Graph): string {
     : plural(files, "file");
 }
 
-/** One line on the git history the risk score used, or why there is none. */
+/** One line on the git history the risk tiers used, or why there is none. */
 export function gitSummary(info: AnalysisInfo | null): {
   text: string;
   title: string;

@@ -39,7 +39,7 @@ You are the build agent. Work in plan mode first, then implement, one milestone 
 | Core, adapter interface, TS/JS adapter, CLI | M1 | Data contracts, Edge traversal policy, Barrel transparency rule, Language adapter interface |
 | Cache, incremental analysis, accuracy benchmarks | M2 | Local cache, Testing and accuracy |
 | Desktop app, graph UI, Python adapter | M3 | Architecture, Electron security, App UX basics |
-| Watcher, blast radius, churn, coverage, risk, Go adapter | M4 | Blast radius, Risk score, Edge traversal policy |
+| Watcher, blast radius, churn, coverage, risk, Go adapter | M4 (risk tiers: M6.5) | Blast radius, Risk tiers, Edge traversal policy |
 | Dead-feature detection and alerts | M5 | Dead-feature detection (all subsections) |
 | Hint edges, scorers, evaluation | M6 | RelationScorer, Edge traversal policy |
 | Keys, cost guardrails, summaries, offline | M7 | Privacy and data flow, Bring your own keys |
@@ -65,6 +65,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-012 | M3.5 | Optional 3D overview: own renderer on three.js and d3-force-3d (the ready-made library violates the CSP); measured layout time, frame rate and picking |
 | ADR-013 | M4 | Go: packages as `pkg:` nodes (tests stay file nodes), go.mod/go.work resolution read as data, build tags not evaluated; measured against `go list` |
 | ADR-014 | M6 | `FileFacts.strings`: key-like literals (event names, routes, topics, config keys) for shared-string hints; a CLAUDE.md contract change |
+| ADR-015 | M6.5 | Ordinal risk tiers replace the weighted risk score (`riskScore` removed, `dependents` and `risk` added); a CLAUDE.md contract change, evaluated by `pnpm bench:risk` |
 
 ## Questions to ask me
 
@@ -222,7 +223,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - [x] **Blast radius** in `core`: reverse BFS over the traversal policy, cycle-safe; certain and likely modes (likely arrives usable in M6); type-only toggle; results: total affected, max depth, grouping by directory and language, count depending on hint edges. UI highlight with depth control. (Impact tab and Blast radius toggle; packages and files counted separately.)
 - [x] **Git churn** in `engine`: last 90 days of `git log` with machine-readable output (`-z`, rename detection); skip merge commits; warn on shallow clones. (The window ends at HEAD's commit date, so the graph stays a function of the repository.)
 - [x] **Coverage ingestion:** lcov and Cobertura XML parsers; map to repo-relative paths (strip CI absolute prefixes). (Conventional report paths in the project, or `--coverage` in the CLI.)
-- [x] **Risk score** per the CLAUDE.md formula (percentile rank, reweight when coverage is missing, deterministic ties); UI breakdown of each component. (No git history: no score, and the UI says why; Color by Risk.)
+- [x] **Risk score** per the CLAUDE.md formula (percentile rank, reweight when coverage is missing, deterministic ties); UI breakdown of each component. (No git history: no score, and the UI says why; Color by Risk.) Replaced by risk tiers in M6.5 (ADR-015).
 - [x] **Go adapter** (`extract`, `resolveImport`, `isTestFile`): `go.mod` module path, import path to package directory, packages as nodes (`kind: "package"`, `id: "pkg:..."`), `internal/` rules, `_test.go`, `vendor/`, `go.work`. Build tags are not evaluated (and not recorded: `FileFacts` has no field for them); the accuracy report measures the cost. Conformance cases. (ADR-013: 15 conformance cases checked against `go list`; test files stay file nodes linked to their package.)
 - [x] **Accuracy of Python and Go** against ground-truth tools (added to M4): Python vs grimp 3.17 on Flask 3.1.3, Go vs `go list` on cli/cli v2.82.0. Both met the tier A bar (precision and recall at least 95%, every disagreement explained) and moved to tier A. Python's raw precision is 71.6%: grimp does not see Flask's `sansio` namespace subpackage (`docs/benchmarks/python-accuracy.md`).
 
@@ -303,6 +304,23 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Pitfalls:** evaluation leakage (never use post-T data to propose); giant monorepos make co-change noisy; model outputs that cite nonexistent symbols (verify against the parse tree before display).
 
 **Gate:** I review the scorer report.
+
+---
+
+## M6.5: Feedback pass (risk tiers, large graphs, zoom)
+
+**Goal:** act on the maintainer's hands-on review during M6: risk that explains itself, and an app that stays fast on large repositories.
+**Spec refs:** Risk tiers (new, ADR-015), Data contracts (`GraphNode.metrics`), App UX basics (large graphs).
+
+**Tasks**
+- [x] **Large graphs:** expand-all on vitest (3,116 nodes) drew after 99.7 s and then stalled for seconds on hover. Above 800 drawn files the worker packs the folder tree (deterministic, about 35 ms) and the canvas draws open folders as plain frames instead of Cytoscape compounds, measured with a CPU profile; e2e on a 900-file project.
+- [x] **Zoom:** a mouse-wheel notch moved the 2D view 0.8% and the 3D view 5%; now about 15% and 14%.
+- [x] **Risk tiers** (ADR-015, approved): CLAUDE.md and the contract changed in one commit; `metrics.dependents` and `metrics.risk` replace `riskScore`; schema version 2; core rules with a fixture per rule; Score stage; CLI tier counts; details panel shows tier, archetype and facts; Risk color mode by tier; e2e.
+- [x] **`pnpm bench:risk`:** later fix commits per tier on a check window that shares no data with the window the thresholds were chosen on; the removed v1 score recomputed for comparison; `docs/benchmarks/risk.md`.
+
+**Acceptance:** core tests cover every rule and the missing-data cases; no numeric risk score remains in the contract, the UI or the CLI; e2e for the risk panel and the large-graph mode on three OSes; the benchmark report exists and its numbers are in ADR-015.
+
+**Gate:** I review the risk panel and docs/benchmarks/risk.md, together with the M6 gate.
 
 ---
 

@@ -74,8 +74,8 @@ export interface AnalyzeOptions {
     res: Resolution,
   ) => void;
   /**
-   * Git churn and the risk score (default on): a git repository at the root
-   * gets metrics.churn90d and metrics.riskScore. Off for runs that must not
+   * Git churn and the risk tiers (default on): a git repository at the root
+   * gets metrics.churn90d and metrics.risk. Off for runs that must not
    * depend on history (performance benchmarks).
    */
   readonly history?: boolean;

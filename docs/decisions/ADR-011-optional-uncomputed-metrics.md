@@ -1,6 +1,6 @@
 # ADR-011: Uncomputed metrics are absent, not zero
 
-- **Status:** Accepted
+- **Status:** Accepted; its `riskScore` part superseded by ADR-015 (risk tiers: `metrics.risk`, also absent until computed)
 - **Date:** 2026-10-14
 - **Milestone:** M1
 - **Decided by:** Junhyuk Seo (project owner), during M1 planning

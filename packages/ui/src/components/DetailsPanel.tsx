@@ -1,26 +1,26 @@
 import { Crosshair, FolderOpen, FolderClosed } from "lucide-react";
-import { useMemo } from "react";
 import {
   LANGUAGE_TIERS,
+  RISK_DEFAULTS,
+  assessRisk,
   hintSourceLabel,
   isHintEdge,
   isScoredNode,
-  riskBreakdowns,
   type AnalysisInfo,
   type Graph,
   type GraphEdge,
   type GraphNode,
-  type RiskBreakdown,
+  type RiskArchetype,
 } from "@epoch-dev/core";
 import { ancestors, dirPath, isDirId } from "../graph/aggregate";
-import { riskColor } from "../graph/colors";
+import { RISK_TIER_LABELS, riskColor } from "../graph/colors";
 import { languageName } from "../languages";
 import { gitSummary } from "../shell/StatusBar";
 import { Button, PathLabel, SectionTitle } from "./ui";
 
 export interface DetailsPanelProps {
   readonly graph: Graph;
-  /** What the analysis used (git history, coverage), to explain a missing risk score. */
+  /** What the analysis used (git history, coverage), to explain a missing risk tier. */
   readonly analysis?: AnalysisInfo | null;
   readonly selected: string | undefined;
   /** Select and show a node (expanding folders as needed). */
@@ -204,33 +204,54 @@ function Header(props: {
   );
 }
 
-const INPUT_NAMES = {
-  fanIn: "Imported by",
-  churn: "Changes in 90 days",
-  coverage: "Test coverage",
-} as const;
-
-const ordinal = (p: number): string => {
-  const n = Math.round(p * 100);
-  const s =
-    n % 100 >= 11 && n % 100 <= 13
-      ? "th"
-      : (["th", "st", "nd", "rd"][n % 10] ?? "th");
-  return `${String(n)}${s}`;
+const ARCHETYPES: Readonly<
+  Record<RiskArchetype, { readonly name: string; readonly meaning: string }>
+> = {
+  "volatile-core": {
+    name: "Volatile core",
+    meaning:
+      "Many files depend on it, it changes often, and it is large or thinly tested: a change here is likely to break something.",
+  },
+  "active-hotspot": {
+    name: "Active hotspot",
+    meaning: "A shared dependency that is actively changing.",
+  },
+  "warm-core": {
+    name: "Warm core",
+    meaning: "A shared dependency that changes now and then.",
+  },
+  "fragile-leaf": {
+    name: "Fragile leaf",
+    meaning:
+      "Few files depend on it, but it changes often or is large and changing: bugs stay local, but are likely.",
+  },
+  "frozen-core": {
+    name: "Frozen core",
+    meaning:
+      "Many files depend on it, but it has not changed in 90 days: stable, and worth care when touched.",
+  },
+  "stable-leaf": {
+    name: "Stable leaf",
+    meaning: "Few dependents and little recent change.",
+  },
 };
 
+const plural = (n: number, one: string) =>
+  `${String(n)} ${one}${n === 1 ? "" : "s"}`;
+
 /**
- * The risk score and how it was computed (CLAUDE.md "Risk score": percentile
- * ranks across the repository; coverage counts inverted), or why there is none.
+ * The risk tier, its archetype and the three facts behind it (CLAUDE.md
+ * "Risk tiers", ADR-015), or why there is none. No score: each line says
+ * what was counted and which side of its threshold it fell on.
  */
 function RiskSection(props: {
   readonly node: GraphNode;
-  readonly risk: RiskBreakdown | undefined;
   readonly analysis: AnalysisInfo | null;
 }) {
-  const { node, risk } = props;
+  const { node } = props;
   if (!isScoredNode(node)) return null;
-  if (!risk) {
+  const m = node.metrics;
+  if (!m.risk || m.churn90d === undefined) {
     const why =
       gitSummary(props.analysis)?.title ??
       "Risk needs git history (90 days of commits).";
@@ -241,56 +262,55 @@ function RiskSection(props: {
       </section>
     );
   }
+  const t = RISK_DEFAULTS;
+  const a = assessRisk({
+    dependents: m.dependents ?? 0,
+    churn90d: m.churn90d,
+    loc: node.loc,
+    ...(m.coverage === undefined ? {} : { coverage: m.coverage }),
+  });
+  const archetype = ARCHETYPES[m.risk.archetype];
+  const facts = [
+    {
+      label: a.exposure === "exposed" ? "Exposed" : "Contained",
+      text: `${plural(m.dependents ?? 0, "file")} ${(m.dependents ?? 0) === 1 ? "depends" : "depend"} on it (exposed above ${String(t.exposedAbove)})`,
+    },
+    {
+      label:
+        a.change === "hot" ? "Hot" : a.change === "warm" ? "Warm" : "Quiet",
+      text: `${plural(m.churn90d, "commit")} in 90 days (hot from ${String(t.hotFrom)})`,
+    },
+    {
+      label: a.fragility === "fragile" ? "Fragile" : "Sturdy",
+      text:
+        m.coverage === undefined
+          ? `${plural(node.loc, "line")}, no coverage report (fragile above ${String(t.fragileAboveLoc)} lines)`
+          : `${plural(node.loc, "line")}, ${(m.coverage * 100).toFixed(0)}% covered (fragile above ${String(t.fragileAboveLoc)} lines or below ${String(t.fragileBelowCoverage * 100)}% coverage)`,
+    },
+  ];
   return (
     <section data-testid="risk">
       <SectionTitle>Risk</SectionTitle>
       <div className="flex items-baseline gap-2 px-3">
         <span
           aria-hidden="true"
-          className="size-2.5 rounded-full"
-          style={{ backgroundColor: riskColor(risk.score) }}
+          className="size-2.5 self-center rounded-full"
+          style={{ backgroundColor: riskColor(m.risk.tier) }}
         />
-        <span
-          data-testid="risk-score"
-          className="text-[18px] font-semibold tabular-nums"
-        >
-          {risk.score.toFixed(1)}
+        <span data-testid="risk-tier" className="text-[15px] font-semibold">
+          {RISK_TIER_LABELS[m.risk.tier]}
         </span>
-        <span className="text-muted text-[12px]">of 100</span>
+        <span className="text-muted text-[12px]">{archetype.name}</span>
       </div>
-      <table className="mt-1.5 w-full text-[12px]">
-        <thead className="text-muted text-[11px]">
-          <tr>
-            <th className="px-3 text-left font-normal">Input</th>
-            <th className="text-right font-normal">Value</th>
-            <th className="text-right font-normal">Percentile</th>
-            <th className="px-3 text-right font-normal">Weight</th>
-          </tr>
-        </thead>
-        <tbody>
-          {risk.components.map((c) => (
-            <tr key={c.input}>
-              <td className="px-3">{INPUT_NAMES[c.input]}</td>
-              <td className="text-right tabular-nums">
-                {c.input === "coverage"
-                  ? `${(c.value * 100).toFixed(0)}%`
-                  : c.input === "churn"
-                    ? `${String(c.value)} commits`
-                    : String(c.value)}
-              </td>
-              <td className="text-right tabular-nums">
-                {ordinal(c.percentile)}
-              </td>
-              <td className="px-3 text-right tabular-nums">{c.weight}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="text-muted mt-1.5 px-3 text-[11px]">
-        {risk.missing.includes("coverage")
-          ? "No coverage for this file: fan-in and churn only (weights 0.55 and 0.45)."
-          : "Lower coverage raises risk (its percentile counts inverted)."}
-      </p>
+      <p className="text-muted mt-1 px-3 text-[12px]">{archetype.meaning}</p>
+      <ul className="mt-1.5 space-y-0.5 px-3 text-[12px]">
+        {facts.map((f) => (
+          <li key={f.label}>
+            <span className="font-medium">{f.label}:</span>{" "}
+            <span className="text-muted">{f.text}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }
@@ -305,7 +325,6 @@ export function DetailsPanel({
   folderOpen,
   onToggleFolder,
 }: DetailsPanelProps) {
-  const risks = useMemo(() => riskBreakdowns(graph), [graph]);
   if (selected === undefined) {
     return (
       <p className="text-muted px-4 py-6 text-center text-[13px]">
@@ -395,7 +414,7 @@ export function DetailsPanel({
         <Stat label="Imported by" value={String(node.metrics.fanIn)} />
         <Stat label="Imports" value={String(node.metrics.fanOut)} />
       </dl>
-      <RiskSection node={node} risk={risks.get(node.id)} analysis={analysis} />
+      <RiskSection node={node} analysis={analysis} />
       {node.exports.length > 0 && (
         <section>
           <SectionTitle>Exports ({node.exports.length})</SectionTitle>

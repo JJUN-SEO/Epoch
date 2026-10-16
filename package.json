@@ -2,7 +2,7 @@
   "name": "@epoch-dev/workspace",
   "version": "0.0.0",
   "private": true,
-  "description": "Epoch: a local-first desktop app that turns a codebase into a dependency graph with blast radius, risk scores and dead-feature alerts.",
+  "description": "Epoch: a local-first desktop app that turns a codebase into a dependency graph with blast radius, risk tiers and dead-feature alerts.",
   "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@11.28.2",
@@ -27,7 +27,8 @@
     "bench:watch": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/watch-latency.js",
     "bench:findings": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/findings.js",
     "bench:findings:score": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/findings-score.js",
-    "bench:scorers": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/scorers.js"
+    "bench:scorers": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/scorers.js",
+    "bench:risk": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/risk.js"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",

@@ -435,7 +435,7 @@ describe("graph assembly", () => {
 
   it("produces a schema-valid graph with metrics but no uncomputed ones (ADR-011)", () => {
     const g = buildGraph([input("A.ts", { locals: ["a"] })]);
-    expect(g.schemaVersion).toBe(1);
+    expect(g.schemaVersion).toBe(2);
     expect(g.nodes[0]?.metrics).toEqual({ fanIn: 0, fanOut: 0 });
     expect(g.roots).toEqual([]);
     expect(g.findings).toEqual([]);

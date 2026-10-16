@@ -10,23 +10,26 @@ import type { CandidatePair } from "@epoch-dev/core";
 const MARK = "\u0001";
 
 /**
- * Parses `git log --reverse -z --name-status -M --format=%x01%H` (oldest
- * first) into each commit's files, named as they were at the start of the
- * window: a file renamed later keeps its old name, so changes after a
- * rename still count for the node it was. A copy's new file keeps its own
- * name (it did not exist before).
+ * Parses `git log --reverse -z --name-status -M --format=%x01<header>`
+ * (oldest first) into each commit's header (what followed the mark: a hash,
+ * a subject) and files, named as they were at the start of the window: a
+ * file renamed later keeps its old name, so changes after a rename still
+ * count for the node it was. A copy's new file keeps its own name (it did
+ * not exist before).
  */
-export function forwardCommits(out: string): string[][] {
+export function forwardCommitLog(
+  out: string,
+): { header: string; files: string[] }[] {
   const original = new Map<string, string>();
   const nameAtStart = (p: string) => original.get(p) ?? p;
-  const commits: Set<string>[] = [];
+  const commits: { header: string; files: Set<string> }[] = [];
   let files: Set<string> | undefined;
   const tokens = out.split("\0");
   for (let i = 0; i < tokens.length; i++) {
     const token = (tokens[i] ?? "").replace(/^\n+/, "");
     if (token.startsWith(MARK)) {
       files = new Set();
-      commits.push(files);
+      commits.push({ header: token.slice(MARK.length).trim(), files });
       continue;
     }
     const status = token.trim();
@@ -44,8 +47,15 @@ export function forwardCommits(out: string): string[][] {
       files.add(nameAtStart(tokens[++i] ?? ""));
     }
   }
-  return commits.map((c) => [...c].filter((f) => f !== "").sort());
+  return commits.map((c) => ({
+    header: c.header,
+    files: [...c.files].filter((f) => f !== "").sort(),
+  }));
 }
+
+/** Each commit's files, as forwardCommitLog names them. */
+export const forwardCommits = (out: string): string[][] =>
+  forwardCommitLog(out).map((c) => c.files);
 
 export interface Labeled {
   readonly candidate: CandidatePair;

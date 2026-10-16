@@ -86,7 +86,7 @@ describe("epoch analyze (human summary)", () => {
     );
     // The fixture is not a git repository root, and has no coverage report.
     expect(r.stdout).toContain(
-      "git          no churn or risk score (not-a-repo)",
+      "git          no churn or risk tiers (not-a-repo)",
     );
     expect(r.stdout).toContain("coverage     none found");
     expect(r.stdout).toMatch(
@@ -100,6 +100,43 @@ describe("epoch analyze (human summary)", () => {
     expect(r.stdout).toMatch(
       /shared strings \d+ pairs, similarity \d+ pairs \(tiny-embedder@000000000000\)/,
     );
+  });
+
+  it("counts files per risk tier in a git repository (ADR-015)", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-risk-"));
+    try {
+      fs.mkdirSync(path.join(dir, "src"));
+      fs.writeFileSync(path.join(dir, "src/core.ts"), "export const c = 1;\n");
+      fs.writeFileSync(
+        path.join(dir, "src/a.ts"),
+        'import { c } from "./core";\nexport const a = c;\n',
+      );
+      const git = (...args: string[]) =>
+        execFileSync(
+          "git",
+          [
+            "-c",
+            "user.email=t@example.com",
+            "-c",
+            "user.name=t",
+            "-c",
+            "commit.gpgsign=false",
+            ...args,
+          ],
+          { cwd: dir, stdio: "pipe" },
+        );
+      git("init", "-q", "-b", "main");
+      git("add", "-A");
+      git("commit", "-q", "-m", "one");
+      const r = await cli("analyze", dir, "--no-hints");
+      expect(r.code).toBe(EXIT_OK);
+      // Two small files, one dependent, one commit each: both stable leaves.
+      expect(r.stdout).toContain(
+        "risk tiers   0 critical, 0 high, 0 moderate, 0 low-moderate, 2 low",
+      );
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 
   it("skips hint edges with --no-hints", async () => {

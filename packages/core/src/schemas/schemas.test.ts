@@ -57,9 +57,34 @@ describe("contract schemas", () => {
     expect(GraphNode.safeParse(node).success).toBe(true);
     const computed = {
       ...node,
-      metrics: { fanIn: 0, fanOut: 1, churn90d: 4, riskScore: 55 },
+      metrics: {
+        fanIn: 0,
+        fanOut: 1,
+        dependents: 12,
+        churn90d: 4,
+        risk: { tier: "high", archetype: "active-hotspot" },
+      },
     };
     expect(GraphNode.safeParse(computed).success).toBe(true);
+  });
+
+  it("take only the named risk tiers and archetypes, and no numeric score (ADR-015)", () => {
+    const withRisk = (risk: unknown) =>
+      GraphNode.safeParse({ ...node, metrics: { fanIn: 0, fanOut: 0, risk } })
+        .success;
+    expect(withRisk({ tier: "critical", archetype: "volatile-core" })).toBe(
+      true,
+    );
+    expect(withRisk({ tier: "severe", archetype: "volatile-core" })).toBe(
+      false,
+    );
+    expect(withRisk({ tier: "low", archetype: "hotspot" })).toBe(false);
+    expect(
+      GraphNode.safeParse({
+        ...node,
+        metrics: { fanIn: 0, fanOut: 0, riskScore: 55 },
+      }).success,
+    ).toBe(false);
   });
 
   it("reject unknown keys, so typos cannot slip into a graph", () => {
@@ -76,7 +101,7 @@ describe("contract schemas", () => {
     expect(
       GraphNode.safeParse({
         ...node,
-        metrics: { fanIn: 0, fanOut: 0, riskScore: undefined },
+        metrics: { fanIn: 0, fanOut: 0, dependents: undefined },
       }).success,
     ).toBe(false);
   });

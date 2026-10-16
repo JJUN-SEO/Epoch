@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  RISK_BANDS,
+  RISK_TIER_COLORS,
   languageColor,
   nodeColors,
   riskColor,
@@ -31,29 +31,46 @@ describe("node colors", () => {
     ]);
   });
 
-  it("colors by risk band, folders by their riskiest file, unscored nodes neutral", () => {
+  it("colors by risk tier, folders by their riskiest file, untiered nodes neutral", () => {
     const g = {
       ...graph([]),
       nodes: [
         {
           ...node("src/a.ts"),
-          metrics: { fanIn: 0, fanOut: 0, riskScore: 10 },
+          metrics: {
+            fanIn: 0,
+            fanOut: 0,
+            risk: { tier: "low" as const, archetype: "stable-leaf" as const },
+          },
         },
         {
           ...node("src/b.ts"),
-          metrics: { fanIn: 0, fanOut: 0, riskScore: 80 },
+          metrics: {
+            fanIn: 0,
+            fanOut: 0,
+            risk: {
+              tier: "high" as const,
+              archetype: "active-hotspot" as const,
+            },
+          },
         },
         node("styles.css", "css"),
       ],
     };
     const c = nodeColors(g, "risk");
-    expect(c.colorOf("src/a.ts", "typescript")).toBe(RISK_BANDS[0]?.color);
-    expect(c.colorOf("src/b.ts", "typescript")).toBe(RISK_BANDS[3]?.color);
-    expect(c.colorOf("src", undefined)).toBe(RISK_BANDS[3]?.color);
+    expect(c.colorOf("src/a.ts", "typescript")).toBe(RISK_TIER_COLORS.low);
+    expect(c.colorOf("src/b.ts", "typescript")).toBe(RISK_TIER_COLORS.high);
+    expect(c.colorOf("src", undefined)).toBe(RISK_TIER_COLORS.high);
     expect(c.colorOf("styles.css", "css")).toBe(languageColor(undefined));
-    expect(c.legend.at(-1)?.label).toBe("No score");
-    expect(riskColor(25)).toBe(RISK_BANDS[1]?.color);
-    expect(riskColor(100)).toBe(RISK_BANDS[3]?.color);
+    expect(c.legend.map((l) => l.label)).toEqual([
+      "Critical",
+      "High",
+      "Moderate",
+      "Low–moderate",
+      "Low",
+      "No tier",
+    ]);
+    expect(riskColor(undefined)).toBe(languageColor(undefined));
   });
 
   it("finds the top-level folder", () => {

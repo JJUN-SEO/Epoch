@@ -85,8 +85,16 @@ describe("the Score stage", () => {
       fanIn: 2,
     });
     expect(metrics["src/b.ts"]?.coverage).toBeUndefined();
-    for (const id of ["src/a.ts", "src/b.ts", "src/core.ts"]) {
-      expect(metrics[id]?.riskScore).toEqual(expect.any(Number));
+    // core.ts: 2 dependents (contained), 1 commit (warm), small and covered.
+    expect(metrics["src/core.ts"]).toMatchObject({
+      dependents: 2,
+      risk: { tier: "low", archetype: "stable-leaf" },
+    });
+    for (const id of ["src/a.ts", "src/b.ts"]) {
+      expect(metrics[id]?.risk).toEqual({
+        tier: expect.any(String) as unknown,
+        archetype: expect.any(String) as unknown,
+      });
     }
     expect(meta.git).toMatchObject({
       status: "usable",
@@ -113,9 +121,13 @@ describe("the Score stage", () => {
     const dir = project(FILES);
     const plain = await analyze(dir);
     expect(plain.meta.git).toEqual({ status: "not-a-repo" });
+    expect(plain.graph.nodes.every((n) => n.metrics.risk === undefined)).toBe(
+      true,
+    );
+    // Exposure is structure, not history: it is counted anyway.
     expect(
-      plain.graph.nodes.every((n) => n.metrics.riskScore === undefined),
-    ).toBe(true);
+      plain.graph.nodes.find((n) => n.id === "src/core.ts")?.metrics.dependents,
+    ).toBe(2);
     expect(plain.meta.coverage).toBeNull();
     const off = await analyze(dir, { history: false });
     expect(off.meta.git).toEqual({ status: "off" });
@@ -147,7 +159,11 @@ describe("the Score stage", () => {
     // Three distinct commits touched a.go or b.go; 2 of 3 lines are covered.
     expect(pkg?.metrics).toMatchObject({ churn90d: 3, fanIn: 2 });
     expect(pkg?.metrics.coverage).toBeCloseTo(2 / 3);
-    expect(pkg?.metrics.riskScore).toEqual(expect.any(Number));
+    // main.go and the package's test depend on it; three commits: hot, contained.
+    expect(pkg?.metrics).toMatchObject({
+      dependents: 2,
+      risk: { tier: "moderate", archetype: "fragile-leaf" },
+    });
   });
 
   it("uses a coverage report the caller names", async () => {

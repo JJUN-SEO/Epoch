@@ -1,157 +1,168 @@
 import { canonicalizeGraph } from "./canonical.js";
 import { LANGUAGE_TIERS } from "./languages.js";
-import type { Graph, GraphNode } from "./schemas/index.js";
+import { CERTAIN_EDGE_KINDS, isHintEdge } from "./policy.js";
+import {
+  RiskTier,
+  type Graph,
+  type GraphNode,
+  type RiskArchetype,
+} from "./schemas/index.js";
+
+export type { RiskArchetype };
 
 /*
- * The v1 risk score (CLAUDE.md "Risk score"): each input is percentile-ranked
- * across the scored nodes, then
- *   risk = 100 * (0.4 * fanIn + 0.3 * churn + 0.3 * (1 - coverage)),
- * or 100 * (0.55 * fanIn + 0.45 * churn) for a node without coverage. A node
- * without churn (no git history) gets no score. Pure.
+ * Risk tiers (CLAUDE.md "Risk tiers", ADR-015): an ordinal tier and an
+ * archetype from three facts with fixed thresholds, never a made-up number.
+ * - Exposure: how many nodes depend on it, transitively, over the certain
+ *   edge set of blast radius (type-only included, hints and via-barrel not).
+ * - Change: commits in the last 90 days (churn90d).
+ * - Fragility: size, or line coverage when a report exists.
+ * Pure, so the Score stage, the CLI and the static demo share it.
  */
 
-export type RiskInput = "fanIn" | "churn" | "coverage";
+/** Default thresholds (ADR-015); to be tuned with evidence (bench:risk). */
+export const RISK_DEFAULTS = {
+  /** Exposed: more than this many dependents. */
+  exposedAbove: 5,
+  /** Hot: at least this many commits in 90 days; warm: 1 to one fewer. */
+  hotFrom: 3,
+  /** Fragile: more than this many lines... */
+  fragileAboveLoc: 300,
+  /** ...or line coverage below this, when a coverage report covers it. */
+  fragileBelowCoverage: 0.5,
+} as const;
 
-export interface RiskComponent {
-  readonly input: RiskInput;
-  /** The raw metric (coverage as a 0..1 fraction). */
-  readonly value: number;
-  /** Its percentile rank among the scored nodes that have it, 0..1. */
-  readonly percentile: number;
-  readonly weight: number;
+export type RiskThresholds = {
+  readonly [K in keyof typeof RISK_DEFAULTS]: number;
+};
+
+/** Most to least risky. */
+export const RISK_TIERS: readonly RiskTier[] = RiskTier.options;
+
+export interface RiskFacts {
+  readonly dependents: number;
+  readonly churn90d: number;
+  readonly loc: number;
+  /** Line coverage 0..1, when a report covers the node. */
+  readonly coverage?: number;
 }
 
-export interface RiskBreakdown {
-  /** 0..100, one decimal. */
-  readonly score: number;
-  readonly components: readonly RiskComponent[];
-  /** Inputs this node lacks, so its formula was reweighted. */
-  readonly missing: readonly RiskInput[];
+export interface RiskAssessment {
+  readonly tier: RiskTier;
+  readonly archetype: RiskArchetype;
+  readonly exposure: "exposed" | "contained";
+  readonly change: "hot" | "warm" | "quiet";
+  readonly fragility: "fragile" | "sturdy";
 }
 
-/** By default only source-language nodes are scored, not imported assets. */
+/** The tier and archetype for a node's facts: the first matching rule of ADR-015's table. */
+export function assessRisk(
+  f: RiskFacts,
+  t: RiskThresholds = RISK_DEFAULTS,
+): RiskAssessment {
+  const exposure = f.dependents > t.exposedAbove ? "exposed" : "contained";
+  const change =
+    f.churn90d >= t.hotFrom ? "hot" : f.churn90d > 0 ? "warm" : "quiet";
+  const fragility =
+    f.loc > t.fragileAboveLoc ||
+    (f.coverage !== undefined && f.coverage < t.fragileBelowCoverage)
+      ? "fragile"
+      : "sturdy";
+  const exposed = exposure === "exposed";
+  const fragile = fragility === "fragile";
+  const rule = ((): Pick<RiskAssessment, "tier" | "archetype"> => {
+    if (exposed && change === "hot" && fragile)
+      return { tier: "critical", archetype: "volatile-core" };
+    if (exposed && (change === "hot" || (change === "warm" && fragile)))
+      return { tier: "high", archetype: "active-hotspot" };
+    if (exposed && change === "warm")
+      return { tier: "moderate", archetype: "warm-core" };
+    if (!exposed && (change === "hot" || (change === "warm" && fragile)))
+      return { tier: "moderate", archetype: "fragile-leaf" };
+    if (exposed) return { tier: "low-moderate", archetype: "frozen-core" };
+    return { tier: "low", archetype: "stable-leaf" };
+  })();
+  return { ...rule, exposure, change, fragility };
+}
+
+/**
+ * Each node's count of transitive dependents over the certain edge set (the
+ * traversal policy's "Blast radius, certain", type-only included). A reverse
+ * search per node, cycle-safe.
+ */
+export function transitiveDependents(graph: Graph): Map<string, number> {
+  const rev = new Map<string, string[]>();
+  for (const e of graph.edges) {
+    if (
+      e.source === e.target ||
+      isHintEdge(e) ||
+      !CERTAIN_EDGE_KINDS.has(e.kind)
+    )
+      continue;
+    const list = rev.get(e.target);
+    if (list) list.push(e.source);
+    else rev.set(e.target, [e.source]);
+  }
+  const out = new Map<string, number>();
+  for (const n of graph.nodes) {
+    const seen = new Set<string>([n.id]);
+    const stack = [n.id];
+    while (stack.length > 0) {
+      const id = stack.pop() ?? "";
+      for (const dependent of rev.get(id) ?? []) {
+        if (seen.has(dependent)) continue;
+        seen.add(dependent);
+        stack.push(dependent);
+      }
+    }
+    out.set(n.id, seen.size - 1);
+  }
+  return out;
+}
+
+/** By default only source-language nodes get a tier, not imported assets. */
 export const isScoredNode = (n: GraphNode): boolean =>
   LANGUAGE_TIERS[n.language] !== undefined;
 
 /**
- * Percentile rank with ties at their mean rank:
- * (values below + half the equal values) / count. Order-independent.
+ * The graph with metrics.dependents on every node and metrics.risk on every
+ * scored node with git history (churn90d); earlier values are replaced.
  */
-export function percentileRanks(
-  values: ReadonlyMap<string, number>,
-): Map<string, number> {
-  const sorted = [...values.values()].sort((a, b) => a - b);
-  const n = sorted.length;
-  const below = (v: number) => {
-    let lo = 0;
-    let hi = n;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if ((sorted[mid] ?? 0) < v) lo = mid + 1;
-      else hi = mid;
-    }
-    return lo;
-  };
-  const atOrBelow = (v: number) => {
-    let lo = 0;
-    let hi = n;
-    while (lo < hi) {
-      const mid = (lo + hi) >> 1;
-      if ((sorted[mid] ?? 0) <= v) lo = mid + 1;
-      else hi = mid;
-    }
-    return lo;
-  };
-  const out = new Map<string, number>();
-  for (const [id, v] of values) {
-    const lt = below(v);
-    out.set(id, (lt + 0.5 * (atOrBelow(v) - lt)) / n);
-  }
-  return out;
-}
-
-const round1 = (x: number): number => Math.round(x * 10) / 10;
-
-/** Each scored node's risk and how it was computed. */
-export function riskBreakdowns(
+export function withRiskTiers(
   graph: Graph,
   isScored: (n: GraphNode) => boolean = isScoredNode,
-): Map<string, RiskBreakdown> {
-  const scored = graph.nodes.filter(
-    (n) => isScored(n) && n.metrics.churn90d !== undefined,
-  );
-  const metric = (pick: (n: GraphNode) => number | undefined) =>
-    new Map(
-      scored.flatMap((n) => {
-        const v = pick(n);
-        return v === undefined ? [] : [[n.id, v] as const];
-      }),
-    );
-  const fanIn = percentileRanks(metric((n) => n.metrics.fanIn));
-  const churn = percentileRanks(metric((n) => n.metrics.churn90d));
-  const coverage = percentileRanks(metric((n) => n.metrics.coverage));
-
-  const out = new Map<string, RiskBreakdown>();
-  for (const n of scored) {
-    const pf = fanIn.get(n.id) ?? 0;
-    const pc = churn.get(n.id) ?? 0;
-    const pcov = coverage.get(n.id);
-    const hasCoverage = pcov !== undefined && n.metrics.coverage !== undefined;
-    const weights = hasCoverage
-      ? { fanIn: 0.4, churn: 0.3, coverage: 0.3 }
-      : { fanIn: 0.55, churn: 0.45, coverage: 0 };
-    const components: RiskComponent[] = [
-      {
-        input: "fanIn",
-        value: n.metrics.fanIn,
-        percentile: pf,
-        weight: weights.fanIn,
-      },
-      {
-        input: "churn",
-        value: n.metrics.churn90d ?? 0,
-        percentile: pc,
-        weight: weights.churn,
-      },
-      ...(hasCoverage
-        ? [
-            {
-              input: "coverage" as const,
-              value: n.metrics.coverage ?? 0,
-              percentile: pcov,
-              weight: weights.coverage,
-            },
-          ]
-        : []),
-    ];
-    const raw =
-      weights.fanIn * pf +
-      weights.churn * pc +
-      (hasCoverage ? weights.coverage * (1 - pcov) : 0);
-    out.set(n.id, {
-      score: round1(100 * raw),
-      components,
-      missing: hasCoverage ? [] : ["coverage"],
-    });
-  }
-  return out;
-}
-
-/** The graph with metrics.riskScore set on every scored node (and cleared elsewhere). */
-export function withRiskScores(
-  graph: Graph,
-  isScored: (n: GraphNode) => boolean = isScoredNode,
+  thresholds: RiskThresholds = RISK_DEFAULTS,
 ): Graph {
-  const risks = riskBreakdowns(graph, isScored);
+  const dependents = transitiveDependents(graph);
   return canonicalizeGraph({
     ...graph,
     nodes: graph.nodes.map((n) => {
-      const { riskScore: _old, ...metrics } = n.metrics;
-      const risk = risks.get(n.id);
+      const { dependents: _d, risk: _r, ...metrics } = n.metrics;
+      const count = dependents.get(n.id) ?? 0;
+      const churn = metrics.churn90d;
+      const risk =
+        churn !== undefined && isScored(n)
+          ? assessRisk(
+              {
+                dependents: count,
+                churn90d: churn,
+                loc: n.loc,
+                ...(metrics.coverage === undefined
+                  ? {}
+                  : { coverage: metrics.coverage }),
+              },
+              thresholds,
+            )
+          : undefined;
       return {
         ...n,
-        metrics:
-          risk === undefined ? metrics : { ...metrics, riskScore: risk.score },
+        metrics: {
+          ...metrics,
+          dependents: count,
+          ...(risk
+            ? { risk: { tier: risk.tier, archetype: risk.archetype } }
+            : {}),
+        },
       };
     }),
   });

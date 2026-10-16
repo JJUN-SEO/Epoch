@@ -4,7 +4,7 @@ import { Finding } from "./finding.js";
 import { UnresolvedImport } from "./resolution.js";
 
 /** Current `Graph.schemaVersion`. Bump on any breaking change to the Graph shape. */
-export const GRAPH_SCHEMA_VERSION = 1;
+export const GRAPH_SCHEMA_VERSION = 2;
 
 export const EntryPoint = z.strictObject({
   file: z.string().min(1),
@@ -19,6 +19,27 @@ const Count = z.number().int().nonnegative();
  * Node id: repo-relative path with forward slashes (files) or "pkg:<import path>" (Go packages).
  * Optional metrics are absent until computed (ADR-011).
  */
+
+/** Risk tiers, most to least risky (CLAUDE.md "Risk tiers", ADR-015). */
+export const RiskTier = z.enum([
+  "critical",
+  "high",
+  "moderate",
+  "low-moderate",
+  "low",
+]);
+export type RiskTier = z.infer<typeof RiskTier>;
+
+export const RiskArchetype = z.enum([
+  "volatile-core",
+  "active-hotspot",
+  "warm-core",
+  "fragile-leaf",
+  "frozen-core",
+  "stable-leaf",
+]);
+export type RiskArchetype = z.infer<typeof RiskArchetype>;
+
 export const GraphNode = z.strictObject({
   id: z.string().min(1),
   kind: z.enum(["file", "package"]),
@@ -36,9 +57,14 @@ export const GraphNode = z.strictObject({
   metrics: z.strictObject({
     fanIn: Count,
     fanOut: Count,
+    /** Transitive dependents over the certain edge set (blast radius, certain). */
+    dependents: Count.exactOptional(),
     churn90d: Count.exactOptional(),
     coverage: z.number().min(0).max(1).exactOptional(),
-    riskScore: z.number().min(0).max(100).exactOptional(),
+    /** Absent without git history (ADR-011, ADR-015). */
+    risk: z
+      .strictObject({ tier: RiskTier, archetype: RiskArchetype })
+      .exactOptional(),
   }),
 });
 export type GraphNode = z.infer<typeof GraphNode>;

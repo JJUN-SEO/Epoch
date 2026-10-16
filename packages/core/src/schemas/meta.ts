@@ -34,7 +34,7 @@ export const AnalysisMeta = z.strictObject({
     graph: Ms,
     /** Hint edges: co-change, shared strings, embeddings and the scorer (M6). */
     enrich: Ms,
-    /** Git churn, coverage and risk. */
+    /** Git churn, coverage and risk tiers. */
     score: Ms,
     /** Dead-feature detectors, git history lookups included. */
     findings: Ms,
@@ -61,7 +61,7 @@ export const AnalysisMeta = z.strictObject({
   parseErrors: z.array(z.string()),
   /** Strongly connected components over certain-mode edges (size > 1 or self-loop). */
   cycles: z.array(z.array(z.string())),
-  /** Git history behind churn90d and riskScore (M4). */
+  /** Git history behind churn90d and the risk tiers (M4, ADR-015). */
   git: z.strictObject({
     status: z.enum([
       "usable",

@@ -246,7 +246,12 @@ test("risk needs git history, and says so without it", async () => {
   await open(dir);
   await expect(page.getByTestId("git-status")).toContainText("Churn: 90 days");
   await selectNode(page, "src/b.ts");
-  await expect(page.getByTestId("risk-score")).toHaveText(/^\d+\.\d$/);
-  await expect(page.getByTestId("risk")).toContainText("Imported by");
+  // b.ts: a.ts depends on it, one commit, one line.
+  await expect(page.getByTestId("risk-tier")).toHaveText("Low");
+  const risk = page.getByTestId("risk");
+  await expect(risk).toContainText("Stable leaf");
+  await expect(risk).toContainText("Contained: 1 file depends on it");
+  await expect(risk).toContainText("Warm: 1 commit in 90 days");
+  await expect(risk).toContainText("Sturdy: 1 line");
   expect(violations).toEqual([]);
 });

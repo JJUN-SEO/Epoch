@@ -1,10 +1,29 @@
-import type { AnalysisMeta, Graph, UnresolvedReason } from "@epoch-dev/core";
+import {
+  RISK_TIERS,
+  type AnalysisMeta,
+  type Graph,
+  type RiskTier,
+  type UnresolvedReason,
+} from "@epoch-dev/core";
 
 /** How many unresolved imports and cycles the human summary lists before eliding. */
 export const SUMMARY_LIST_LIMIT = 20;
 
 const pad = (label: string, value: number) =>
   `  ${label.padEnd(13)}${String(value).padStart(7)}`;
+
+/** How many nodes fall in each risk tier (ADR-015), when any has one. */
+function riskLine(graph: Graph): string[] {
+  const counts = new Map<RiskTier, number>();
+  for (const n of graph.nodes) {
+    const tier = n.metrics.risk?.tier;
+    if (tier !== undefined) counts.set(tier, (counts.get(tier) ?? 0) + 1);
+  }
+  if (counts.size === 0) return [];
+  return [
+    `  risk tiers   ${RISK_TIERS.map((t) => `${String(counts.get(t) ?? 0)} ${t}`).join(", ")}`,
+  ];
+}
 
 /** What the Enrich stage did: hint edges and the sources behind them. */
 function hintsLine(h: AnalysisMeta["hints"]): string {
@@ -66,7 +85,8 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
       ? `  git          90-day churn up to ${new Date((git.churnUntil ?? 0) * 1000).toISOString().slice(0, 10)}${git.shallow === true ? " (shallow clone: only the fetched history counts)" : ""}`
       : git.status === "off"
         ? "  git          off"
-        : `  git          no churn or risk score (${git.status})`,
+        : `  git          no churn or risk tiers (${git.status})`,
+    ...riskLine(graph),
     meta.coverage === null
       ? "  coverage     none found"
       : `  coverage     ${meta.coverage.source} (${meta.coverage.format}): ${String(meta.coverage.files)} files${meta.coverage.unmatched + meta.coverage.ambiguous > 0 ? `, ${String(meta.coverage.unmatched)} unmatched, ${String(meta.coverage.ambiguous)} ambiguous` : ""}`,

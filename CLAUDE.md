@@ -1,6 +1,6 @@
 # Epoch
 
-A local-first desktop app (macOS, Windows, Linux) that parses a codebase in most major languages into an interactive dependency graph (nodes connecting like neurons), scores each file for risk, shows the blast radius of changing any file, alerts you to likely-dead features (constant branches, stale feature flags, unreachable files), and keeps itself up to date cheaply as the repo changes.
+A local-first desktop app (macOS, Windows, Linux) that parses a codebase in most major languages into an interactive dependency graph (nodes connecting like neurons), rates each file's risk in tiers, shows the blast radius of changing any file, alerts you to likely-dead features (constant branches, stale feature flags, unreachable files), and keeps itself up to date cheaply as the repo changes.
 
 Open a project folder in the app and it analyzes it. Your code never leaves your machine by default, and Epoch never modifies your project.
 
@@ -32,7 +32,7 @@ Precedence: CLAUDE.md > ADRs > PLAN.md. If they conflict, stop and ask. A change
 1. **[M1]** Language-agnostic core, adapter interface, TypeScript/JavaScript adapter, headless CLI (`epoch analyze`).
 2. **[M2]** Local content-addressed cache, incremental analysis, accuracy benchmarks.
 3. **[M3]** Electron desktop app: open folder, graph UI, secure IPC. Python adapter.
-4. **[M4]** File watcher, blast radius, git churn, coverage ingestion, risk score. Go adapter.
+4. **[M4]** File watcher, blast radius, git churn, coverage ingestion, risk tiers. Go adapter.
 5. **[M5]** Dead-feature detection and alerts across TS/JS, Python, and Go.
 6. **[M6]** Hint edges (co-change, shared strings, embeddings), `RelationScorer` backends, evaluation.
 7. **[M7]** Bring-your-own keys, cost guardrails, opt-in summaries, offline mode.
@@ -110,7 +110,7 @@ Discover → Parse → Extract (cached) → Resolve → Graph → Enrich (hints)
 4. **Resolve**: the adapter turns each `RawImport` into a `Resolution`. Recomputed on every run over cached `FileFacts`.
 5. **Graph**: assemble nodes and edges (including barrel tracing), fan-in/out, cycles (graphology).
 6. **Enrich**: hint edges from git co-change, shared strings, and local embeddings (M6; a no-op before that).
-7. **Score**: `RelationScorer` assigns probabilities to candidate hint edges; risk score computed here.
+7. **Score**: `RelationScorer` assigns probabilities to candidate hint edges; risk tiers computed here.
 8. **Findings**: dead-feature detectors run last so they can use roots, edges, hints, and git history.
 9. **Store / Serve**: derived results to the cache; the analysis host streams results to main, which forwards them to the renderer.
 
@@ -189,8 +189,16 @@ type GraphNode = {
   externals: string[];             // third-party packages this node imports
   flags: FlagUsage[];
   role?: { label: string; confidence: number };   // from scorer, e.g. controller/model/util/test/config
-  metrics: { fanIn: number; fanOut: number; churn90d?: number; coverage?: number; riskScore?: number }; // absent until computed (ADR-011)
+  metrics: {                       // optional fields are absent until computed (ADR-011)
+    fanIn: number; fanOut: number;
+    dependents?: number;           // transitive, over the "Blast radius, certain" edge set
+    churn90d?: number; coverage?: number;
+    risk?: { tier: RiskTier; archetype: RiskArchetype };  // absent without git history (ADR-015)
+  };
 };
+
+type RiskTier = "critical" | "high" | "moderate" | "low-moderate" | "low";   // most to least risky
+type RiskArchetype = "volatile-core" | "active-hotspot" | "warm-core" | "fragile-leaf" | "frozen-core" | "stable-leaf";
 
 type GraphEdge = {
   source: string;
@@ -257,7 +265,8 @@ interface GitHistoryProvider {
 |---|---|
 | Blast radius, certain | `import`, `dynamic-import` (resolved), `reexport`, `type-only` (toggle, default on) |
 | Blast radius, likely | the certain set plus hint edges at or above a threshold |
-| Fan-in / fan-out (risk) | the certain set; direct edges only; count distinct neighbor nodes |
+| Fan-in / fan-out (node metrics) | the certain set; direct edges only; count distinct neighbor nodes |
+| Exposure (risk tiers) | the certain set (`type-only` included); transitive; count distinct dependents |
 | Reachability (findings) | ALL fact edge kinds, including `type-only` and `via-barrel` |
 | Default display | all fact kinds except `via-barrel` (toggle to show) |
 
@@ -400,7 +409,7 @@ Document this table in `docs/privacy.md` and the README, and keep it accurate. A
 
 | Feature | What leaves the machine | Default |
 |---|---|---|
-| Parsing, graph, blast radius, risk score, git analysis | Nothing | On |
+| Parsing, graph, blast radius, risk tiers, git analysis | Nothing | On |
 | Dead-feature detection (reachability, constants, git history) | Nothing | On |
 | Heuristic scorer, co-change and shared-string hints | Nothing | On |
 | Embeddings similarity | Nothing (small local embedding model, chosen in an ADR) | On |
@@ -464,15 +473,31 @@ Rules:
 - Benchmark scorers against each other and ground truth: precision/recall at thresholds and calibration. Put results in the README.
 - Prose summaries use a regular text LLM (or a local model), lazy and cached, grounded in file source plus neighbor summaries. Jev cannot do this.
 
-## Risk score (v1 formula)
+## Risk tiers (ordinal)
 
-Percentile-rank each input across the repo (ties broken deterministically), then:
+A file's risk is a tier and an archetype from three facts, never a made-up number (ADR-015). Show the facts behind the tier in the UI.
 
-```
-risk = 100 * (0.4 * fanIn + 0.3 * churn + 0.3 * (1 - coverage))
-```
+| Dimension | Values (default thresholds) |
+|---|---|
+| Exposure | **exposed**: more than 5 transitive dependents (traversal policy, "Exposure"); else **contained** |
+| Change | **hot**: 3 or more commits in the last 90 days; **warm**: 1 or 2; **quiet**: 0 |
+| Fragility | **fragile**: more than 300 lines, or line coverage below 50% when a coverage report covers the file; else **sturdy** |
 
-If coverage is missing, drop that term and reweight (0.55 fanIn, 0.45 churn). Show the breakdown in the UI. Coverage formats to support first: lcov and Cobertura XML, then Go cover profiles and JaCoCo. Fan-in uses the traversal policy above.
+Rules, first match wins:
+
+| Tier | Archetype | Rule |
+|---|---|---|
+| Critical | Volatile core | exposed + hot + fragile |
+| High | Active hotspot | exposed + hot, or exposed + warm + fragile |
+| Moderate | Warm core | exposed + warm |
+| Moderate | Fragile leaf | contained + hot, or contained + warm + fragile |
+| Low–moderate | Frozen core | exposed + quiet |
+| Low | Stable leaf | everything else (contained + warm + sturdy, contained + quiet) |
+
+- No git history: no tier; the UI says why. No coverage report: fragility from size alone.
+- Wherever files are ordered by risk: by tier, then dependents, then churn.
+- The thresholds are defaults to tune with evidence (`pnpm bench:risk`), like `staleAfterDays`, not claims.
+- Coverage formats to support first: lcov and Cobertura XML, then Go cover profiles and JaCoCo.
 
 ## Blast radius
 
@@ -524,7 +549,7 @@ epoch/
   pnpm-workspace.yaml
   turbo.json
   packages/
-    core/             # schemas, interfaces, canonicalization, graph algorithms (blast radius, reachability, SCC), risk scoring. Pure, no I/O
+    core/             # schemas, interfaces, canonicalization, graph algorithms (blast radius, reachability, SCC), risk tiers. Pure, no I/O
     adapters/
       typescript/
       python/
@@ -566,6 +591,7 @@ pnpm bench <path>              # parse time, incremental time
 pnpm bench:accuracy <repo>     # edge precision/recall vs ground truth
 pnpm bench:findings <repo>     # finding comparisons, hindsight test, review sheet
 pnpm bench:scorers             # scorer evaluation
+pnpm bench:risk                # risk tiers against later fix commits (hindsight)
 ```
 
 ## Testing and accuracy
@@ -575,6 +601,7 @@ pnpm bench:scorers             # scorer evaluation
 - For each Tier A language, measure edge precision/recall against a ground-truth tool on at least one real OSS repo.
 - Findings: compare against an existing tool where one exists, run a hindsight test, and measure precision on a human-reviewed sample (see PLAN.md M5). Report all limits.
 - Scorers: temporal-holdout evaluation with precision/recall and calibration.
+- Risk tiers: hindsight evaluation (later fix commits per tier, on a window after the one the thresholds were chosen on).
 - Offline test, secrets test, Electron security tests, local-cache tests (hit/miss, no source stored), and e2e (open folder, blast radius, findings banner, incremental update).
 - Every graph-correctness or finding-rubric change starts with a fixture and a failing test.
 

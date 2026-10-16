@@ -1,33 +1,44 @@
-import type { Graph } from "@epoch-dev/core";
+import { RISK_TIERS, type Graph, type RiskTier } from "@epoch-dev/core";
 
 /*
  * Node colors. By folder (the default: most repositories are one language,
- * so folders say more), by language, or by risk score. Pure, for the tests.
+ * so folders say more), by language, or by risk tier (ADR-015). Pure, for
+ * the tests.
  */
 
 export type ColorBy = "folder" | "language" | "risk";
 
-/** Risk bands, lowest first: upper bound (exclusive, except the last) and color. */
-export const RISK_BANDS: readonly {
-  readonly max: number;
-  readonly label: string;
-  readonly color: string;
-}[] = [
-  { max: 25, label: "Risk 0–25", color: "#3f9b6b" },
-  { max: 50, label: "Risk 25–50", color: "#c9a227" },
-  { max: 75, label: "Risk 50–75", color: "#e07b39" },
-  { max: 100, label: "Risk 75–100", color: "#d64545" },
-];
+export const RISK_TIER_LABELS: Readonly<Record<RiskTier, string>> = {
+  critical: "Critical",
+  high: "High",
+  moderate: "Moderate",
+  "low-moderate": "Low–moderate",
+  low: "Low",
+};
 
-/** The band color for a risk score; neutral for a node with none. */
-export function riskColor(score: number | undefined): string {
-  if (score === undefined) return NEUTRAL;
-  return (
-    RISK_BANDS.find((b) => score < b.max)?.color ??
-    RISK_BANDS[RISK_BANDS.length - 1]?.color ??
-    NEUTRAL
-  );
+/** One color per tier, most risky first. */
+export const RISK_TIER_COLORS: Readonly<Record<RiskTier, string>> = {
+  critical: "#d64545",
+  high: "#e07b39",
+  moderate: "#c9a227",
+  "low-moderate": "#7fa650",
+  low: "#3f9b6b",
+};
+
+/** The color for a risk tier; neutral for a node without one. */
+export function riskColor(tier: RiskTier | undefined): string {
+  return tier === undefined ? NEUTRAL : RISK_TIER_COLORS[tier];
 }
+
+/** The riskier of two tiers (undefined when neither has one). */
+const riskier = (a: RiskTier | undefined, b: RiskTier | undefined) =>
+  a === undefined
+    ? b
+    : b === undefined
+      ? a
+      : RISK_TIERS.indexOf(a) <= RISK_TIERS.indexOf(b)
+        ? a
+        : b;
 
 const LANGUAGE_COLORS: Readonly<Record<string, string>> = {
   typescript: "#3178c6",
@@ -75,27 +86,28 @@ export interface NodeColors {
 
 export function nodeColors(graph: Graph, by: ColorBy): NodeColors {
   if (by === "risk") {
-    const scores = new Map(
-      graph.nodes.map((n) => [n.id, n.metrics.riskScore] as const),
+    const tiers = new Map(
+      graph.nodes.map((n) => [n.id, n.metrics.risk?.tier] as const),
     );
     return {
       by,
-      // Folders show the highest risk among their files.
+      // Folders show the riskiest tier among their files.
       colorOf: (id, language) => {
-        if (language !== undefined || scores.has(id)) {
-          return riskColor(scores.get(id));
+        if (language !== undefined || tiers.has(id)) {
+          return riskColor(tiers.get(id));
         }
-        let max: number | undefined;
-        for (const [nid, s] of scores) {
-          if (s !== undefined && nid.startsWith(`${id}/`)) {
-            max = Math.max(max ?? 0, s);
-          }
+        let top: RiskTier | undefined;
+        for (const [nid, tier] of tiers) {
+          if (nid.startsWith(`${id}/`)) top = riskier(top, tier);
         }
-        return riskColor(max);
+        return riskColor(top);
       },
       legend: [
-        ...RISK_BANDS.map((b) => ({ label: b.label, color: b.color })),
-        { label: "No score", color: NEUTRAL },
+        ...RISK_TIERS.map((t) => ({
+          label: RISK_TIER_LABELS[t],
+          color: RISK_TIER_COLORS[t],
+        })),
+        { label: "No tier", color: NEUTRAL },
       ],
     };
   }
