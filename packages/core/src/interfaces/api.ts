@@ -7,6 +7,7 @@ import type {
   Graph,
   GraphEdge,
   GraphNode,
+  Settings,
   UnresolvedImport,
 } from "../schemas/index.js";
 
@@ -121,13 +122,6 @@ export interface CodePreview {
   readonly file: string;
   readonly startLine: number;
   readonly lines: readonly string[];
-}
-
-/** @provisional */
-export interface Settings {
-  readonly offline: boolean;
-  readonly updateChecks: boolean;
-  readonly theme: "system" | "light" | "dark";
 }
 
 /** CLAUDE.md "Architecture": the UI is written against this interface. */

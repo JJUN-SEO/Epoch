@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { DEFAULT_CLAUDE_MODEL } from "@epoch-dev/core";
 import {
   BackendFatal,
   Verdict,
@@ -21,7 +22,8 @@ import { NetworkBlockedError, type Net } from "./net.js";
  */
 
 export const ANTHROPIC_ORIGIN = "https://api.anthropic.com";
-export const DEFAULT_LLM_MODEL = "claude-haiku-5-5";
+/** One default for the scorer and the app's summaries (core settings). */
+export const DEFAULT_LLM_MODEL = DEFAULT_CLAUDE_MODEL;
 
 const blocked = (err: unknown): boolean =>
   err instanceof NetworkBlockedError ||
