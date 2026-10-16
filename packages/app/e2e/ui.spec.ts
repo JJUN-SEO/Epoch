@@ -181,6 +181,41 @@ test("a large project starts with folders collapsed and opens them on demand", a
   await expect(nodes).toHaveCount(302);
 });
 
+test("expanding every folder of a large project packs it, folders drawn as frames", async () => {
+  const files: Record<string, string> = {};
+  for (let d = 0; d < 30; d++) {
+    for (let i = 0; i < 30; i++) {
+      const name = `src/f${String(d)}/m${String(i)}.ts`;
+      files[name] =
+        i === 0
+          ? "export const v = 0;\n"
+          : 'import { v } from "./m0";\nexport const w = v;\n';
+    }
+  }
+  await answerDialogWith(project(files));
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
+  const canvas = epoch.page.getByTestId("graph-canvas");
+  await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
+    "900 files · 870 edges",
+  );
+  await expect(canvas).toHaveAttribute("data-large", "false");
+  const layouts = Number(await canvas.getAttribute("data-layouts"));
+  await epoch.page.getByRole("button", { name: "Expand all folders" }).click();
+  // Packed in the worker: well within the time a force layout of every file needed.
+  await expect(canvas).toHaveAttribute("data-layouts", String(layouts + 1), {
+    timeout: 15_000,
+  });
+  await expect(canvas).toHaveAttribute("data-large", "true");
+  // 900 files, 30 folders and src.
+  await expect(epoch.page.locator("button[data-node-id]")).toHaveCount(931);
+  await selectNode(epoch.page, "src/f3/m0.ts");
+  await expect(details(epoch.page)).toContainText("src/f3/m0.ts");
+  await epoch.page
+    .getByRole("button", { name: "Collapse all folders" })
+    .click();
+  await expect(canvas).toHaveAttribute("data-large", "false");
+});
+
 test("File > Open Project… opens a project in the window", async () => {
   await answerDialogWith(
     path.join(fixtures, "typescript", "conformance", "relative"),

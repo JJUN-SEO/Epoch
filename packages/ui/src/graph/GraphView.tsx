@@ -24,6 +24,8 @@ import {
   type CanvasControls,
 } from "./cy";
 import { LayoutClient } from "./layout";
+import type { LayoutResponse } from "./layout-protocol";
+import { isLargeGraph } from "./pack";
 import { graphStylesheet, nodeSize } from "./style";
 import { onThemeChange, readCanvasTheme } from "./theme";
 
@@ -50,29 +52,49 @@ export interface GraphViewProps {
 
 const MAX_FIT_ZOOM = 1.5;
 
+/**
+ * Cytoscape elements for the visible graph, placed where the layout put them.
+ * Open folders are compound parents, or, given frames (a large graph), plain
+ * rectangles behind their files with no compound relation at all.
+ */
 function elementsOf(
   visible: VisibleGraph,
   colors: NodeColors,
+  layout: LayoutResponse,
 ): ElementDefinition[] {
+  const frames = layout.frames;
   return [
-    ...visible.nodes.map((n) => ({
-      group: "nodes" as const,
-      data: {
-        id: n.id,
-        label:
-          n.kind === "dir" && n.collapsed
-            ? `${n.label} (${String(n.fileCount)})`
-            : n.label,
-        kind: n.kind,
-        collapsed: n.collapsed,
-        size: nodeSize(n.kind, n.collapsed, n.fileCount),
-        color: colors.colorOf(
-          n.kind === "dir" ? n.id.slice("dir:".length) : n.id,
-          n.language,
-        ),
-        ...(n.parent === undefined ? {} : { parent: n.parent }),
-      },
-    })),
+    ...visible.nodes.map((n) => {
+      const frame = frames?.[n.id];
+      const position = frame ?? layout.positions[n.id];
+      return {
+        group: "nodes" as const,
+        data: {
+          id: n.id,
+          label:
+            n.kind === "dir" && n.collapsed
+              ? `${n.label} (${String(n.fileCount)})`
+              : n.label,
+          kind: n.kind,
+          collapsed: n.collapsed,
+          size: nodeSize(n.kind, n.collapsed, n.fileCount),
+          color: colors.colorOf(
+            n.kind === "dir" ? n.id.slice("dir:".length) : n.id,
+            n.language,
+          ),
+          ...(frame
+            ? {
+                frame: true,
+                width: frame.width,
+                height: frame.height,
+                labelSize: frame.labelSize,
+              }
+            : {}),
+          ...(n.parent === undefined || frames ? {} : { parent: n.parent }),
+        },
+        ...(position ? { position: { x: position.x, y: position.y } } : {}),
+      };
+    }),
     ...visible.edges.map((e) => ({
       group: "edges" as const,
       data: {
@@ -90,8 +112,11 @@ function elementsOf(
 /**
  * The dependency graph, drawn by Cytoscape on a canvas. Layout runs in a Web
  * Worker. Hovering a node highlights its neighbors; the selection keeps its
- * highlight. A visually hidden list mirrors the nodes, so the graph can be
- * navigated by keyboard and screen readers (and driven by the e2e tests).
+ * highlight. A large graph (pack.ts) is packed, its open folders drawn as
+ * plain rectangles, on a canvas in large-graph mode (cy.ts), made anew when
+ * the graph crosses the line. A visually hidden list mirrors the
+ * nodes, so the graph can be navigated by keyboard and screen readers (and
+ * driven by the e2e tests).
  */
 export function GraphView(props: GraphViewProps) {
   const container = useRef<HTMLDivElement>(null);
@@ -101,6 +126,7 @@ export function GraphView(props: GraphViewProps) {
   handlers.current = props;
   const needsFit = useRef(false);
   const [laidOut, setLaidOut] = useState(0);
+  const large = isLargeGraph(props.visible);
   const [busy, setBusy] = useState(false);
   /** The hovered hint edge's evidence, as text, where the pointer is. */
   const [edgeTip, setEdgeTip] = useState<
@@ -128,8 +154,20 @@ export function GraphView(props: GraphViewProps) {
   );
 
   useEffect(() => {
+    layoutRef.current = new LayoutClient();
+    return () => {
+      layoutRef.current?.dispose();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!container.current) return;
-    const cy = createCy(container.current, graphStylesheet(readCanvasTheme()));
+    const cy = createCy(
+      container.current,
+      graphStylesheet(readCanvasTheme(), { large }),
+      { large },
+    );
+    const fade = !large;
     // Cytoscape types event targets as any; on a node selector it is a node.
     const nodeId = (e: EventObject) => (e.target as NodeSingular).id();
     cy.on("tap", "node", (e) => {
@@ -146,12 +184,16 @@ export function GraphView(props: GraphViewProps) {
       handlers.current.onContextMenu(nodeId(e), p.x, p.y);
     });
     // While a blast radius is drawn, hovering leaves it alone.
-    cy.on("mouseover", "node", (e) => {
-      if (!handlers.current.impact) highlightNeighbors(cy, nodeId(e));
+    // In a large graph the pointer is nearly always over an open folder's
+    // box; highlighting a whole subtree on every move stalls the page, so
+    // only files and closed folders react to hovering there.
+    const hoverable = large ? "node[!frame]" : "node";
+    cy.on("mouseover", hoverable, (e) => {
+      if (!handlers.current.impact) highlightNeighbors(cy, nodeId(e), { fade });
     });
-    cy.on("mouseout", "node", () => {
+    cy.on("mouseout", hoverable, () => {
       if (!handlers.current.impact) {
-        highlightNeighbors(cy, handlers.current.selected);
+        highlightNeighbors(cy, handlers.current.selected, { fade });
       }
     });
     cy.on("mouseover", "edge", (e) => {
@@ -164,33 +206,35 @@ export function GraphView(props: GraphViewProps) {
       setEdgeTip(undefined);
     });
     const stopTheme = onThemeChange(() => {
-      cy.style(graphStylesheet(readCanvasTheme()));
+      cy.style(graphStylesheet(readCanvasTheme(), { large }));
     });
     cyRef.current = cy;
-    layoutRef.current = new LayoutClient();
     return () => {
       stopTheme();
-      layoutRef.current?.dispose();
       cy.destroy();
+      if (cyRef.current === cy) cyRef.current = undefined;
     };
-  }, []);
+  }, [large]);
 
   useEffect(() => {
     const cy = cyRef.current;
     const layout = layoutRef.current;
     if (!cy || !layout) return;
-    const elements = elementsOf(props.visible, props.colors);
     let cancelled = false;
     setBusy(true);
     // Where the drawn nodes are now, so a changed graph or an opened folder
-    // refines the current picture instead of starting over.
+    // refines the current picture instead of starting over (a packed layout
+    // needs none: it is the same for the same folders).
     const seed: Record<string, { x: number; y: number }> = {};
-    cy.nodes().forEach((n) => {
-      if (!n.isParent()) seed[n.id()] = { ...n.position() };
-    });
+    if (!large) {
+      cy.nodes().forEach((n) => {
+        if (!n.isParent()) seed[n.id()] = { ...n.position() };
+      });
+    }
     void layout
       .layout({
         ...(Object.keys(seed).length > 0 ? { seed } : {}),
+        ...(large ? { packed: true } : {}),
         nodes: props.visible.nodes.map((n) => ({
           id: n.id,
           size: nodeSize(n.kind, n.collapsed, n.fileCount),
@@ -207,15 +251,7 @@ export function GraphView(props: GraphViewProps) {
         setEdgeTip(undefined);
         cy.batch(() => {
           cy.elements().remove();
-          cy.add(
-            elements.map((el) => {
-              const pos =
-                typeof el.data.id === "string"
-                  ? result.positions[el.data.id]
-                  : undefined;
-              return pos ? { ...el, position: { ...pos } } : el;
-            }),
-          );
+          cy.add(elementsOf(props.visible, props.colors, result));
         });
         // A hidden canvas has no size to fit to; fit once it is shown.
         if (handlers.current.active) fitWithin(cy, MAX_FIT_ZOOM, false);
@@ -227,7 +263,7 @@ export function GraphView(props: GraphViewProps) {
       cancelled = true;
     };
     // Colors restyle in place (below); only the visible graph needs a layout.
-  }, [props.visible]);
+  }, [props.visible, large]);
 
   useEffect(() => {
     const cy = cyRef.current;
@@ -257,14 +293,16 @@ export function GraphView(props: GraphViewProps) {
     cy.$(":selected").unselect();
     if (props.selected !== undefined) cy.$id(props.selected).select();
     if (props.impact) highlightImpact(cy, props.impact);
-    else highlightNeighbors(cy, props.selected);
+    else highlightNeighbors(cy, props.selected, { fade: !large });
     const rings = props.findingRings;
     cy.batch(() => {
       cy.nodes().removeData("finding");
       for (const [id, level] of rings ?? []) cy.$id(id).data("finding", level);
       if (props.findingsOnly && !props.impact && props.selected === undefined) {
         cy.nodes(":childless")
-          .filter((n) => rings?.has(n.id()) !== true)
+          .filter(
+            (n) => n.data("frame") !== true && rings?.has(n.id()) !== true,
+          )
           .addClass("faded");
         cy.edges().addClass("faded");
       }
@@ -275,6 +313,7 @@ export function GraphView(props: GraphViewProps) {
     props.findingRings,
     props.findingsOnly,
     laidOut,
+    large,
   ]);
 
   useEffect(() => {
@@ -306,6 +345,7 @@ export function GraphView(props: GraphViewProps) {
         className="h-full w-full"
         data-testid="graph-canvas"
         data-layouts={laidOut}
+        data-large={large}
         data-hint-edges={props.visible.edges.filter((e) => e.hint).length}
         aria-hidden="true"
       />

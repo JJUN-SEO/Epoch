@@ -57,9 +57,16 @@ const highlight = (t: CanvasTheme): StylesheetJson => [
  * The full graph (CLAUDE.md principle 3): facts are solid edges, hints are
  * dashed. Collapsed directories are rounded squares labeled with their file
  * count; expanded ones are boxes around their contents. File labels appear
- * once zoomed in, or when highlighted.
+ * once zoomed in, or when highlighted. A large graph (pack.ts) draws its
+ * open folders as plain rectangles behind the files (frames, not compound
+ * nodes), straight edges without arrowheads (Cytoscape's cheapest edge type;
+ * an edge's direction still shows in color when a file is highlighted), and
+ * shows labels a little later when zooming in.
  */
-export function graphStylesheet(t: CanvasTheme): StylesheetJson {
+export function graphStylesheet(
+  t: CanvasTheme,
+  opts: { readonly large?: boolean } = {},
+): StylesheetJson {
   return [
     {
       selector: "node",
@@ -169,7 +176,64 @@ export function graphStylesheet(t: CanvasTheme): StylesheetJson {
       },
     },
     { selector: "edge[?hint]", style: { "line-style": "dashed" } },
+    ...(opts.large === true ? largeGraph(t) : []),
     ...highlight(t),
+    // A faded frame stays readable as the folder around what is lit.
+    ...(opts.large === true
+      ? [{ selector: "node[?frame].faded", style: { opacity: 0.5 } }]
+      : []),
+  ];
+}
+
+/**
+ * Large-graph overrides. Without compounds, drawing order is set by hand:
+ * frames at the back (parents before children, as they are added), edges
+ * over them, files and closed folders on top.
+ */
+function largeGraph(t: CanvasTheme): StylesheetJson {
+  return [
+    {
+      selector: "edge",
+      style: {
+        "curve-style": "haystack",
+        "haystack-radius": 0,
+        "target-arrow-shape": "none",
+        // Thousands of edges at full strength hide everything under them.
+        opacity: 0.25,
+        "z-index-compare": "manual",
+        "z-index": 1,
+      },
+    },
+    {
+      selector: "node",
+      style: {
+        "min-zoomed-font-size": 12,
+        "z-index-compare": "manual",
+        "z-index": 2,
+      },
+    },
+    { selector: "node[kind = 'dir']", style: { "min-zoomed-font-size": 6 } },
+    {
+      selector: "node[?frame]",
+      style: {
+        width: "data(width)",
+        height: "data(height)",
+        shape: "round-rectangle",
+        "background-color": t.chrome,
+        "background-opacity": 0.55,
+        "border-width": 1,
+        "border-color": t.faint,
+        "border-opacity": 0.6,
+        "text-valign": "top",
+        "text-halign": "center",
+        "text-margin-y": -6,
+        "font-size": "data(labelSize)",
+        "font-weight": "bold",
+        "min-zoomed-font-size": 8,
+        color: t.muted,
+        "z-index": 0,
+      },
+    },
   ];
 }
 

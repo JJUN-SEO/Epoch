@@ -126,6 +126,8 @@ export class Scene3D {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.12;
+    // About 14% per mouse-wheel notch; the default (5%) barely moves.
+    this.controls.zoomSpeed = 3;
     this.controls.addEventListener("change", this.requestRender);
     this.controls.addEventListener("start", this.clearHover);
 

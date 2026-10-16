@@ -19,11 +19,20 @@ export interface LayoutRequest {
    * starting over, so the picture stays put.
    */
   readonly seed?: Readonly<Record<string, { x: number; y: number }>>;
+  /** A large graph: pack folders (pack.ts) instead of a force-directed layout. */
+  readonly packed?: boolean;
 }
 
 export interface LayoutResponse {
   readonly id: number;
   /** Positions of leaf nodes; compound nodes follow their children. */
   readonly positions: Readonly<Record<string, { x: number; y: number }>>;
+  /** Packed layouts: each open folder's rectangle (center and size), drawn behind its files. */
+  readonly frames?: Readonly<
+    Record<
+      string,
+      { x: number; y: number; width: number; height: number; labelSize: number }
+    >
+  >;
   readonly ms: number;
 }
