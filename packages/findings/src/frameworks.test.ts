@@ -37,6 +37,7 @@ describe("detectFrameworks", () => {
       ["api/manage.py", "tools/manage.py", "web/pages/index.tsx"],
     );
     expect(detected.map((d) => [d.id, d.dir, d.evidence])).toEqual([
+      ["vite", "", "package.json depends on vite"],
       ["django", "api", "api/project depends on django"],
       ["django", "tools", "tools/manage.py exists"],
       ["nextjs", "web", "web/package.json depends on next"],
@@ -76,5 +77,20 @@ describe("frameworkMatcher", () => {
     expect(id("backend/shop/management/commands/sync.py")).toBe("django");
     expect(id("backend/shop/admin.py")).toBe("django");
     expect(id("backend/shop/helpers.py")).toBeUndefined();
+  });
+
+  it("treats a Vite package's public/ folders as copied as-is", () => {
+    const match = frameworkMatcher(
+      detectFrameworks(
+        [{ dir: "packages/browser", ecosystem: "npm", dependencies: ["vite"] }],
+        [],
+      ),
+    );
+    const id = (p: string) => match(p)?.id;
+    // The public folder sits under the Vite root, which may be a subfolder.
+    expect(id("packages/browser/src/client/public/injector.js")).toBe("vite");
+    expect(id("packages/browser/public/icon.js")).toBe("vite");
+    expect(id("packages/browser/src/client/client.ts")).toBeUndefined();
+    expect(id("packages/other/public/icon.js")).toBeUndefined();
   });
 });

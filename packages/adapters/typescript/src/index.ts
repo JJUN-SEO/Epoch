@@ -19,7 +19,7 @@ export const typescriptAdapter: LanguageAdapter<Tree> = {
   id: "typescript",
   tier: "A",
   extensions: EXTENSIONS,
-  version: "5", // bump whenever extract output can change (cache keys include it)
+  version: "6", // bump whenever extract output can change (cache keys include it)
   detectProjectRoots,
   extract,
   resolveImport,

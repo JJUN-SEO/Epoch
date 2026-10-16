@@ -125,8 +125,14 @@ describe("source roots from project configuration", () => {
       "tools/setup.py": "",
     });
     expect(ctx.projectRoots).toEqual([
-      { kind: "pyproject.toml", dir: "", file: "pyproject.toml", name: "demo" },
-      { kind: "setup.py", dir: "tools", file: "tools/setup.py" },
+      {
+        kind: "pyproject.toml",
+        dir: "",
+        file: "pyproject.toml",
+        package: true,
+        name: "demo",
+      },
+      { kind: "setup.py", dir: "tools", file: "tools/setup.py", package: true },
     ]);
   });
 });

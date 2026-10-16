@@ -62,7 +62,13 @@ export function detectProjectRoots(repo: RepoView): ProjectRoot[] {
       const n = at(doc, "project", "name") ?? at(doc, "tool", "poetry", "name");
       if (typeof n === "string") name = n;
     }
-    roots.push({ kind, dir: dirOf(file), file, ...(name ? { name } : {}) });
+    roots.push({
+      kind,
+      dir: dirOf(file),
+      file,
+      package: true,
+      ...(name ? { name } : {}),
+    });
   }
   return roots;
 }

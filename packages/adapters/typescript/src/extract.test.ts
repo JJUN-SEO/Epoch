@@ -166,6 +166,46 @@ describe("extract: imports", () => {
       },
     ]);
   });
+
+  it("records the literal prefix of a module path resolved at run time", () => {
+    const src = [
+      "const a = import.meta.resolve(`./${name}`);", // 1
+      'const b = require.resolve("./plugins/" + id);', // 2
+      "const c = new URL(`./workers/${id}.js`, import.meta.url);", // 3
+      'const d = import.meta.resolve("./literal.js");', // 4: not recorded yet
+      "const e = import.meta.resolve(name);", // 5: no prefix
+      "const f = new URL(`./x/${id}`, base);", // 6: not a module URL
+      "const g = other.resolve(`./${id}`);", // 7: not a resolver
+    ].join("\n");
+    for (const file of ["run.ts", "run.tsx", "run.mjs"]) {
+      expect(facts(file, src).imports, file).toEqual([
+        {
+          kind: "dynamic",
+          specifier: null,
+          dynamicPrefix: "./",
+          typeOnly: false,
+          names: [],
+          line: 1,
+        },
+        {
+          kind: "dynamic",
+          specifier: null,
+          dynamicPrefix: "./plugins/",
+          typeOnly: false,
+          names: [],
+          line: 2,
+        },
+        {
+          kind: "dynamic",
+          specifier: null,
+          dynamicPrefix: "./workers/",
+          typeOnly: false,
+          names: [],
+          line: 3,
+        },
+      ]);
+    }
+  });
 });
 
 describe("extract: exports and re-exports", () => {

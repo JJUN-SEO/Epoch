@@ -1,0 +1,39 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "components/nav.tsx"
+      },
+      "confidence": "low",
+      "caps": [
+        "convention-roots-only",
+        "framework-convention"
+      ],
+      "locations": [
+        {
+          "file": "components/nav.tsx"
+        }
+      ]
+    },
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "pages/about.tsx"
+      },
+      "confidence": "low",
+      "caps": [
+        "convention-roots-only",
+        "framework-convention"
+      ],
+      "locations": [
+        {
+          "file": "pages/about.tsx"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

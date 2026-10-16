@@ -53,6 +53,9 @@ export const CONFIDENCE_LABELS: Readonly<Record<Confidence, string>> = {
   low: "Unsure",
 };
 
+/** EntryPoint.source of the roots that epoch.config.json `entryPoints` declares. */
+export const CONFIG_ENTRY_SOURCE = "epoch.config.json entryPoints";
+
 /** The rubric caps (CLAUDE.md "Confidence rubric"): the level each caps at, and why. */
 export const RUBRIC_CAPS = {
   "exported-constant": {
@@ -70,16 +73,18 @@ export const RUBRIC_CAPS = {
   },
   "dynamic-import-prefix": {
     level: "low",
-    reason: "a dynamic import may load it at run time",
+    reason:
+      "a dynamic import or a path resolved at run time may load it, or a file that imports it",
   },
   "framework-convention": {
     level: "low",
-    reason: "a framework loads files in this location by convention",
+    reason:
+      "a framework loads files in this location by convention, or a file that imports it",
   },
   "convention-roots-only": {
     level: "medium",
     reason:
-      "no manifest or config entry point was found, so entry points are guesses",
+      "its package declares no entry point in a manifest or in epoch.config.json, so its entry points are partly guesses",
   },
   "recently-touched": {
     level: "medium",

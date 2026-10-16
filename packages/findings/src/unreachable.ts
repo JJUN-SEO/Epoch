@@ -1,4 +1,5 @@
 import {
+  CONFIG_ENTRY_SOURCE,
   REACHABILITY_EDGE_KINDS,
   applyCaps,
   stronglyConnectedComponents,
@@ -27,11 +28,16 @@ export const UNREACHABLE_CAVEAT =
   "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.";
 
 const DECLARATION = /\.d\.[cm]?ts$|\.pyi$/;
-const ROOT_REASONS_WITH_MANIFEST = new Set<EntryPoint["reason"]>([
-  "manifest",
-  "script",
-  "config",
-]);
+
+/**
+ * Roots that declare a package's entry points (CLAUDE.md: "no manifest or
+ * config entry point was mapped to source"): manifest fields, and
+ * epoch.config.json entryPoints. Scripts, tool configs, conventions and tests
+ * are roots too, but they do not say the list is complete.
+ */
+const declaresEntries = (r: EntryPoint): boolean =>
+  r.reason === "manifest" ||
+  (r.reason === "config" && r.source === CONFIG_ENTRY_SOURCE);
 
 const HISTORY_CAVEAT: Readonly<Record<HistoryStatus, string>> = {
   usable:
@@ -55,7 +61,7 @@ export interface UnreachableInput {
   readonly files: readonly FindingsFile[];
   readonly packages: ReadonlyMap<string, readonly string[]>;
   readonly roots: readonly EntryPoint[];
-  readonly projectDirs: readonly string[];
+  readonly packageDirs: readonly string[];
   readonly frameworks: readonly DetectedFramework[];
   readonly suppressed: (path: string) => boolean;
   readonly history?: GitHistoryProvider;
@@ -66,13 +72,10 @@ export interface UnreachableInput {
 }
 
 /**
- * Node ids reached from the roots. Python adds one rule: importing a module
- * runs the __init__.py of every package above it, so those are reached too.
+ * What each node imports, over fact edges. Python adds one rule: importing a
+ * module runs the __init__.py of every package above it.
  */
-function reachedNodes(
-  input: UnreachableInput,
-  nodeOf: (file: string) => string,
-): Set<string> {
+function importsOf(input: UnreachableInput): Map<string, string[]> {
   const adj = new Map<string, string[]>();
   const link = (from: string, to: string) => {
     const list = adj.get(from);
@@ -94,25 +97,34 @@ function reachedNodes(
       d = dirOf(d);
     }
   }
-  const seen = new Set<string>();
-  const queue: string[] = [];
-  for (const r of input.roots) {
-    const id = nodeOf(r.file);
-    if (!seen.has(id)) {
-      seen.add(id);
-      queue.push(id);
-    }
-  }
-  for (const current of queue) {
-    for (const next of adj.get(current) ?? []) {
-      if (!seen.has(next)) {
-        seen.add(next);
-        queue.push(next);
-      }
-    }
-  }
-  return seen;
+  return adj;
 }
+
+/** Breadth-first from `start` over `adj`, in order; `start` comes first. */
+function walk(
+  start: readonly string[],
+  adj: ReadonlyMap<string, readonly string[]>,
+  visit: (node: string, from: string | undefined) => boolean,
+): void {
+  const queue: [string, string | undefined][] = start.map((s) => [
+    s,
+    undefined,
+  ]);
+  // An array iterator also visits what is pushed while it runs.
+  for (const [node, from] of queue) {
+    if (!visit(node, from)) continue;
+    for (const next of adj.get(node) ?? []) queue.push([next, node]);
+  }
+}
+
+/** How a file may be loaded with no analyzed import reaching it. */
+type MaybeLoaded =
+  | { readonly by: "prefix"; readonly prefix: string; readonly via?: string }
+  | {
+      readonly by: "framework";
+      readonly framework: DetectedFramework;
+      readonly via?: string;
+    };
 
 export async function unreachableFindings(
   input: UnreachableInput,
@@ -122,7 +134,13 @@ export async function unreachableFindings(
     for (const m of members) memberOf.set(m, pkg);
   }
   const nodeOf = (file: string) => memberOf.get(file) ?? file;
-  const reached = reachedNodes(input, nodeOf);
+  const adj = importsOf(input);
+  const reached = new Set<string>();
+  walk([...new Set(input.roots.map((r) => nodeOf(r.file)))], adj, (node) => {
+    if (reached.has(node)) return false;
+    reached.add(node);
+    return true;
+  });
   const byPath = new Map(input.files.map((f) => [f.path, f]));
   const reportable = (path: string): boolean => {
     const f = byPath.get(path);
@@ -169,11 +187,39 @@ export async function unreachableFindings(
     ...new Set(input.graph.unresolved.flatMap((u) => u.pathPrefix ?? [])),
   ];
   const framework = frameworkMatcher(input.frameworks);
-  const projectDirs = [...new Set(["", ...input.projectDirs])];
-  const projectOf = (path: string) =>
-    projectDirs
+
+  // Unreached files a framework may load by convention, or that the prefix
+  // of a dynamic import covers, may run; so may everything they import.
+  const maybeLoaded = new Map<string, MaybeLoaded>();
+  const direct = (id: string): MaybeLoaded | undefined => {
+    const files = filesOf.get(id) ?? [id];
+    const prefix = prefixes.find((p) => files.some((f) => f.startsWith(p)));
+    if (prefix !== undefined) return { by: "prefix", prefix };
+    const fw = files.map(framework).find((d) => d !== undefined);
+    return fw === undefined ? undefined : { by: "framework", framework: fw };
+  };
+  const sources = [...filesOf.keys()].sort().filter((id) => direct(id));
+  walk(sources, adj, (node, from) => {
+    if (reached.has(node) || maybeLoaded.has(node)) return false;
+    const own = direct(node);
+    const parent = from === undefined ? undefined : maybeLoaded.get(from);
+    const how =
+      own ??
+      (parent && from !== undefined ? { ...parent, via: from } : undefined);
+    if (how === undefined) return false;
+    maybeLoaded.set(node, how);
+    return true;
+  });
+
+  // The package each file belongs to: the deepest package manifest above it.
+  const packageDirs = [...new Set(["", ...input.packageDirs])];
+  const packageOf = (path: string) =>
+    packageDirs
       .filter((d) => inside(path, d))
       .reduce((a, b) => (b.length > a.length ? b : a), "");
+  const declared = new Set(
+    input.roots.filter(declaresEntries).map((r) => packageOf(r.file)),
+  );
   const importersOf = new Map<string, Set<string>>();
   for (const e of input.graph.edges) {
     if (!REACHABILITY_EDGE_KINDS.has(e.kind) || e.source === e.target) continue;
@@ -198,29 +244,33 @@ export async function unreachableFindings(
     const evidence: string[] = [];
     let recency: string | undefined;
 
-    const covering = prefixes.find((p) => files.some((f) => f.startsWith(p)));
-    if (covering !== undefined) {
-      caps.push("dynamic-import-prefix");
-      caveats.push(
-        `A dynamic import with the path prefix \`${covering}\` may load it at run time.`,
+    const how = ids
+      .map((id) => maybeLoaded.get(id))
+      .find(
+        (m) => m !== undefined && (m.via === undefined || !ids.includes(m.via)),
       );
+    if (how !== undefined) {
+      const importer =
+        how.via === undefined ? "" : `It is imported by \`${how.via}\`, which `;
+      if (how.by === "prefix") {
+        caps.push("dynamic-import-prefix");
+        caveats.push(
+          how.via === undefined
+            ? `A dynamic import or a path resolved at run time with the prefix \`${how.prefix}\` may load it.`
+            : `${importer}a dynamic import or a path resolved at run time with the prefix \`${how.prefix}\` may load.`,
+        );
+      } else {
+        const fw = how.framework;
+        caps.push("framework-convention");
+        caveats.push(
+          `${how.via === undefined ? `${fw.name} loads files in this location` : `${importer}${fw.name} loads`} by convention (${fw.evidence}). Add the files it loads to entryPoints in epoch.config.json.`,
+        );
+      }
     }
-    const fw = files.map(framework).find((d) => d !== undefined);
-    if (fw !== undefined) {
-      caps.push("framework-convention");
-      caveats.push(
-        `${fw.name} loads files in this location by convention (${fw.evidence}). Add the files it loads to entryPoints in epoch.config.json.`,
-      );
-    }
-    const project = projectOf(subject);
-    const manifestRoots = input.roots.some(
-      (r) =>
-        ROOT_REASONS_WITH_MANIFEST.has(r.reason) && inside(r.file, project),
-    );
-    if (!manifestRoots) {
+    if (!declared.has(packageOf(subject))) {
       caps.push("convention-roots-only");
       caveats.push(
-        "No manifest or config entry point was found for this project, so its entry points come from naming conventions and tests. Listing them in entryPoints in epoch.config.json makes this more reliable.",
+        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable.",
       );
     }
     if (input.historyStatus !== "usable" || input.history === undefined) {

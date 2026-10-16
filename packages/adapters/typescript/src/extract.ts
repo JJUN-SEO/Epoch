@@ -283,6 +283,30 @@ function callImport(
     : { ...base, specifier: null };
 }
 
+/**
+ * import.meta.resolve(...), require.resolve(...) or new URL(..., import.meta.url)
+ * with a computed path: the file it names is loaded at run time, so its literal
+ * prefix marks the files under it as possibly loaded, as import(`./x/${n}`)
+ * does. A literal path is not recorded: it may name an asset, not a module.
+ */
+function runtimePath(call: Node, args: Node): Pending | undefined {
+  const arg = args.namedChildren[0];
+  if (!arg || stringValue(arg) !== undefined) return undefined;
+  const prefix = literalPrefix(arg);
+  if (prefix === undefined) return undefined;
+  return {
+    kind: "dynamic",
+    specifier: null,
+    dynamicPrefix: prefix,
+    typeOnly: false,
+    names: [],
+    line: lineOf(call),
+    column: call.startPosition.column,
+  };
+}
+
+const RESOLVERS = new Set(["import.meta", "require"]);
+
 const GENERATED = /@generated\b|Code generated .* DO NOT EDIT/;
 
 const REFERENCE =
@@ -349,8 +373,21 @@ export function extract(
     } else if (args) {
       const dyn = byName.get("dynamic");
       const req = byName.get("require");
+      const resolveCall = byName.get("resolve");
+      const url = byName.get("url");
       if (dyn) pending.push(callImport("dynamic", dyn, args));
       else if (req) pending.push(callImport("require", req, args));
+      else if (resolveCall) {
+        const object = byName.get("resolver")?.childForFieldName("object");
+        const found =
+          object && RESOLVERS.has(object.text)
+            ? runtimePath(resolveCall, args)
+            : undefined;
+        if (found) pending.push(found);
+      } else if (url && args.namedChildren[1]?.text === "import.meta.url") {
+        const found = runtimePath(url, args);
+        if (found) pending.push(found);
+      }
     }
   }
 

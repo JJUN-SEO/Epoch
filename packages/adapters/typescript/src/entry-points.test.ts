@@ -99,6 +99,28 @@ describe("typescript entry points", () => {
     ]);
   });
 
+  it("maps a bundler's .cjs and .d.cts back to the .cts source when there is one", () => {
+    expect(
+      roots({
+        "pkg/package.json": JSON.stringify({
+          exports: {
+            ".": {
+              types: "./dist/index.d.cts",
+              import: "./dist/index.js",
+              require: "./dist/index.cjs",
+            },
+          },
+        }),
+        "pkg/src/index.ts": "",
+        "pkg/src/index.cts": "",
+      }),
+    ).toEqual([
+      ["pkg/src/index.cts", "manifest", "pkg/package.json exports"],
+      ["pkg/src/index.ts", "manifest", "pkg/package.json exports"],
+      ["pkg/src/index.cts", "manifest", "pkg/package.json exports"],
+    ]);
+  });
+
   it("finds files named in package scripts", () => {
     expect(
       roots({
@@ -114,6 +136,35 @@ describe("typescript entry points", () => {
     ).toEqual([
       ["scripts/gen.mjs", "script", "package.json scripts.gen"],
       ["tools/run.ts", "script", "package.json scripts.gen"],
+    ]);
+  });
+
+  it("finds files GitHub workflows run or import", () => {
+    expect(
+      roots({
+        ".github/workflows/ci.yml": [
+          "jobs:",
+          "  check:",
+          "    steps:",
+          "      - run: node ./scripts/check.mjs --strict",
+          "      - uses: actions/github-script@v7",
+          "        with:",
+          "          script: |",
+          "            const { default: run } = await import(`${process.env.GITHUB_WORKSPACE}/.github/scripts/pr.js`)",
+        ].join("\n"),
+        ".github/workflows/docs.yaml": "      - run: pnpm tsx docs/build.ts",
+        "scripts/check.mjs": "",
+        ".github/scripts/pr.js": "",
+        ".github/scripts/unused.js": "",
+        "docs/build.ts": "",
+        "docs/.github/workflows/not-read.yml":
+          "      - run: node docs/other.ts",
+        "docs/other.ts": "",
+      }).filter(([, reason]) => reason === "script"),
+    ).toEqual([
+      ["scripts/check.mjs", "script", ".github/workflows/ci.yml"],
+      [".github/scripts/pr.js", "script", ".github/workflows/ci.yml"],
+      ["docs/build.ts", "script", ".github/workflows/docs.yaml"],
     ]);
   });
 

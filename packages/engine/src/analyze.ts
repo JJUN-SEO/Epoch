@@ -4,6 +4,7 @@ import type { Tree } from "web-tree-sitter";
 import {
   AnalysisMeta,
   CERTAIN_EDGE_KINDS,
+  CONFIG_ENTRY_SOURCE,
   EntryPoint,
   FileFacts,
   GRAPH_SCHEMA_VERSION,
@@ -484,7 +485,7 @@ export async function analyze(
       addRoot({
         file: s.rel,
         reason: "config",
-        source: "epoch.config.json entryPoints",
+        source: CONFIG_ENTRY_SOURCE,
       });
     }
   }
@@ -518,8 +519,8 @@ export async function analyze(
     })),
     packages: members,
     roots: sortedRoots,
-    projectDirs: [...contexts.values()].flatMap((c) =>
-      c.projectRoots.map((r) => r.dir),
+    packageDirs: [...contexts.values()].flatMap((c) =>
+      c.projectRoots.flatMap((r) => (r.package === true ? [r.dir] : [])),
     ),
     frameworks,
     config: loaded.config,

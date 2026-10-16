@@ -41,7 +41,7 @@ export async function runFindings(
       files: input.files,
       packages: input.packages,
       roots: input.roots,
-      projectDirs: input.projectDirs,
+      packageDirs: input.packageDirs,
       frameworks: input.frameworks,
       suppressed,
       ...(input.history ? { history: input.history } : {}),

@@ -76,7 +76,7 @@ function input(
       reason: "manifest",
       source: "test",
     })),
-    projectDirs: [],
+    packageDirs: [],
     frameworks: [],
     config: DEFAULT_EPOCH_CONFIG,
     history: oldHistory,

@@ -39,6 +39,12 @@ export interface ProjectRoot {
   readonly file?: string;
   /** Package name, for package roots. */
   readonly name?: string;
+  /**
+   * True for a package manifest (package.json, pyproject.toml, go.mod...),
+   * whose entry points declare what the package exposes; false or absent for
+   * a compiler or tool config such as tsconfig.json.
+   */
+  readonly package?: boolean;
 }
 
 export interface ResolveContext {

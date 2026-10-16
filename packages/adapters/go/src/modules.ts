@@ -54,6 +54,7 @@ export function detectProjectRoots(repo: RepoView): ProjectRoot[] {
       kind,
       dir: dirOf(file),
       file,
+      ...(kind === "go.mod" ? { package: true } : {}),
       ...(parsed?.module !== undefined ? { name: parsed.module } : {}),
     });
   }

@@ -1,0 +1,10 @@
+{
+  "description": "A runner resolves ./<name> at run time (import.meta.resolve): files under that prefix may be run, capped at Low.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "description": "The Medium cap is per package and counts only manifest and epoch.config.json entry points: a package with only script roots, and the workspace root, get it; a package with a main does not.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

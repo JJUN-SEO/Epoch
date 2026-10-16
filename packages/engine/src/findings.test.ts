@@ -15,7 +15,7 @@ import { analyze } from "./analyze.js";
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
-  typescript: 29,
+  typescript: 33,
   python: 12,
   go: 10,
 };

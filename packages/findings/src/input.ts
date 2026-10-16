@@ -33,8 +33,8 @@ export interface FindingsInput {
   readonly packages: ReadonlyMap<string, readonly string[]>;
   /** Entry points: adapter roots, test files and configured entryPoints. */
   readonly roots: readonly EntryPoint[];
-  /** Directories of every detected project root (tsconfig, package.json, go.mod, pyproject...). */
-  readonly projectDirs: readonly string[];
+  /** Directories of the package manifests (package.json, pyproject.toml, go.mod...); tsconfig folders are not packages. */
+  readonly packageDirs: readonly string[];
   readonly frameworks: readonly DetectedFramework[];
   readonly config: EpochConfig;
   /** Absent when history is off. */

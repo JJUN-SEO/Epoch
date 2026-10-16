@@ -67,6 +67,9 @@ const ANY_SOURCE = [
 ] as const;
 
 const CONFIG_FILE = /(?:^|\.)config\.[cm]?[jt]s$|^\.[\w-]+rc\.[cm]?[jt]s$/;
+const WORKFLOW_FILE = /^\.github\/workflows\/[^/]+\.ya?ml$/;
+/** Characters a path in a workflow cannot contain: whitespace, quotes, ${{ }}, ${ }, shell syntax. */
+const NOT_IN_PATH = /[\s"'`(){}$,;=|&<>]+/;
 const CONVENTION_FILE = /^(?:main|cli)\.[cm]?[jt]sx?$/;
 
 interface TsconfigDirs {
@@ -128,12 +131,14 @@ function sourceFor(
     return undefined;
   }
   // No tsconfig outDir: a bundler (tsup, rollup, unbuild...) usually builds
-  // <pkg>/src into <pkg>/dist (or lib, build, out), any extension to any.
+  // <pkg>/src into <pkg>/dist (or lib, build, out), any extension to any,
+  // but a .cts or .mts source beside the .ts one is what a .cjs or .mjs
+  // output comes from.
   for (const out of BUNDLER_OUT_DIRS) {
     const dir = join(pkgDir, out);
     if (!stem.startsWith(`${dir}/`)) continue;
     const mapped = `${join(pkgDir, "src")}${stem.slice(dir.length)}`;
-    for (const srcExt of ANY_SOURCE) {
+    for (const srcExt of [...(SOURCE_FOR[ext] ?? []), ...ANY_SOURCE]) {
       if (files.has(`${mapped}${srcExt}`)) return `${mapped}${srcExt}`;
     }
   }
@@ -259,6 +264,18 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
           add(join(dir, token), "script", `${manifest} scripts.${name}`);
         }
       }
+    }
+  }
+  // GitHub Actions workflows run scripts (`run: node scripts/x.mjs`) and
+  // github-script steps import them, by paths relative to the repository root.
+  // GitHub reads workflows only from the root's .github/workflows.
+  for (const file of ctx.repo.files) {
+    if (!WORKFLOW_FILE.test(file)) continue;
+    const text = ctx.repo.reader.readFile(`${ctx.repo.root}/${file}`);
+    if (text === undefined || text.length > MAX_CONFIG_BYTES) continue;
+    for (const token of text.split(NOT_IN_PATH)) {
+      const rel = token.replace(/^\.?\//, "");
+      if (rel !== "" && isSource(rel)) add(rel, "script", file);
     }
   }
   /** Roots for the source files a config file names by path, tried against each base folder. */

@@ -18,3 +18,17 @@
   function: (identifier) @callee
   arguments: (arguments) @args
   (#eq? @callee "require")) @require
+
+; import.meta.resolve(`./${name}`), require.resolve("./x/" + name): a module
+; path resolved at run time (the adapter keeps only those two objects)
+(call_expression
+  function: (member_expression
+    property: (property_identifier) @method
+    (#eq? @method "resolve")) @resolver
+  arguments: (arguments) @args) @resolve
+
+; new URL(`./workers/${name}.js`, import.meta.url)
+(new_expression
+  constructor: (identifier) @class
+  arguments: (arguments) @args
+  (#eq? @class "URL")) @url

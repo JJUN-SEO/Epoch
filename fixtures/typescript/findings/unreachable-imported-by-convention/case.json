@@ -1,0 +1,10 @@
+{
+  "description": "A component only a Next.js page imports: if Next.js loads the page, it loads the component, so both are capped at Low.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

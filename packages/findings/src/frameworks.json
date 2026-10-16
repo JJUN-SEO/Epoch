@@ -160,5 +160,17 @@
       "https://github.com/storybookjs/storybook/blob/323f10d623978e97e5596d3ba80f353d1266a850/docs/configure/index.mdx",
       "https://github.com/storybookjs/storybook/blob/323f10d623978e97e5596d3ba80f353d1266a850/docs/api/main-config/main-config-stories.mdx"
     ]
+  },
+  {
+    "id": "vite",
+    "name": "Vite",
+    "ecosystem": "npm",
+    "dependencies": ["vite"],
+    "markerFiles": [],
+    "conventions": ["**/public/**"],
+    "sources": [
+      "https://github.com/vitejs/vite/blob/928e721b36690ac0f3f118290a21fc0cc4349055/docs/guide/assets.md",
+      "https://github.com/vitejs/vite/blob/928e721b36690ac0f3f118290a21fc0cc4349055/docs/config/shared-options.md"
+    ]
   }
 ]

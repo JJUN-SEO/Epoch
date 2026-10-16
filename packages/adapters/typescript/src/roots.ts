@@ -81,6 +81,7 @@ export function detectProjectRoots(repo: RepoView): ProjectRoot[] {
       kind: ROOT_KINDS.workspaceRoot,
       dir: "",
       file: "package.json",
+      package: true,
     });
   for (const file of repo.files) {
     const base = baseOf(file);
@@ -91,7 +92,12 @@ export function detectProjectRoots(repo: RepoView): ProjectRoot[] {
       const name =
         isRecord(pkg) && typeof pkg.name === "string" ? pkg.name : undefined;
       const dir = dirOf(file);
-      const base = { dir, file, ...(name !== undefined ? { name } : {}) };
+      const base = {
+        dir,
+        file,
+        package: true,
+        ...(name !== undefined ? { name } : {}),
+      };
       roots.push({ kind: ROOT_KINDS.package, ...base });
       if (
         globs &&
