@@ -262,8 +262,13 @@ test("showing a folder that is already open leaves the layout alone", async () =
     }),
   );
   await epoch.page.getByRole("button", { name: "Open Project…" }).click();
-  await laidOut(epoch.page);
   const canvas = epoch.page.getByTestId("graph-canvas");
+  // This project's own first layout (src, src/a, src/b and two files), not
+  // the previous project's canvas.
+  await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
+    "2 files · 1 edges",
+  );
+  await expect(canvas).toHaveAttribute("data-drawn", "5");
   const before = await canvas.getAttribute("data-layouts");
   await epoch.page.locator('[data-tree-id="dir:src/a"]').click();
   await expect(detailsTitle(epoch.page)).toContainText("src/a");
