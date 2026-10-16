@@ -10,6 +10,7 @@ import {
   SpendCapReached,
   estimateTokens,
   type SpendCap,
+  type SpendHold,
   type Usage,
 } from "./cost.js";
 import { HeuristicScorer } from "./heuristic.js";
@@ -335,8 +336,9 @@ export class ModelScorer implements RelationScorer {
     let stoppedAtCap = false;
     const usage = { inputTokens: 0, outputTokens: 0 };
     for (const w of work) {
+      let hold: SpendHold | undefined;
       try {
-        spend?.reserve({
+        hold = spend?.reserve({
           inputTokens: estimate(w.prompt),
           outputTokens: backend.maxOutputTokens,
         });
@@ -346,8 +348,14 @@ export class ModelScorer implements RelationScorer {
         break;
       }
       sent++;
-      const result = await backend.judge(w.prompt);
-      spend?.record(result.usage);
+      let result: Awaited<ReturnType<ModelBackend["judge"]>>;
+      try {
+        result = await backend.judge(w.prompt);
+      } catch (err) {
+        hold?.release();
+        throw err;
+      }
+      hold?.settle(result.usage);
       usage.inputTokens += result.usage.inputTokens;
       usage.outputTokens += result.usage.outputTokens;
       const v = result.verdict;

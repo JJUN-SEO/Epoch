@@ -78,16 +78,45 @@ describe("SpendCap", () => {
 
   it("refuses a request whose worst case would pass the cap, and counts what was spent", () => {
     const cap = new SpendCap(0.01, prices);
-    cap.reserve({ inputTokens: 5000, outputTokens: 1000 }); // $0.01: allowed
-    cap.record({ inputTokens: 4000, outputTokens: 200 }); // $0.005 spent
+    const hold = cap.reserve({ inputTokens: 5000, outputTokens: 1000 }); // $0.01: allowed
+    hold.settle({ inputTokens: 4000, outputTokens: 200 }); // $0.005 spent
     expect(cap.spentUsd).toBeCloseTo(0.005, 10);
+    expect(cap.heldUsd).toBe(0);
     expect(() => {
       cap.reserve({ inputTokens: 5000, outputTokens: 1000 });
     }).toThrow(SpendCapReached);
   });
 
-  it("estimates tokens high, from characters alone", () => {
+  it("holds a request's worst case until it settles, so requests in flight together cannot pass the cap", () => {
+    const cap = new SpendCap(0.01, prices);
+    const worst = { inputTokens: 3000, outputTokens: 600 }; // $0.006
+    const first = cap.reserve(worst);
+    expect(cap.heldUsd).toBeCloseTo(0.006, 10);
+    // Nothing is spent yet, but both together could pass the cap.
+    expect(() => cap.reserve(worst)).toThrow(SpendCapReached);
+    first.settle({ inputTokens: 1000, outputTokens: 200 }); // $0.002
+    expect(cap.spentUsd).toBeCloseTo(0.002, 10);
+    expect(cap.heldUsd).toBe(0);
+    cap.reserve(worst); // $0.002 + $0.006 fits
+  });
+
+  it("releases a hold whose request failed, and closes a hold once", () => {
+    const cap = new SpendCap(0.01, prices);
+    const hold = cap.reserve({ inputTokens: 5000, outputTokens: 1000 });
+    hold.release();
+    expect(cap.heldUsd).toBe(0);
+    expect(cap.spentUsd).toBe(0);
+    // A closed hold changes nothing more.
+    hold.settle({ inputTokens: 1_000_000, outputTokens: 0 });
+    hold.release();
+    expect(cap.spentUsd).toBe(0);
+    cap.reserve({ inputTokens: 5000, outputTokens: 1000 }).release();
+  });
+
+  it("estimates tokens high, from UTF-8 bytes", () => {
     expect(estimateTokens("abcdefgh")).toBe(4);
     expect(estimateTokens("")).toBe(0);
+    // Four CJK characters are 12 bytes: counting characters would guess low.
+    expect(estimateTokens("漢字漢字")).toBe(5);
   });
 });
