@@ -12,9 +12,11 @@ import coefficients from "./coefficients.json" with { type: "json" };
  * HeuristicScorer (CLAUDE.md "RelationScorer"): the no-model baseline every
  * other scorer must beat, and the default offline. It scores a candidate
  * with a logistic of its signals' features; the coefficients are data,
- * fitted by `pnpm bench:scorers` on a training split (ADR-008). It calls no
- * model: the embedding cosine, when present, came from the local candidate
- * generator.
+ * fitted by `pnpm bench:scorers` on a training split (ADR-008). There are
+ * two sets: one for candidates with an embedding cosine (the local model
+ * ran, so every candidate whose files it read has one) and one for
+ * candidates without (no model, as on Intel Macs). It calls no model: the
+ * cosine, when present, came from the local candidate generator.
  */
 
 export interface HeuristicCoefficients {
@@ -25,7 +27,14 @@ export interface HeuristicCoefficients {
   readonly embeddingCosine: number;
 }
 
-export const DEFAULT_COEFFICIENTS: HeuristicCoefficients = coefficients;
+export interface HeuristicModel {
+  /** For candidates without an embedding cosine. */
+  readonly withoutEmbeddings: HeuristicCoefficients;
+  /** For candidates with one. */
+  readonly withEmbeddings: HeuristicCoefficients;
+}
+
+export const DEFAULT_COEFFICIENTS: HeuristicModel = coefficients;
 
 /**
  * The features, in coefficient order: co-change ratio (commits together
@@ -43,14 +52,22 @@ export function heuristicFeatures(signals: HintSignals): number[] {
 }
 
 export class HeuristicScorer implements RelationScorer {
-  private readonly weights: HeuristicCoefficients;
+  private readonly model: HeuristicModel;
 
-  constructor(weights: HeuristicCoefficients = DEFAULT_COEFFICIENTS) {
-    this.weights = weights;
+  /** One set of coefficients applies to every candidate; a model picks by the embedding signal. */
+  constructor(
+    weights: HeuristicModel | HeuristicCoefficients = DEFAULT_COEFFICIENTS,
+  ) {
+    this.model =
+      "intercept" in weights
+        ? { withoutEmbeddings: weights, withEmbeddings: weights }
+        : weights;
   }
 
   probability(signals: HintSignals): number {
-    const w = this.weights;
+    const w = signals.embedding
+      ? this.model.withEmbeddings
+      : this.model.withoutEmbeddings;
     const [ratio = 0, support = 0, strings = 0, cosine = 0] =
       heuristicFeatures(signals);
     const z =

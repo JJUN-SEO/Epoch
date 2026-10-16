@@ -1,5 +1,6 @@
 /**
  * pnpm bench:scorers <repo>... [--days 180] [--out docs/benchmarks/scorers.md]
+ *                    [--embedding-model models/<id>]
  *                    [--write-coefficients packages/scorers/src/coefficients.json]
  *
  * The M6 evaluation of hint scorers (ADR-008, PLAN.md M6), on pinned full
@@ -7,14 +8,18 @@
  * - T = HEAD - days, T0 = T - days. At each, the last mainline commit is
  *   checked out in a shared clone and analyzed; every candidate the Enrich
  *   stage proposes is kept with its signals (co-change from history up to
- *   that commit only, shared strings from its files).
+ *   that commit only, shared strings from its files, and with
+ *   --embedding-model, similarity from the local model).
  * - A candidate source -> target claims "when target changes, source
  *   changes too". It is labeled with the next `days` of commits: judged only
  *   if target changed, positive if a commit changed both. Pairs a fact edge
  *   already covers are left out (they are never shown as hints).
- * - The heuristic's coefficients are fitted on the T0 labels only (each
- *   repository weighing the same), and every scorer is evaluated on T:
- *   nothing after T is used to propose, fit or choose.
+ * - The heuristic has two coefficient sets. "Without a model" is fitted on
+ *   the candidates the app proposes with no embedding model (co-change and
+ *   shared strings, no cosine); "with a model" on every candidate of a run
+ *   with one. Both are fitted on the T0 labels only (each repository
+ *   weighing the same), and every scorer is evaluated on T: nothing after T
+ *   is used to propose, fit or choose.
  * Every number in the report comes from this script.
  */
 import fs from "node:fs";
@@ -24,9 +29,14 @@ import {
   HINT_DEFAULTS,
   hintEdges,
   type CandidatePair,
+  type HintSignals,
   type ScoredRelation,
 } from "@epoch-dev/core";
 import { ParsePool } from "@epoch-dev/engine";
+import {
+  loadOnnxEmbedder,
+  type OnnxEmbedder,
+} from "@epoch-dev/engine/onnx-embedder";
 import {
   ConsentRequired,
   DEFAULT_COEFFICIENTS,
@@ -37,6 +47,7 @@ import {
   resolveModel,
   runSummary,
   type HeuristicCoefficients,
+  type HeuristicModel,
   type ModelRunReport,
   type ResolvedModel,
 } from "@epoch-dev/scorers";
@@ -62,14 +73,29 @@ const DAY = 86_400;
 const THRESHOLDS = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
 const BINS = 10;
 
+/** What the app proposes with no embedding model: co-change and shared strings, without a cosine. */
+function withoutModel(c: CandidatePair): CandidatePair | undefined {
+  const { cochange, strings } = c.signals;
+  if (!cochange && !strings) return undefined;
+  const signals: HintSignals = {
+    ...(cochange ? { cochange } : {}),
+    ...(strings ? { strings } : {}),
+  };
+  return { ...c, signals };
+}
+
 interface Split {
   readonly snapshot: Snapshot;
-  /** All candidates' labels (for candidate recall). */
+  /** Directed pairs that changed together later, and how many of them were candidates. */
   readonly positivePairs: number;
   readonly candidatePositives: number;
+  /** The same, counting only the candidates proposed without a model. */
+  readonly candidatePositivesWithoutModel: number;
   readonly excluded: number;
   /** Candidates no fact edge covers, judged. */
   readonly labeled: readonly Labeled[];
+  /** The same candidates as the app proposes them without a model. */
+  readonly labeledWithoutModel: readonly Labeled[];
   readonly factCovered: number;
 }
 
@@ -91,10 +117,12 @@ async function split(
   at: number,
   days: number,
   pool: ParsePool,
+  embedder: OnnxEmbedder | undefined,
   model?: ResolvedModel,
 ): Promise<Split | undefined> {
   const snapshot = await snapshotAt(dir, at, {
     pool,
+    ...(embedder ? { embedder } : {}),
     ...(model
       ? {
           model,
@@ -105,6 +133,11 @@ async function split(
       : {}),
   });
   if (!snapshot) return undefined;
+  if (embedder && snapshot.embeddings.status !== "ready") {
+    throw new Error(
+      `${embedder.modelId}: the embedding model failed at ${snapshot.commit}`,
+    );
+  }
   const later = laterCommits(
     dir,
     snapshot.time,
@@ -112,14 +145,20 @@ async function split(
     snapshot.nodeOf,
   );
   const all = labelCandidates(snapshot.candidates, later);
+  const base = labelCandidates(
+    snapshot.candidates.flatMap((c) => withoutModel(c) ?? []),
+    later,
+  );
   const covered = (c: CandidatePair) =>
     snapshot.facts.has(`${c.source}\u0000${c.target}`);
   return {
     snapshot,
     positivePairs: all.positivePairs,
     candidatePositives: all.candidatePositives,
+    candidatePositivesWithoutModel: base.candidatePositives,
     excluded: all.excluded,
     labeled: all.labeled.filter((l) => !covered(l.candidate)),
+    labeledWithoutModel: base.labeled.filter((l) => !covered(l.candidate)),
     factCovered: snapshot.candidates.filter(covered).length,
   };
 }
@@ -127,17 +166,17 @@ async function split(
 /** Features in coefficient order, with the intercept's 1 first. */
 const row = (c: CandidatePair) => [1, ...heuristicFeatures(c.signals)];
 
-function fit(runs: readonly RepoRun[]): HeuristicCoefficients {
+/** One coefficient set, fitted on each repository's labels, the repositories weighing the same. */
+function fit(perRepo: readonly (readonly Labeled[])[]): HeuristicCoefficients {
   const xs: number[][] = [];
   const ys: number[] = [];
   const ws: number[] = [];
-  const total = runs.reduce((n, r) => n + r.train.labeled.length, 0);
-  for (const r of runs) {
-    const n = r.train.labeled.length;
-    if (n === 0) continue;
-    // Each repository weighs the same; the mean weight is 1.
-    const w = total / (runs.length * n);
-    for (const l of r.train.labeled) {
+  const used = perRepo.filter((labeled) => labeled.length > 0);
+  const total = used.reduce((n, labeled) => n + labeled.length, 0);
+  for (const labeled of used) {
+    // The mean weight is 1.
+    const w = total / (used.length * labeled.length);
+    for (const l of labeled) {
       xs.push(row(l.candidate));
       ys.push(l.y);
       ws.push(w);
@@ -174,6 +213,27 @@ function metrics(labeled: readonly Labeled[], p: (c: CandidatePair) => number) {
   };
 }
 
+function scorerTable(
+  labeled: readonly Labeled[],
+  scorers: readonly Scorer[],
+): string {
+  return table(
+    ["Scorer", "Judged", "Positive rate", "Mean p", "Brier", "ECE", "ROC AUC"],
+    scorers.map((s) => {
+      const m = metrics(labeled, s.p);
+      return [
+        s.name,
+        String(m.n),
+        pct(m.prevalence),
+        num(m.meanP),
+        num(m.brier),
+        num(m.ece),
+        num(m.auc),
+      ];
+    }),
+  );
+}
+
 const signalOf = (c: CandidatePair): string =>
   c.signals.cochange && c.signals.strings
     ? "co-change and shared strings"
@@ -181,7 +241,9 @@ const signalOf = (c: CandidatePair): string =>
       ? "co-change only"
       : c.signals.strings
         ? "shared strings only"
-        : "other";
+        : c.signals.embedding
+          ? "similarity only"
+          : "other";
 
 /** The model scorers' rows: measured on the pairs a model scored, next to the fitted heuristic on the same pairs. */
 function modelSection(
@@ -271,11 +333,28 @@ function modelSection(
   return lines;
 }
 
+/** The embedding model's description, as scripts/fetch-model.mjs wrote it. */
+function modelCard(dir: string): {
+  readonly license: string;
+  readonly source: string;
+  readonly bytes: number;
+} {
+  const card = JSON.parse(
+    fs.readFileSync(path.join(dir, "epoch-model.json"), "utf8"),
+  ) as { license?: unknown; source?: unknown };
+  return {
+    license: typeof card.license === "string" ? card.license : "unknown",
+    source: typeof card.source === "string" ? card.source : "unknown",
+    bytes: fs.statSync(path.join(dir, "model.onnx")).size,
+  };
+}
+
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     options: {
       days: { type: "string", default: "180" },
       out: { type: "string", default: "docs/benchmarks/scorers.md" },
+      "embedding-model": { type: "string" },
       "write-coefficients": { type: "string" },
       ...SCORER_ARGS,
     },
@@ -284,12 +363,16 @@ async function main(): Promise<void> {
   const days = Number(values.days);
   if (positionals.length === 0 || !Number.isFinite(days) || days <= 0) {
     throw new Error(
-      "usage: pnpm bench:scorers <repo>... [--days 180] [--out <file>] [--write-coefficients <file>]",
+      "usage: pnpm bench:scorers <repo>... [--days 180] [--out <file>] [--embedding-model <dir>] [--write-coefficients <file>]",
     );
   }
   // A model scorer (opt-in) scores each repository's T candidates; one
   // spend cap covers the whole run.
   const model = resolveModel(values);
+  const modelDir = values["embedding-model"];
+  const embedder = modelDir
+    ? await loadOnnxEmbedder(path.resolve(modelDir))
+    : undefined;
   const pool = new ParsePool();
   const runs: RepoRun[] = [];
   try {
@@ -300,9 +383,9 @@ async function main(): Promise<void> {
       process.stderr.write(
         `${info.name}: snapshot T0 ${date(t - days * DAY)}...\n`,
       );
-      const train = await split(dir, t - days * DAY, days, pool);
+      const train = await split(dir, t - days * DAY, days, pool, embedder);
       process.stderr.write(`${info.name}: snapshot T ${date(t)}...\n`);
-      const test = await split(dir, t, days, pool, model);
+      const test = await split(dir, t, days, pool, embedder, model);
       if (!train || !test) {
         process.stderr.write(`${info.name}: history too short, skipped\n`);
         continue;
@@ -311,17 +394,34 @@ async function main(): Promise<void> {
     }
   } finally {
     await pool.destroy();
+    await embedder?.close();
   }
   if (runs.length === 0) throw new Error("no repository had enough history");
 
-  const fitted = fit(runs);
+  // Without a model the cosine column is all zeros, and the L2 penalty
+  // keeps its coefficient at 0.
+  const fitted: HeuristicModel = {
+    withoutEmbeddings: fit(runs.map((r) => r.train.labeledWithoutModel)),
+    withEmbeddings: embedder
+      ? fit(runs.map((r) => r.train.labeled))
+      : DEFAULT_COEFFICIENTS.withEmbeddings,
+  };
   const fittedScorer = new HeuristicScorer(fitted);
   const shipped = new HeuristicScorer(DEFAULT_COEFFICIENTS);
-  const trainLabeled = runs.flatMap((r) => r.train.labeled);
-  const trainRate =
-    trainLabeled.filter((l) => l.y === 1).length /
-    Math.max(1, trainLabeled.length);
-  const scorers: Scorer[] = [
+  const rate = (labeled: readonly Labeled[]) =>
+    labeled.filter((l) => l.y === 1).length / Math.max(1, labeled.length);
+  const trainRateWithout = rate(
+    runs.flatMap((r) => r.train.labeledWithoutModel),
+  );
+  const trainRateAll = rate(runs.flatMap((r) => r.train.labeled));
+  const cochangeAlone: Scorer = {
+    name: "Co-change ratio alone",
+    p: (c) => {
+      const x = c.signals.cochange;
+      return x && x.targetCommits > 0 ? x.together / x.targetCommits : 0;
+    },
+  };
+  const withoutScorers: Scorer[] = [
     {
       name: "Heuristic, fitted on T0",
       p: (c) => fittedScorer.probability(c.signals),
@@ -330,16 +430,39 @@ async function main(): Promise<void> {
       name: "Heuristic, shipped coefficients",
       p: (c) => shipped.probability(c.signals),
     },
+    cochangeAlone,
+    { name: "Constant (T0 positive rate)", p: () => trainRateWithout },
+  ];
+  const withScorers: Scorer[] = [
     {
-      name: "Co-change ratio alone",
+      name: "Heuristic with a model, fitted on T0",
+      p: (c) => fittedScorer.probability(c.signals),
+    },
+    {
+      name: "Heuristic with a model, shipped coefficients",
+      p: (c) => shipped.probability(c.signals),
+    },
+    {
+      name: "Heuristic without a model, fitted on T0 (similarity-only pairs at 0: never proposed)",
       p: (c) => {
-        const x = c.signals.cochange;
-        return x && x.targetCommits > 0 ? x.together / x.targetCommits : 0;
+        const base = withoutModel(c);
+        return base ? fittedScorer.probability(base.signals) : 0;
       },
     },
-    { name: "Constant (T0 positive rate)", p: () => trainRate },
+    {
+      name: "Cosine alone",
+      p: (c) => c.signals.embedding?.cosine ?? 0,
+    },
+    cochangeAlone,
+    { name: "Constant (T0 positive rate)", p: () => trainRateAll },
   ];
-  const pooled = runs.flatMap((r) => r.test.labeled);
+  // The scorer the app runs: with a model when this run had one.
+  const primary = embedder ? withScorers[0] : withoutScorers[0];
+  const pooled = runs.flatMap((r) =>
+    embedder ? r.test.labeled : r.test.labeledWithoutModel,
+  );
+  const pooledWithout = runs.flatMap((r) => r.test.labeledWithoutModel);
+  const card = modelDir ? modelCard(path.resolve(modelDir)) : undefined;
 
   const lines: string[] = [];
   lines.push(
@@ -351,10 +474,54 @@ async function main(): Promise<void> {
     "",
     "## Protocol",
     "",
-    `For each repository, T is ${String(days)} days before HEAD's commit date and T0 is ${String(days)} days before T. At each, the last mainline commit is analyzed in a shared clone, and every candidate the Enrich stage proposes (git co-change in the 365 days before that commit, shared rare strings in its files) is kept with its signals. A candidate \`source -> target\` claims "when target changes, source changes too"; the next ${String(days)} days of non-merge commits (at most ${String(HINT_DEFAULTS.cochange.maxFiles)} files each, renames followed) judge it when target changed: positive if a commit changed both. Candidates whose target did not change are left out, and so are pairs a fact edge already covers (they are never shown as hints).`,
+    `For each repository, T is ${String(days)} days before HEAD's commit date and T0 is ${String(days)} days before T. At each, the last mainline commit is analyzed in a shared clone, and every candidate the Enrich stage proposes (git co-change in the 365 days before that commit, shared rare strings in its files${embedder ? ", and each file's nearest neighbors by the local embedding model" : ""}) is kept with its signals. A candidate \`source -> target\` claims "when target changes, source changes too"; the next ${String(days)} days of non-merge commits (at most ${String(HINT_DEFAULTS.cochange.maxFiles)} files each, renames followed) judge it when target changed: positive if a commit changed both. Candidates whose target did not change are left out, and so are pairs a fact edge already covers (they are never shown as hints).`,
     "",
-    "The heuristic's coefficients are fitted on the T0 labels (a weighted logistic regression, each repository weighing the same, L2 1 on the slopes). All scorers are evaluated on T. Nothing after T is used to propose, fit or choose.",
+    "The heuristic has two coefficient sets: one for the candidates the app proposes without an embedding model (co-change and shared strings, no cosine), one for every candidate when the model ran (each then has a cosine). Each is fitted on the T0 labels (a weighted logistic regression, each repository weighing the same, L2 1 on the slopes). All scorers are evaluated on T. Nothing after T is used to propose, fit or choose.",
     "",
+  );
+  if (embedder && card) {
+    const texts = runs.reduce(
+      (n, r) =>
+        n + r.train.snapshot.embedded.texts + r.test.snapshot.embedded.texts,
+      0,
+    );
+    const ms = runs.reduce(
+      (n, r) => n + r.train.snapshot.embedded.ms + r.test.snapshot.embedded.ms,
+      0,
+    );
+    lines.push(
+      "## Embedding model",
+      "",
+      table(
+        [
+          "Model",
+          "License",
+          "ONNX file",
+          "Dimensions",
+          "Token limit",
+          "Pooling",
+          "Files embedded",
+          "CPU time per file",
+        ],
+        [
+          [
+            `${embedder.modelId} (${card.source})`,
+            card.license,
+            `${num(card.bytes / 1e6, 1)} MB`,
+            String(embedder.spec.dimensions),
+            String(embedder.spec.maxTokens),
+            embedder.spec.pooling,
+            String(texts),
+            `${num(ms / Math.max(1, texts), 1)} ms`,
+          ],
+        ],
+      ),
+      "",
+      `Each file's text is its path and its first ${String(HINT_DEFAULTS.embeddings.maxChars)} characters, run one at a time on the CPU (onnxruntime-node). Neighbors: the ${String(HINT_DEFAULTS.embeddings.k)} nearest per file at cosine ${String(HINT_DEFAULTS.embeddings.minCosine)} or more.`,
+      "",
+    );
+  }
+  lines.push(
     "## Data",
     "",
     table(
@@ -366,35 +533,67 @@ async function main(): Promise<void> {
         "Candidates at T0",
         "Judged at T0 (positive)",
         "Candidates at T",
+        ...(embedder ? ["Similarity only at T"] : []),
         "Fact-covered at T",
         "Target unchanged at T",
         "Judged at T (positive)",
         "Candidate recall at T",
+        ...(embedder ? ["Candidate recall without the model"] : []),
       ],
       runs.map((r) => {
-        const pos = (s: Split) => s.labeled.filter((l) => l.y === 1).length;
+        const pos = (labeled: readonly Labeled[]) =>
+          `${String(labeled.length)} (${pct(rate(labeled))})`;
+        const view = (s: Split) =>
+          embedder ? s.labeled : s.labeledWithoutModel;
+        const recall = (n: number) =>
+          `${pctOrDash(n / r.test.positivePairs)} (${String(n)} of ${String(r.test.positivePairs)})`;
+        const candidates = (s: Split) =>
+          embedder
+            ? s.snapshot.candidates.length
+            : s.snapshot.candidates.filter((c) => withoutModel(c)).length;
         return [
           r.name,
           `${(r.commit ?? "").slice(0, 10)} (${date(r.head)})`,
           `${r.train.snapshot.commit.slice(0, 10)} (${date(r.train.snapshot.time)})`,
           `${r.test.snapshot.commit.slice(0, 10)} (${date(r.test.snapshot.time)})`,
-          String(r.train.snapshot.candidates.length),
-          `${String(r.train.labeled.length)} (${pct(pos(r.train) / Math.max(1, r.train.labeled.length))})`,
-          String(r.test.snapshot.candidates.length),
+          String(candidates(r.train)),
+          pos(view(r.train)),
+          String(candidates(r.test)),
+          ...(embedder
+            ? [
+                String(
+                  r.test.snapshot.candidates.filter((c) => !withoutModel(c))
+                    .length,
+                ),
+              ]
+            : []),
           String(r.test.factCovered),
           String(r.test.excluded),
-          `${String(r.test.labeled.length)} (${pct(pos(r.test) / Math.max(1, r.test.labeled.length))})`,
-          `${pctOrDash(r.test.candidatePositives / r.test.positivePairs)} (${String(r.test.candidatePositives)} of ${String(r.test.positivePairs)})`,
+          pos(view(r.test)),
+          recall(
+            embedder
+              ? r.test.candidatePositives
+              : r.test.candidatePositivesWithoutModel,
+          ),
+          ...(embedder ? [recall(r.test.candidatePositivesWithoutModel)] : []),
         ];
       }),
     ),
     "",
-    "Candidate recall: of the directed pairs of files that changed together after T, the share the generators had proposed at T (fact-covered pairs included). The rest are pairs with no history together and no shared rare string; only a semantic signal could find them.",
+    embedder
+      ? "Candidate recall: of the directed pairs of files that changed together after T, the share the generators had proposed at T (fact-covered pairs included), with and without the model's similarity candidates."
+      : "Candidate recall: of the directed pairs of files that changed together after T, the share the generators had proposed at T (fact-covered pairs included). The rest are pairs with no history together and no shared rare string; only a semantic signal could find them.",
     "",
     "## Fitted coefficients",
     "",
     table(
-      ["Coefficient", "Fitted on T0", "Shipped (at run time)"],
+      [
+        "Coefficient",
+        "Without a model: fitted on T0",
+        "Without a model: shipped",
+        "With a model: fitted on T0",
+        "With a model: shipped",
+      ],
       (
         [
           ["intercept", "intercept"],
@@ -405,47 +604,55 @@ async function main(): Promise<void> {
         ] as const
       ).map(([label, key]) => [
         label,
-        num(fitted[key]),
-        num(DEFAULT_COEFFICIENTS[key]),
+        num(fitted.withoutEmbeddings[key]),
+        num(DEFAULT_COEFFICIENTS.withoutEmbeddings[key]),
+        embedder ? num(fitted.withEmbeddings[key]) : "not fitted",
+        num(DEFAULT_COEFFICIENTS.withEmbeddings[key]),
       ]),
     ),
     "",
-    "Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored. No embedding signal is in this run (the model could not be downloaded yet), so its coefficient stays 0 and is not fitted.",
+    `Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored.${embedder ? "" : " This run had no embedding model, so the set for candidates with a cosine is not fitted."}`,
     "",
-    "## Scorers at T, all repositories",
+    "## Scorers at T without a model, all repositories",
     "",
-    table(
-      [
-        "Scorer",
-        "Judged",
-        "Positive rate",
-        "Mean p",
-        "Brier",
-        "ECE",
-        "ROC AUC",
-      ],
-      scorers.map((s) => {
-        const m = metrics(pooled, s.p);
-        return [
-          s.name,
-          String(m.n),
-          pct(m.prevalence),
-          num(m.meanP),
-          num(m.brier),
-          num(m.ece),
-          num(m.auc),
-        ];
-      }),
-    ),
+    "The candidates as the app proposes them when no embedding model is available.",
+    "",
+    scorerTable(pooledWithout, withoutScorers),
+    "",
+  );
+  if (embedder) {
+    const shared = runs.flatMap((r) =>
+      r.test.labeled.filter((l) => withoutModel(l.candidate)),
+    );
+    lines.push(
+      "## Scorers at T with the model, all repositories",
+      "",
+      "Every candidate, similarity-only ones included, each with its cosine.",
+      "",
+      scorerTable(
+        runs.flatMap((r) => r.test.labeled),
+        withScorers,
+      ),
+      "",
+      "### The same, on the pairs both views share",
+      "",
+      "Co-change and shared-string candidates only: whether the cosine improves the scores of the pairs proposed without it.",
+      "",
+      scorerTable(shared, withScorers.slice(0, 3)),
+      "",
+    );
+  }
+  lines.push(
+    "## Model scorers",
     "",
     ...modelSection(runs, model, fittedScorer),
     "",
     "Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).",
     "",
-    "### Precision and recall by threshold (heuristic, fitted)",
+    `### Precision and recall by threshold (${primary?.name ?? ""})`,
     "",
   );
-  const fittedPooled = metrics(pooled, scorers[0]?.p ?? (() => 0));
+  const fittedPooled = metrics(pooled, primary?.p ?? (() => 0));
   lines.push(
     table(
       ["Threshold", "At or above", "Precision", "Recall"],
@@ -457,7 +664,7 @@ async function main(): Promise<void> {
       ]),
     ),
     "",
-    "### Reliability (heuristic, fitted)",
+    `### Reliability (${primary?.name ?? ""})`,
     "",
     table(
       ["Predicted", "Candidates", "Mean predicted", "Observed"],
@@ -471,7 +678,7 @@ async function main(): Promise<void> {
         ]),
     ),
     "",
-    "## By repository (heuristic, fitted)",
+    `## By repository (${primary?.name ?? ""})`,
     "",
     table(
       [
@@ -486,7 +693,10 @@ async function main(): Promise<void> {
         "Recall at 0.5",
       ],
       runs.map((r) => {
-        const m = metrics(r.test.labeled, scorers[0]?.p ?? (() => 0));
+        const m = metrics(
+          embedder ? r.test.labeled : r.test.labeledWithoutModel,
+          primary?.p ?? (() => 0),
+        );
         const at = m.pr.find((p) => p.threshold === 0.5);
         return [
           r.name,
@@ -502,7 +712,7 @@ async function main(): Promise<void> {
       }),
     ),
     "",
-    "## By signal (heuristic, fitted, all repositories)",
+    `## By signal (${primary?.name ?? ""}, all repositories)`,
     "",
   );
   const signals = [...new Set(pooled.map((l) => signalOf(l.candidate)))].sort();
@@ -520,7 +730,7 @@ async function main(): Promise<void> {
       signals.map((sig) => {
         const m = metrics(
           pooled.filter((l) => signalOf(l.candidate) === sig),
-          scorers[0]?.p ?? (() => 0),
+          primary?.p ?? (() => 0),
         );
         return [
           sig,
@@ -602,23 +812,29 @@ async function main(): Promise<void> {
       edgeRows,
     ),
     "",
-    "Enrich stage time is the run without a cache: the co-change log is read from git. With the cache, the commit sets of a HEAD are read once.",
+    `Enrich stage time is the run without a cache: the co-change log is read from git${embedder ? " and every file is embedded" : ""}. With the cache, the commit sets of a HEAD are read once${embedder ? " and a file is embedded once per content and model" : ""}.`,
     "",
   );
   writeReport(path.resolve(values.out), lines.join("\n"));
   process.stderr.write(`wrote ${values.out}\n`);
   const out = values["write-coefficients"];
   if (out !== undefined) {
-    const round = (x: number) => Math.round(x * 1e4) / 1e4;
+    const round = (w: HeuristicCoefficients): HeuristicCoefficients => {
+      const r = (x: number) => Math.round(x * 1e4) / 1e4;
+      return {
+        intercept: r(w.intercept),
+        cochangeRatio: r(w.cochangeRatio),
+        cochangeSupport: r(w.cochangeSupport),
+        stringWeight: r(w.stringWeight),
+        embeddingCosine: r(w.embeddingCosine),
+      };
+    };
     fs.writeFileSync(
       path.resolve(out),
       `${JSON.stringify(
         {
-          intercept: round(fitted.intercept),
-          cochangeRatio: round(fitted.cochangeRatio),
-          cochangeSupport: round(fitted.cochangeSupport),
-          stringWeight: round(fitted.stringWeight),
-          embeddingCosine: round(fitted.embeddingCosine),
+          withoutEmbeddings: round(fitted.withoutEmbeddings),
+          withEmbeddings: round(fitted.withEmbeddings),
         },
         null,
         2,

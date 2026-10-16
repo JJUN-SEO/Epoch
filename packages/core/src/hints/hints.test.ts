@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CandidatePair, ScoredRelation } from "../interfaces/services.js";
 import { cochangeCandidates } from "./cochange.js";
-import { embeddingCandidates } from "./embeddings.js";
+import { embeddingCandidates, nodeVectors, withCosine } from "./embeddings.js";
 import { hintEdges, mergeCandidates } from "./edges.js";
 import { sharedStringCandidates } from "./strings.js";
 
@@ -282,12 +282,12 @@ describe("embeddingCandidates", () => {
 
   it("proposes each node's nearest neighbors above the cutoff, in both directions", () => {
     const pairs = embeddingCandidates(
-      [
+      nodeVectors([
         { id: "a.ts", vector: v(1, 0, 0) },
         { id: "b.ts", vector: v(0.9, 0.1, 0) },
         { id: "c.ts", vector: v(0, 1, 0) },
         { id: "d.ts", vector: v(0, 0, 0) }, // no direction: skipped
-      ],
+      ]),
       { k: 1, minCosine: 0.5 },
     );
     const cos = Math.round((0.9 / Math.hypot(0.9, 0.1)) * 1e4) / 1e4;
@@ -306,19 +306,43 @@ describe("embeddingCandidates", () => {
   });
 
   it("keeps only k neighbors per node, and averages a package's files", () => {
-    const pairs = embeddingCandidates(
-      [
-        { id: "x", vector: v(1, 0) },
-        { id: "pkg:p", vector: v(1, 0.2) },
-        { id: "pkg:p", vector: v(1, -0.2) }, // mean points along x
-        { id: "y", vector: v(1, 0.5) },
-      ],
-      { k: 1, minCosine: 0 },
-    );
+    const vectors = nodeVectors([
+      { id: "x", vector: v(1, 0) },
+      { id: "pkg:p", vector: v(1, 0.2) },
+      { id: "pkg:p", vector: v(1, -0.2) }, // mean points along x
+      { id: "y", vector: v(1, 0.5) },
+    ]);
+    const pairs = embeddingCandidates(vectors, { k: 1, minCosine: 0 });
     expect(pairs.find((p) => p.source === "x")?.target).toBe("pkg:p");
     expect(
       pairs.find((p) => p.source === "x" && p.target === "pkg:p")?.signals
         .embedding?.cosine,
     ).toBe(1);
+  });
+
+  it("gives every candidate its cosine when both nodes have a vector", () => {
+    const vectors = nodeVectors([
+      { id: "a.ts", vector: v(1, 0) },
+      { id: "b.ts", vector: v(0, 1) },
+    ]);
+    const out = withCosine(
+      [
+        {
+          source: "a.ts",
+          target: "b.ts",
+          signals: {
+            cochange: { together: 3, sourceCommits: 3, targetCommits: 3 },
+          },
+        },
+        {
+          source: "a.ts",
+          target: "missing.ts",
+          signals: { strings: { shared: ["x.y"], weight: 1 } },
+        },
+      ],
+      vectors,
+    );
+    expect(out[0]?.signals.embedding).toEqual({ cosine: 0 });
+    expect(out[1]?.signals.embedding).toBeUndefined();
   });
 });

@@ -40,6 +40,33 @@ describe("HeuristicScorer", () => {
     expect(strong?.rationale).toBe("");
   });
 
+  it("scores a candidate with an embedding cosine with the set fitted with embeddings", () => {
+    const scorer = new HeuristicScorer({
+      withoutEmbeddings: {
+        intercept: 0,
+        cochangeRatio: 0,
+        cochangeSupport: 0,
+        stringWeight: 0,
+        embeddingCosine: 0,
+      },
+      withEmbeddings: {
+        intercept: -1,
+        cochangeRatio: 0,
+        cochangeSupport: 0,
+        stringWeight: 0,
+        embeddingCosine: 2,
+      },
+    });
+    const co = { together: 3, sourceCommits: 3, targetCommits: 3 };
+    expect(scorer.probability({ cochange: co })).toBe(0.5);
+    expect(
+      scorer.probability({ cochange: co, embedding: { cosine: 0.5 } }),
+    ).toBe(0.5);
+    expect(
+      scorer.probability({ cochange: co, embedding: { cosine: 1 } }),
+    ).toBeCloseTo(1 / (1 + Math.exp(-1)), 10);
+  });
+
   it("is deterministic and classifies no roles", async () => {
     const scorer = new HeuristicScorer();
     const c = [

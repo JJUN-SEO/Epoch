@@ -1,0 +1,87 @@
+{
+  "$comment": "Embedding models Epoch can bundle (ADR-008). Each is pinned to a Hugging Face revision and every file to its sha256; scripts/fetch-model.mjs downloads them at build time into models/<id>/ (gitignored). The installed app never downloads a model.",
+  "default": "all-minilm-l6-v2",
+  "models": {
+    "all-minilm-l6-v2": {
+      "repo": "sentence-transformers/all-MiniLM-L6-v2",
+      "revision": "1110a243fdf4706b3f48f1d95db1a4f5529b4d41",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2",
+      "pooling": "mean",
+      "normalize": true,
+      "maxTokens": 256,
+      "dimensions": 384,
+      "files": {
+        "model.onnx": {
+          "path": "onnx/model.onnx",
+          "sha256": "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452",
+          "size": 90405214
+        },
+        "tokenizer.json": {
+          "path": "tokenizer.json",
+          "sha256": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037",
+          "size": 466247
+        },
+        "tokenizer_config.json": {
+          "path": "tokenizer_config.json",
+          "sha256": "acb92769e8195aabd29b7b2137a9e6d6e25c476a4f15aa4355c233426c61576b",
+          "size": 350
+        }
+      }
+    },
+    "bge-small-en-v1.5": {
+      "repo": "BAAI/bge-small-en-v1.5",
+      "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+      "license": "mit",
+      "source": "https://huggingface.co/BAAI/bge-small-en-v1.5",
+      "pooling": "cls",
+      "normalize": true,
+      "maxTokens": 512,
+      "dimensions": 384,
+      "files": {
+        "model.onnx": {
+          "path": "onnx/model.onnx",
+          "sha256": "828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35",
+          "size": 133093490
+        },
+        "tokenizer.json": {
+          "path": "tokenizer.json",
+          "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66",
+          "size": 711396
+        },
+        "tokenizer_config.json": {
+          "path": "tokenizer_config.json",
+          "sha256": "9261e7d79b44c8195c1cada2b453e55b00aeb81e907a6664974b4d7776172ab3",
+          "size": 366
+        }
+      }
+    },
+    "jina-embeddings-v2-small-en": {
+      "repo": "jinaai/jina-embeddings-v2-small-en",
+      "revision": "44e7d1d6caec8c883c2d4b207588504d519788d0",
+      "license": "apache-2.0",
+      "source": "https://huggingface.co/jinaai/jina-embeddings-v2-small-en",
+      "pooling": "mean",
+      "normalize": true,
+      "maxTokens": 8192,
+      "dimensions": 512,
+      "files": {
+        "model.onnx": {
+          "path": "model.onnx",
+          "sha256": "974fdefe71fc9889258f569132b35acae6278874c8d09dbdf7806d23ad0b4497",
+          "size": 129809014
+        },
+        "tokenizer.json": {
+          "path": "tokenizer.json",
+          "sha256": "e9f999ac74497843ed9f4303246a8f43d9f100ee8aab8e133667903f447ceb48",
+          "size": 711573
+        },
+        "tokenizer_config.json": {
+          "path": "tokenizer_config.json",
+          "sha256": "25cbd867af916b5a5718e80e9a702cf72c61bf890a1bc141c6fbce6d74c99632",
+          "size": 373
+        }
+      }
+    }
+  }
+}

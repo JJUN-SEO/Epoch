@@ -2,6 +2,8 @@ import {
   HINT_DEFAULTS,
   cochangeCandidates,
   embeddingCandidates,
+  nodeVectors,
+  withCosine,
   hintEdges,
   isHintEdge,
   mergeCandidates,
@@ -159,6 +161,7 @@ export async function enrich(
     stringPairs = pairs.length;
   }
 
+  let vectors: ReadonlyMap<string, Float32Array> | undefined;
   let embeddings: AnalysisMeta["hints"]["embeddings"] = {
     status: "off",
     pairs: 0,
@@ -167,18 +170,21 @@ export async function enrich(
     const cfg = { ...HINT_DEFAULTS.embeddings, ...opts.embeddings };
     const { embedder } = cfg;
     try {
-      const vectors = await embedFiles(input.files, embedder, {
+      const files = await embedFiles(input.files, embedder, {
         read: (path) => input.reader.readFile(`${input.root}/${path}`),
         maxChars: cfg.maxChars,
         ...(input.store ? { store: input.store } : {}),
       });
-      const pairs = embeddingCandidates(
-        vectors.map((v) => ({
+      vectors = nodeVectors(
+        files.map((v) => ({
           id: input.nodeOf.get(v.path) ?? v.path,
           vector: v.vector,
         })),
-        { k: cfg.k, minCosine: cfg.minCosine },
       );
+      const pairs = embeddingCandidates(vectors, {
+        k: cfg.k,
+        minCosine: cfg.minCosine,
+      });
       candidates.push(pairs);
       embeddings = {
         status: "ready",
@@ -194,7 +200,9 @@ export async function enrich(
     }
   }
 
-  const merged = mergeCandidates(...candidates);
+  const merged = vectors
+    ? withCosine(mergeCandidates(...candidates), vectors)
+    : mergeCandidates(...candidates);
   opts.onCandidates?.({ candidates: merged, nodeOf: input.nodeOf });
   const scorer = opts.scorer ?? {
     id: "heuristic",

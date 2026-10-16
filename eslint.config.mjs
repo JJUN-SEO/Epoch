@@ -111,8 +111,9 @@ export default defineConfig(
   },
   {
     // The single network wrapper: an origin allowlist and an offline switch
-    // in front of fetch.
-    files: ["packages/scorers/src/net.ts"],
+    // in front of fetch. And the build-time model download, which runs on
+    // the build machine and in CI, never in Epoch (docs/privacy.md).
+    files: ["packages/scorers/src/net.ts", "scripts/fetch-model.mjs"],
     rules: {
       "no-restricted-globals": "off",
       "no-restricted-properties": "off",

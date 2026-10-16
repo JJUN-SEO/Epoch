@@ -38,3 +38,7 @@ allowBuilds:
   # electron-winstaller (via electron-builder) copies a 7-Zip binary for
   # Squirrel.Windows installers; Epoch ships NSIS on Windows, so it is unused.
   electron-winstaller: false
+  # onnxruntime-node (the local embedding model, ADR-008) ships its CPU
+  # binaries in the package; its install script only downloads optional GPU
+  # providers (CUDA, TensorRT), which Epoch does not use.
+  onnxruntime-node: false

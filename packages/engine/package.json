@@ -17,6 +17,10 @@
     "./dismissals": {
       "types": "./dist/dismissals.d.ts",
       "default": "./dist/dismissals.js"
+    },
+    "./onnx-embedder": {
+      "types": "./dist/onnx-embedder.d.ts",
+      "default": "./dist/onnx-embedder.js"
     }
   },
   "scripts": {
@@ -41,10 +45,12 @@
     "@epoch-dev/core": "workspace:*",
     "@epoch-dev/findings": "workspace:*",
     "@epoch-dev/scorers": "workspace:*",
+    "@huggingface/tokenizers": "0.2.0",
     "@vscode/tree-sitter-wasm": "catalog:",
     "better-sqlite3": "catalog:",
     "chokidar": "5.0.0",
     "ignore": "7.0.12",
+    "onnxruntime-node": "1.30.0",
     "piscina": "catalog:",
     "smol-toml": "1.9.0",
     "web-tree-sitter": "catalog:",

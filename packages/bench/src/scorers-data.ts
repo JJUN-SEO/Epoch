@@ -5,7 +5,9 @@ import path from "node:path";
 import {
   HINT_DEFAULTS,
   isHintEdge,
+  type AnalysisMeta,
   type CandidatePair,
+  type Embedder,
   type ScoredRelation,
 } from "@epoch-dev/core";
 import { FsReader, analyze, toPosix, type ParsePool } from "@epoch-dev/engine";
@@ -47,6 +49,9 @@ export interface Snapshot {
   readonly nodeOf: ReadonlyMap<string, string>;
   readonly enrichMs: number;
   readonly analyzeMs: number;
+  /** The embedding model's status at this snapshot, and what it cost. */
+  readonly embeddings: AnalysisMeta["hints"]["embeddings"];
+  readonly embedded: { readonly texts: number; readonly ms: number };
   /** A model scorer's scores for this snapshot's candidates, when one was asked for. */
   readonly model?: {
     readonly scores: readonly ScoredRelation[];
@@ -63,6 +68,8 @@ export async function snapshotAt(
     /** Also score the candidates with this model (it reads the snapshot's files). */
     readonly model?: ResolvedModel;
     readonly onPlan?: (text: string) => void;
+    /** A local embedding model: similarity candidates, and every candidate's cosine. */
+    readonly embedder?: Embedder;
   } = {},
 ): Promise<Snapshot | undefined> {
   const commit = git(
@@ -99,10 +106,23 @@ export async function snapshotAt(
         ...(opts.onPlan ? { onPlan: opts.onPlan } : {}),
       });
     }
+    const embedded = { texts: 0, ms: 0 };
+    const inner = opts.embedder;
+    const timed: Embedder | undefined = inner && {
+      modelId: inner.modelId,
+      embed: async (texts) => {
+        const start = performance.now();
+        const vectors = await inner.embed(texts);
+        embedded.ms += performance.now() - start;
+        embedded.texts += texts.length;
+        return vectors;
+      },
+    };
     const t = performance.now();
     const { graph, meta } = await analyze(tmp, {
       ...(opts.pool ? { pool: opts.pool } : {}),
       hints: {
+        ...(timed ? { embeddings: { embedder: timed } } : {}),
         onCandidates: (info) => {
           captured = info;
         },
@@ -139,6 +159,8 @@ export async function snapshotAt(
       nodeOf: captured?.nodeOf ?? new Map(),
       enrichMs: meta.timingsMs.enrich,
       analyzeMs,
+      embeddings: meta.hints.embeddings,
+      embedded,
       ...(model ? { model: { scores, report: model.report() } } : {}),
     };
   } finally {
