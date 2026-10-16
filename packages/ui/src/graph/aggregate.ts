@@ -157,11 +157,11 @@ export function expandTo(
   expanded: ReadonlySet<string>,
   id: string,
   graph?: Graph,
-): Set<string> {
-  return new Set([
-    ...expanded,
-    ...ancestors(isDirId(id) ? dirPath(id) : id, graph),
-  ]);
+): ReadonlySet<string> {
+  const above = ancestors(isDirId(id) ? dirPath(id) : id, graph);
+  // The same set when nothing opens: a new one would lay the graph out again.
+  if (above.every((d) => expanded.has(d))) return expanded;
+  return new Set([...expanded, ...above]);
 }
 
 /** The visible node a graph node is drawn as: itself, or its outermost collapsed directory. */

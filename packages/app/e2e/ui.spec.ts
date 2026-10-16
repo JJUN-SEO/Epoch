@@ -143,6 +143,12 @@ test("the command palette runs commands from the keyboard", async () => {
 });
 
 test("the barrel-imports toggle redraws the graph", async () => {
+  // A graph without barrels draws the same either way; this one has one.
+  await answerDialogWith(
+    path.join(fixtures, "typescript", "conformance", "barrel-named"),
+  );
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
+  await laidOut(epoch.page);
   const before = Number(
     await epoch.page.getByTestId("graph-canvas").getAttribute("data-layouts"),
   );
@@ -213,6 +219,57 @@ test("expanding every folder of a large project packs it, folders drawn as frame
     .getByRole("button", { name: "Collapse all folders" })
     .click();
   await expect(canvas).toHaveAttribute("data-large", "false");
+});
+
+test("Back to the starting view restores the folders a project opened with", async () => {
+  const files: Record<string, string> = {};
+  for (let d = 0; d < 6; d++) {
+    for (let i = 0; i < 60; i++) {
+      files[`src/f${String(d)}/m${String(i)}.ts`] = "export const v = 0;\n";
+    }
+  }
+  await answerDialogWith(project(files));
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
+  const canvas = epoch.page.getByTestId("graph-canvas");
+  await expect(epoch.page.getByTestId("graph-stats")).toHaveText(
+    "360 files · 0 edges",
+  );
+  // src open, its six folders closed (each is over the starting budget).
+  await expect(canvas).toHaveAttribute("data-drawn", "7");
+  const reset = epoch.page.getByRole("button", {
+    name: "Back to the starting view",
+  });
+  await epoch.page.getByRole("button", { name: "Expand all folders" }).click();
+  await expect(canvas).toHaveAttribute("data-drawn", "367");
+  await expect(canvas).toHaveAttribute("data-large", "true");
+  await reset.click();
+  await expect(canvas).toHaveAttribute("data-drawn", "7");
+  await expect(canvas).toHaveAttribute("data-large", "false");
+  await epoch.page
+    .getByRole("button", { name: "Collapse all folders" })
+    .click();
+  await expect(canvas).toHaveAttribute("data-drawn", "1");
+  await reset.click();
+  await expect(canvas).toHaveAttribute("data-drawn", "7");
+});
+
+test("showing a folder that is already open leaves the layout alone", async () => {
+  await answerDialogWith(
+    project({
+      "src/a/one.ts":
+        'import { two } from "../b/two";\nexport const one = two;\n',
+      "src/b/two.ts": "export const two = 2;\n",
+    }),
+  );
+  await epoch.page.getByRole("button", { name: "Open Project…" }).click();
+  await laidOut(epoch.page);
+  const canvas = epoch.page.getByTestId("graph-canvas");
+  const before = await canvas.getAttribute("data-layouts");
+  await epoch.page.locator('[data-tree-id="dir:src/a"]').click();
+  await expect(detailsTitle(epoch.page)).toContainText("src/a");
+  // Laying out again would move every node; give a stray layout time to land.
+  await epoch.page.waitForTimeout(500);
+  await expect(canvas).toHaveAttribute("data-layouts", before ?? "");
 });
 
 test("File > Open Project… opens a project in the window", async () => {

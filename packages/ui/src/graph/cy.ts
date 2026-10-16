@@ -158,11 +158,11 @@ const marked = new WeakMap<Core, Collection>();
 
 function clearHighlight(cy: Core): void {
   if (styledAll.has(cy)) {
-    cy.elements().removeClass("faded hl out in");
+    cy.elements().removeClass("faded hl center out in");
     cy.nodes().removeData("impact");
     styledAll.delete(cy);
   }
-  marked.get(cy)?.removeClass("faded hl out in");
+  marked.get(cy)?.removeClass("faded hl center out in");
   marked.delete(cy);
 }
 
@@ -194,7 +194,8 @@ export function highlightImpact(
 /**
  * Fades everything except `id`, its direct neighbors and the edges between
  * them; outgoing edges (its imports) and incoming ones (its dependents) get
- * their direction colors. For an open folder, its files count as one node.
+ * their direction colors, and the node itself is marked `center`. For an
+ * open folder, its files count as one node.
  * With `fade: false` (a large graph, where restyling every element on each
  * hover stalls the page) only the neighborhood is marked.
  */
@@ -226,6 +227,7 @@ export function highlightNeighbors(
       marked.set(cy, keep.union(out).union(into));
     }
     keep.addClass("hl");
+    node.addClass("center");
     out.removeClass("faded").addClass("out");
     into.removeClass("faded").addClass("in");
   });

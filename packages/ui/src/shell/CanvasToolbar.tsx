@@ -3,6 +3,7 @@ import {
   ChevronsUpDown,
   Maximize,
   Radar,
+  RotateCcw,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -37,6 +38,8 @@ export function CanvasToolbar(props: {
   readonly onHops: (hops: Hops) => void;
   readonly onExpandAll: () => void;
   readonly onCollapseAll: () => void;
+  /** Back to the folders open when the project opened, fitted. */
+  readonly onResetFolders: () => void;
   readonly dimensions: "2d" | "3d";
   readonly onDimensions: (d: "2d" | "3d") => void;
   /** This computer can draw the 3D view. */
@@ -103,6 +106,11 @@ export function CanvasToolbar(props: {
             icon={ChevronsDownUp}
             label="Collapse all folders"
             onClick={props.onCollapseAll}
+          />
+          <IconButton
+            icon={RotateCcw}
+            label="Back to the starting view"
+            onClick={props.onResetFolders}
           />
         </>
       )}

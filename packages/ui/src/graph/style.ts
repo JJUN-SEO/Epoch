@@ -12,6 +12,12 @@ export function nodeSize(
   return Math.round(24 + 10 * Math.log2(1 + fileCount));
 }
 
+/**
+ * A large graph's file names show from this rendered size: 10px labels at a
+ * zoom of 1.2 or more.
+ */
+const LARGE_LABEL_MIN = 12;
+
 /** Classes shared by both canvases while a node is hovered or selected. */
 const highlight = (t: CanvasTheme): StylesheetJson => [
   { selector: "node.faded:childless", style: { opacity: 0.14 } },
@@ -61,7 +67,7 @@ const highlight = (t: CanvasTheme): StylesheetJson => [
  * open folders as plain rectangles behind the files (frames, not compound
  * nodes), straight edges without arrowheads (Cytoscape's cheapest edge type;
  * an edge's direction still shows in color when a file is highlighted), and
- * shows labels a little later when zooming in.
+ * shows file names only zoomed in close, even around a hovered file.
  */
 export function graphStylesheet(
   t: CanvasTheme,
@@ -178,10 +184,7 @@ export function graphStylesheet(
     { selector: "edge[?hint]", style: { "line-style": "dashed" } },
     ...(opts.large === true ? largeGraph(t) : []),
     ...highlight(t),
-    // A faded frame stays readable as the folder around what is lit.
-    ...(opts.large === true
-      ? [{ selector: "node[?frame].faded", style: { opacity: 0.5 } }]
-      : []),
+    ...(opts.large === true ? largeHighlight : []),
   ];
 }
 
@@ -204,10 +207,16 @@ function largeGraph(t: CanvasTheme): StylesheetJson {
         "z-index": 1,
       },
     },
+    // Every pointer move hit-tests each interactive element; thousands of
+    // edges made that most of a hover's cost. Only hint edges answer the
+    // pointer (their evidence tooltip).
+    { selector: "edge[!hint]", style: { events: "no" } },
+    // Zoomed far out in a graph with thousands of edges (GraphView).
+    { selector: "edge.far", style: { visibility: "hidden" } },
     {
       selector: "node",
       style: {
-        "min-zoomed-font-size": 12,
+        "min-zoomed-font-size": LARGE_LABEL_MIN,
         "z-index-compare": "manual",
         "z-index": 2,
       },
@@ -236,6 +245,23 @@ function largeGraph(t: CanvasTheme): StylesheetJson {
     },
   ];
 }
+
+/**
+ * In a large graph, names appear only zoomed in close, also around what is
+ * highlighted: hovering a file shows its own name, not every neighbor's
+ * (hundreds of labels popping up at once, unreadable and slow to draw). A
+ * faded frame stays readable as the folder around what is lit.
+ */
+const largeHighlight: StylesheetJson = [
+  { selector: "node.hl", style: { "min-zoomed-font-size": LARGE_LABEL_MIN } },
+  // Edges hidden zoomed far out still show around what is highlighted.
+  { selector: "edge.out, edge.in", style: { visibility: "visible" } },
+  {
+    selector: "node.center, node:selected",
+    style: { "min-zoomed-font-size": 0 },
+  },
+  { selector: "node[?frame].faded", style: { opacity: 0.5 } },
+];
 
 /**
  * The focus view: the center file large, imports on the right with labels to

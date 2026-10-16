@@ -1,11 +1,12 @@
 import type { LayoutRequest } from "./layout-protocol";
 
 /*
- * The layout for large graphs (expand-all on a big repository). fcose's time
- * grows far faster than the graph once hundreds of nested folders are open
- * (3.2 s at 1,200 nodes, 67 s at 3,100 on vitest), and laying out packed
- * folders with it instead leaves large boxes overlapping. So a large graph
- * is packed: each folder's files in a grid, in name order, its subfolders as
+ * The layout for large graphs (expand-all, or many folders open). fcose's
+ * time grows far faster than the graph once hundreds of nested folders are
+ * open (3.2 s at 1,200 nodes, 67 s at 3,100 on vitest), and already at about
+ * 250 files in nested folders it draws large, mostly empty folder boxes with
+ * the files in tight clumps (expand-all on zod's packages/zod/src/v4), while
+ * every hover restyles the whole graph. So a large graph is packed: each folder's files in a grid, in name order, its subfolders as
  * boxes beside them, recursively, like a file tree drawn as nested boxes.
  * Edges are drawn over it as usual. Nothing overlaps, it takes milliseconds,
  * and it is deterministic, so the picture stays put while files change.
@@ -16,8 +17,12 @@ import type { LayoutRequest } from "./layout-protocol";
  * ancestor of each element it draws, which stalled the page for seconds.
  */
 
-/** Drawn files (and closed folders) above which a graph is laid out and drawn as a large graph. */
-export const PACK_ABOVE_FILES = 800;
+/**
+ * Drawn files (and closed folders) above which a graph is laid out and drawn
+ * as a large graph. The starting view (at most INITIAL_NODE_BUDGET nodes) and
+ * a few opened folders stay force-directed, which shows how files connect.
+ */
+export const PACK_ABOVE_FILES = 150;
 
 /** Whether the visible graph is large: more leaves drawn than PACK_ABOVE_FILES. */
 export function isLargeGraph(visible: {

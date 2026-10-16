@@ -24,7 +24,8 @@ import {
   type CanvasControls,
 } from "./cy";
 import { LayoutClient } from "./layout";
-import type { LayoutResponse } from "./layout-protocol";
+import { LayoutCache, layoutKey } from "./layout-cache";
+import type { LayoutRequest, LayoutResponse } from "./layout-protocol";
 import { isLargeGraph } from "./pack";
 import { graphStylesheet, nodeSize } from "./style";
 import { onThemeChange, readCanvasTheme } from "./theme";
@@ -51,6 +52,15 @@ export interface GraphViewProps {
 }
 
 const MAX_FIT_ZOOM = 1.5;
+/** How long the pointer rests on a file of a large graph before it is highlighted. */
+const HOVER_DELAY_MS = 100;
+/**
+ * A large graph with more edges than this draws, zoomed out below FAR_ZOOM,
+ * only the edges around what is highlighted: thousands of faint lines read
+ * as haze there and made every redraw slow. Zooming in shows them all.
+ */
+const FAR_EDGES_ABOVE = 2000;
+const FAR_ZOOM = 0.25;
 
 /**
  * Cytoscape elements for the visible graph, placed where the layout put them.
@@ -109,12 +119,34 @@ function elementsOf(
   ];
 }
 
+/** Updates what can change without moving anything: labels, folder state, edge data. */
+function updateData(cy: Core, visible: VisibleGraph): void {
+  for (const n of visible.nodes) {
+    cy.$id(n.id).data({
+      label:
+        n.kind === "dir" && n.collapsed
+          ? `${n.label} (${String(n.fileCount)})`
+          : n.label,
+      collapsed: n.collapsed,
+    });
+  }
+  for (const e of visible.edges) {
+    cy.$id(e.id).data({
+      hint: e.hint,
+      detail: e.detail ?? "",
+      width: Math.min(4, 1 + Math.log2(e.count)),
+    });
+  }
+}
+
 /**
  * The dependency graph, drawn by Cytoscape on a canvas. Layout runs in a Web
  * Worker. Hovering a node highlights its neighbors; the selection keeps its
  * highlight. A large graph (pack.ts) is packed, its open folders drawn as
  * plain rectangles, on a canvas in large-graph mode (cy.ts), made anew when
- * the graph crosses the line. A visually hidden list mirrors the
+ * the graph crosses the line. Recent layouts are kept by what they laid out
+ * (layout-cache.ts): an unchanged structure keeps its picture, and folders
+ * shown before come back where they were. A visually hidden list mirrors the
  * nodes, so the graph can be navigated by keyboard and screen readers (and
  * driven by the e2e tests).
  */
@@ -122,6 +154,9 @@ export function GraphView(props: GraphViewProps) {
   const container = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | undefined>(undefined);
   const layoutRef = useRef<LayoutClient | undefined>(undefined);
+  const cacheRef = useRef(new LayoutCache());
+  /** The layout key of what the canvas shows. */
+  const drawnKey = useRef<string | undefined>(undefined);
   const handlers = useRef(props);
   handlers.current = props;
   const needsFit = useRef(false);
@@ -188,15 +223,26 @@ export function GraphView(props: GraphViewProps) {
     // While a blast radius is drawn, hovering leaves it alone.
     // In a large graph the pointer is nearly always over an open folder's
     // box; highlighting a whole subtree on every move stalls the page, so
-    // only files and closed folders react to hovering there.
+    // only files and closed folders react to hovering there, and only once
+    // the pointer rests on one: sweeping across thousands of them does not
+    // redraw the canvas for each.
     const hoverable = large ? "node[!frame]" : "node";
+    let hoverTimer = 0;
+    const hover = (id: string | undefined) => {
+      window.clearTimeout(hoverTimer);
+      const apply = () => {
+        if (!handlers.current.impact) {
+          highlightNeighbors(cy, id ?? handlers.current.selected, { fade });
+        }
+      };
+      if (large) hoverTimer = window.setTimeout(apply, HOVER_DELAY_MS);
+      else apply();
+    };
     cy.on("mouseover", hoverable, (e) => {
-      if (!handlers.current.impact) highlightNeighbors(cy, nodeId(e), { fade });
+      hover(nodeId(e));
     });
     cy.on("mouseout", hoverable, () => {
-      if (!handlers.current.impact) {
-        highlightNeighbors(cy, handlers.current.selected, { fade });
-      }
+      hover(undefined);
     });
     cy.on("mouseover", "edge", (e) => {
       const detail: unknown = (e.target as EdgeSingular).data("detail");
@@ -211,7 +257,9 @@ export function GraphView(props: GraphViewProps) {
       cy.style(graphStylesheet(readCanvasTheme(), { large }));
     });
     cyRef.current = cy;
+    drawnKey.current = undefined;
     return () => {
+      window.clearTimeout(hoverTimer);
       stopTheme();
       cy.destroy();
       if (cyRef.current === cy) cyRef.current = undefined;
@@ -222,6 +270,49 @@ export function GraphView(props: GraphViewProps) {
     const cy = cyRef.current;
     const layout = layoutRef.current;
     if (!cy || !layout) return;
+    const request: Omit<LayoutRequest, "id" | "seed"> = {
+      ...(large ? { packed: true } : {}),
+      nodes: props.visible.nodes.map((n) => ({
+        id: n.id,
+        size: nodeSize(n.kind, n.collapsed, n.fileCount),
+        ...(n.parent === undefined ? {} : { parent: n.parent }),
+      })),
+      edges: props.visible.edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+      })),
+    };
+    const key = layoutKey(request);
+    // The same structure as drawn (a saved file whose imports did not
+    // change, a folder shown that was already open): nothing moves.
+    if (key === drawnKey.current) {
+      cy.batch(() => {
+        updateData(cy, props.visible);
+      });
+      // A layout asked for in between (and now cancelled) is not coming.
+      setBusy(false);
+      return;
+    }
+    const draw = (result: LayoutResponse) => {
+      setEdgeTip(undefined);
+      cy.batch(() => {
+        cy.elements().remove();
+        cy.add(elementsOf(props.visible, props.colors, result));
+      });
+      drawnKey.current = key;
+      // A hidden canvas has no size to fit to; fit once it is shown.
+      if (handlers.current.active) fitWithin(cy, MAX_FIT_ZOOM, false);
+      else needsFit.current = true;
+      setBusy(false);
+      setDrawn(props.visible.nodes.length);
+      setLaidOut((n) => n + 1);
+    };
+    const cached = cacheRef.current.get(key);
+    if (cached) {
+      draw(cached);
+      return;
+    }
     let cancelled = false;
     setBusy(true);
     // Where the drawn nodes are now, so a changed graph or an opened folder
@@ -235,32 +326,13 @@ export function GraphView(props: GraphViewProps) {
     }
     void layout
       .layout({
+        ...request,
         ...(Object.keys(seed).length > 0 ? { seed } : {}),
-        ...(large ? { packed: true } : {}),
-        nodes: props.visible.nodes.map((n) => ({
-          id: n.id,
-          size: nodeSize(n.kind, n.collapsed, n.fileCount),
-          ...(n.parent === undefined ? {} : { parent: n.parent }),
-        })),
-        edges: props.visible.edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-        })),
       })
       .then((result) => {
-        if (cancelled || !result) return;
-        setEdgeTip(undefined);
-        cy.batch(() => {
-          cy.elements().remove();
-          cy.add(elementsOf(props.visible, props.colors, result));
-        });
-        // A hidden canvas has no size to fit to; fit once it is shown.
-        if (handlers.current.active) fitWithin(cy, MAX_FIT_ZOOM, false);
-        else needsFit.current = true;
-        setBusy(false);
-        setDrawn(props.visible.nodes.length);
-        setLaidOut((n) => n + 1);
+        if (!result) return;
+        cacheRef.current.set(key, result);
+        if (!cancelled) draw(result);
       });
     return () => {
       cancelled = true;
@@ -318,6 +390,30 @@ export function GraphView(props: GraphViewProps) {
     laidOut,
     large,
   ]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    if (!large || cy.edges().length <= FAR_EDGES_ABOVE) {
+      cy.edges().removeClass("far");
+      return;
+    }
+    let far: boolean | undefined;
+    const update = () => {
+      const now = cy.zoom() < FAR_ZOOM;
+      if (now === far) return;
+      far = now;
+      cy.batch(() => {
+        if (now) cy.edges().addClass("far");
+        else cy.edges().removeClass("far");
+      });
+    };
+    update();
+    cy.on("zoom", update);
+    return () => {
+      cy.off("zoom", update);
+    };
+  }, [laidOut, large]);
 
   useEffect(() => {
     const cy = cyRef.current;

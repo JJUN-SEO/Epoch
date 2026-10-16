@@ -152,7 +152,9 @@ export function Workspace({
   }, []);
 
   const [view, setView] = useState<View>("graph");
-  const [expanded, setExpanded] = useState(() => initialExpanded(graph));
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(() =>
+    initialExpanded(graph),
+  );
   const [showViaBarrel, setShowViaBarrel] = useState(false);
   const [selected, setSelected] = useState<string | undefined>();
   const [reveal, setReveal] = useState<{ id: string } | undefined>();
@@ -389,6 +391,28 @@ export function Workspace({
     () => new Set(graph.nodes.flatMap((n) => ancestors(n.id, graph))),
     [graph],
   );
+  /**
+   * The screen a project opens on: its starting folders, nothing selected,
+   * fitted. The graph view keeps recent layouts, so the same folders come
+   * back in the same places.
+   */
+  const resetFolders = () => {
+    const start = initialExpanded(graph);
+    setSelected(undefined);
+    setReveal(undefined);
+    setView("graph");
+    if (
+      expanded.size !== start.size ||
+      ![...expanded].every((d) => start.has(d))
+    ) {
+      // The redraw fits; an animated fit started now would undo it.
+      setExpanded(start);
+    } else if (mode3d) {
+      graph3dControls.current?.fit();
+    } else {
+      graphControls.current?.fit();
+    }
+  };
   const canFocus = center !== undefined || isFileNode(selected);
   const controls = () =>
     view === "focus"
@@ -444,6 +468,7 @@ export function Workspace({
     "graph.collapseAll": () => {
       setExpanded(new Set());
     },
+    "graph.resetFolders": resetFolders,
     "graph.dimensions": () => {
       updatePrefs({ graphMode: mode3d ? "2d" : "3d" });
       setView("graph");
@@ -513,6 +538,11 @@ export function Workspace({
     {
       id: "graph.collapseAll",
       title: "Collapse All Folders",
+      enabled: view === "graph",
+    },
+    {
+      id: "graph.resetFolders",
+      title: "Back to the Starting View",
       enabled: view === "graph",
     },
     {
@@ -965,6 +995,7 @@ export function Workspace({
               onCollapseAll={() => {
                 setExpanded(new Set());
               }}
+              onResetFolders={resetFolders}
               dimensions={mode3d ? "3d" : "2d"}
               onDimensions={(d) => {
                 updatePrefs({ graphMode: d });

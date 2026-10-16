@@ -17,6 +17,7 @@ export type CommandId =
   | "graph.hints"
   | "graph.expandAll"
   | "graph.collapseAll"
+  | "graph.resetFolders"
   | "graph.colorBy"
   | "graph.dimensions"
   | "graph.blastRadius"

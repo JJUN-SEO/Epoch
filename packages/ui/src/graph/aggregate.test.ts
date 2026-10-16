@@ -235,6 +235,14 @@ describe("initialExpanded, expandTo and searchNodes", () => {
     expect([...expandTo(new Set(), dirId("a/b"))]).toEqual(["a"]);
   });
 
+  it("returns the same set when every directory above is already open", () => {
+    // A new set would read as a change and lay the graph out again.
+    const open = new Set(["a", "a/b"]);
+    expect(expandTo(open, "a/b/c.ts")).toBe(open);
+    expect(expandTo(open, dirId("a/b"))).toBe(open);
+    expect(expandTo(open, "top.ts")).toBe(open);
+  });
+
   it("finds nodes by a case-insensitive path substring", () => {
     const s = graph(["src/App.tsx", "src/lib/app-util.ts", "README.ts"]);
     expect(searchNodes(s, "APP")).toEqual([
