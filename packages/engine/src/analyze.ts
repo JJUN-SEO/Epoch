@@ -12,6 +12,7 @@ import {
   Resolution,
   buildGraph,
   compareCodeUnits,
+  compareEdges,
   globMatcher,
   stronglyConnectedComponents,
   type AdapterRegistration,
@@ -39,6 +40,7 @@ import { extractFile, type ExtractedFile } from "./extract-file.js";
 import { runFindings } from "@epoch-dev/findings";
 import { frameworksOf } from "./frameworks.js";
 import { readHeadCommit, type GitRunner } from "./git.js";
+import { enrich, type HintOptions } from "./hints.js";
 import { GitHistory } from "./history.js";
 import { Parsers } from "./parse.js";
 import type { ParsePool } from "./pool.js";
@@ -95,6 +97,11 @@ export interface AnalyzeOptions {
     readonly history?: GitHistoryProvider;
     readonly now?: Date;
   };
+  /**
+   * The Enrich stage (M6): hint edges from co-change and shared strings
+   * (default on), or false for none. Co-change also needs `history`.
+   */
+  readonly hints?: false | HintOptions;
 }
 
 export interface AnalyzeResult {
@@ -144,7 +151,7 @@ interface SourceFile {
 
 /**
  * Runs the pipeline on a project folder: Discover, Parse, Extract (cached),
- * Resolve, Graph, Score and Findings (CLAUDE.md "Pipeline"). With a cache, unchanged
+ * Resolve, Graph, Enrich, Score and Findings (CLAUDE.md "Pipeline"). With a cache, unchanged
  * files are neither read nor parsed; resolution and the graph are recomputed
  * every run from the (cached) facts (ADR-004). Reads the project only
  * through a FsReader confined to the root, never writes into it, and never
@@ -454,18 +461,50 @@ export async function analyze(
   const cycles = stronglyConnectedComponents(built, CERTAIN_EDGE_KINDS);
   const t5 = performance.now();
 
-  // 7. Score (6. Enrich adds hint edges in M6): churn, coverage, risk.
+  // 6. Enrich: hint edges from co-change and shared strings, scored.
+  const nodeOf = new Map<string, string>();
+  for (const n of built.nodes) if (n.kind === "file") nodeOf.set(n.id, n.id);
+  for (const [pkg, files] of members) for (const f of files) nodeOf.set(f, pkg);
+  const hinted =
+    opts.hints === false
+      ? undefined
+      : await enrich(
+          {
+            graph: built,
+            root: found.root,
+            reader,
+            nodeOf,
+            strings: sources.map((s) => ({
+              path: s.rel,
+              strings: s.facts.strings,
+            })),
+            history: opts.history !== false,
+            ...(opts.git ? { run: opts.git } : {}),
+            ...(cache ? { store: cache } : {}),
+          },
+          opts.hints,
+        );
+  const enriched: Graph =
+    hinted === undefined || hinted.edges.length === 0
+      ? built
+      : {
+          ...built,
+          edges: [...built.edges, ...hinted.edges].sort(compareEdges),
+        };
+  const t6 = performance.now();
+
+  // 7. Score: churn, coverage, risk.
   const churn =
     opts.history === false
       ? undefined
       : (opts.churnMemo ?? new ChurnMemo()).get(found.root, reader, opts.git);
   const scored = scoreGraph(
-    built,
+    enriched,
     churn,
     loadCoverage(found.root, reader, opts.coverageFile),
     members,
   );
-  const t6 = performance.now();
+  const t7 = performance.now();
 
   // 8. Findings: entry points, then every detector over the scored graph.
   const roots = new Map<string, EntryPoint>();
@@ -535,7 +574,7 @@ export async function analyze(
     findings: detected.findings,
   });
   progress("graph", 1, 1);
-  const t7 = performance.now();
+  const t8 = performance.now();
 
   if (cache) {
     manifest.sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
@@ -563,9 +602,10 @@ export async function analyze(
       parse: t3 - t2,
       resolve: t4 - t3,
       graph: t5 - t4,
-      score: t6 - t5,
-      findings: t7 - t6,
-      total: t7 - t0,
+      enrich: t6 - t5,
+      score: t7 - t6,
+      findings: t8 - t7,
+      total: t8 - t0,
     },
     counts: {
       filesAnalyzed: sources.length,
@@ -601,6 +641,13 @@ export async function analyze(
         dir,
         evidence,
       })),
+    },
+    hints: hinted?.meta ?? {
+      cochange: { status: "off", commits: 0, pairs: 0 },
+      strings: { pairs: 0 },
+      embeddings: { status: "off", pairs: 0 },
+      scorer: "none",
+      edges: 0,
     },
     host: {
       platform: process.platform,

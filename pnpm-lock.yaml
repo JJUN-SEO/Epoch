@@ -303,6 +303,9 @@ importers:
       '@epoch-dev/findings':
         specifier: workspace:*
         version: link:../findings
+      '@epoch-dev/scorers':
+        specifier: workspace:*
+        version: link:../scorers
       '@vscode/tree-sitter-wasm':
         specifier: 'catalog:'
         version: 0.3.1
@@ -355,6 +358,25 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.6.7
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      eslint:
+        specifier: 'catalog:'
+        version: 10.12.0(jiti@2.7.0)(supports-color@7.2.0)
+      typescript:
+        specifier: 'catalog:'
+        version: 6.0.3
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/scorers:
+    dependencies:
+      '@epoch-dev/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       '@types/node':
         specifier: 'catalog:'

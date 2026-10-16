@@ -32,6 +32,8 @@ export const AnalysisMeta = z.strictObject({
     parse: Ms,
     resolve: Ms,
     graph: Ms,
+    /** Hint edges: co-change, shared strings, embeddings and the scorer (M6). */
+    enrich: Ms,
     /** Git churn, coverage and risk. */
     score: Ms,
     /** Dead-feature detectors, git history lookups included. */
@@ -112,6 +114,33 @@ export const AnalysisMeta = z.strictObject({
         evidence: z.string(),
       }),
     ),
+  }),
+  /** The Enrich stage (M6): which hint sources ran, and how many hint edges it made. */
+  hints: z.strictObject({
+    cochange: z.strictObject({
+      status: z.enum([
+        "usable",
+        "shallow",
+        "not-a-repo",
+        "no-commits",
+        "git-unavailable",
+        "off",
+      ]),
+      /** Commits read in the window, after the size cutoff. */
+      commits: Count,
+      /** Candidate pairs (directed). */
+      pairs: Count,
+    }),
+    strings: z.strictObject({ pairs: Count }),
+    embeddings: z.strictObject({
+      status: z.enum(["ready", "unavailable", "off"]),
+      model: z.string().optional(),
+      pairs: Count,
+    }),
+    /** The scorer whose edges are in the graph. */
+    scorer: z.string(),
+    /** Hint edges in the graph. */
+    edges: Count,
   }),
   host: z.strictObject({
     platform: z.string(),

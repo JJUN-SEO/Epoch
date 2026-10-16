@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CandidatePair, ScoredRelation } from "../interfaces/services.js";
 import { cochangeCandidates } from "./cochange.js";
-import { hintEdges } from "./edges.js";
+import { hintEdges, mergeCandidates } from "./edges.js";
 import { sharedStringCandidates } from "./strings.js";
 
 describe("cochangeCandidates", () => {
@@ -228,6 +228,50 @@ describe("hintEdges", () => {
     expect(edges[0]?.evidence).toEqual([
       'both use the rare strings "x.y", "y.z", "z.w" and 1 more',
       "a model scored it: same event",
+    ]);
+  });
+});
+
+describe("mergeCandidates", () => {
+  it("joins every generator's signals for the same directed pair", () => {
+    expect(
+      mergeCandidates(
+        [
+          {
+            source: "b.ts",
+            target: "a.ts",
+            signals: {
+              cochange: { together: 3, sourceCommits: 3, targetCommits: 5 },
+            },
+          },
+        ],
+        [
+          {
+            source: "b.ts",
+            target: "a.ts",
+            signals: { strings: { shared: ["x.y"], weight: 1 } },
+          },
+          {
+            source: "a.ts",
+            target: "b.ts",
+            signals: { strings: { shared: ["x.y"], weight: 1 } },
+          },
+        ],
+      ),
+    ).toEqual([
+      {
+        source: "a.ts",
+        target: "b.ts",
+        signals: { strings: { shared: ["x.y"], weight: 1 } },
+      },
+      {
+        source: "b.ts",
+        target: "a.ts",
+        signals: {
+          cochange: { together: 3, sourceCommits: 3, targetCommits: 5 },
+          strings: { shared: ["x.y"], weight: 1 },
+        },
+      },
     ]);
   });
 });

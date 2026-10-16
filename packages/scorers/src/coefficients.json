@@ -1,0 +1,8 @@
+{
+  "note": "Provisional, hand-set until pnpm bench:scorers fits them on its training split (ADR-008).",
+  "intercept": -3,
+  "cochangeRatio": 4,
+  "cochangeSupport": 0.5,
+  "stringWeight": 0.6,
+  "embeddingCosine": 4
+}

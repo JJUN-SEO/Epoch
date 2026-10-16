@@ -6,6 +6,17 @@ export const SUMMARY_LIST_LIMIT = 20;
 const pad = (label: string, value: number) =>
   `  ${label.padEnd(13)}${String(value).padStart(7)}`;
 
+/** What the Enrich stage did: hint edges and the sources behind them. */
+function hintsLine(h: AnalysisMeta["hints"]): string {
+  if (h.scorer === "none") return "  hints        off";
+  const c = h.cochange;
+  const cochange =
+    c.status === "usable" || c.status === "shallow"
+      ? `co-change ${String(c.pairs)} pairs from ${String(c.commits)} commits${c.status === "shallow" ? " (shallow clone)" : ""}`
+      : `no co-change (${c.status})`;
+  return `  hints        ${String(h.edges)} likely relations (${h.scorer} scorer): ${cochange}, shared strings ${String(h.strings.pairs)} pairs`;
+}
+
 /**
  * The human-readable report `epoch analyze` prints without --json. Counts
  * only; it makes no accuracy claims. Every list states how many entries it
@@ -52,6 +63,7 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
     meta.coverage === null
       ? "  coverage     none found"
       : `  coverage     ${meta.coverage.source} (${meta.coverage.format}): ${String(meta.coverage.files)} files${meta.coverage.unmatched + meta.coverage.ambiguous > 0 ? `, ${String(meta.coverage.unmatched)} unmatched, ${String(meta.coverage.ambiguous)} ambiguous` : ""}`,
+    hintsLine(meta.hints),
   );
 
   const list = <T>(

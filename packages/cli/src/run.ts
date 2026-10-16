@@ -3,6 +3,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 import {
   Confidence,
+  HINT_DEFAULTS,
   atLeast,
   filterFindings,
   serializeCanonical,
@@ -36,8 +37,9 @@ const MIB = 1024 * 1024;
 
 export const USAGE = `Usage:
   epoch analyze <path> [--json] [--since <commit>] [--coverage <file>]
+                       [hint options]
   epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>]
-                        [--include-dismissed]
+                        [--include-dismissed] [hint options]
   epoch cache stats | clear | prune [--max-size <MB>]
 
 Commands:
@@ -63,6 +65,15 @@ Options:
                      Also list findings dismissed in the app
   --max-size <MB>    Cache size cap for prune (default ${String(DEFAULT_MAX_CACHE_BYTES / MIB)})
   -h, --help         Show this help
+
+Hint options (likely relations, never facts; computed on this machine):
+  --no-hints         Skip hint edges (co-change and shared strings)
+  --cochange-days <n>
+                     Co-change window before HEAD's commit (default ${String(HINT_DEFAULTS.cochange.days)})
+  --cochange-max-files <n>
+                     Skip commits touching more files than this (default ${String(HINT_DEFAULTS.cochange.maxFiles)})
+  --cochange-min-support <n>
+                     Commits a pair needs together (default ${String(HINT_DEFAULTS.cochange.minSupport)})
 
 The cache lives in the per-user cache directory; set EPOCH_CACHE_DIR to move it.
 Dismissals live in the per-user data directory; set EPOCH_DATA_DIR to move it.
@@ -114,6 +125,60 @@ function targetOf(command: string, positionals: readonly string[]): string {
   return target;
 }
 
+const HINT_ARGS = {
+  "no-hints": { type: "boolean", default: false },
+  "cochange-days": { type: "string" },
+  "cochange-max-files": { type: "string" },
+  "cochange-min-support": { type: "string" },
+} as const;
+
+function positiveInt(option: string, raw: string | undefined) {
+  if (raw === undefined) return undefined;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 1) {
+    throw new UsageError(
+      `${option} must be a positive whole number, got ${raw}`,
+    );
+  }
+  return n;
+}
+
+/** AnalyzeOptions.hints from the hint options. */
+function hintsOf(values: {
+  "no-hints": boolean;
+  "cochange-days"?: string | undefined;
+  "cochange-max-files"?: string | undefined;
+  "cochange-min-support"?: string | undefined;
+}): Pick<AnalyzeOptions, "hints"> {
+  const days = positiveInt("--cochange-days", values["cochange-days"]);
+  const maxFiles = positiveInt(
+    "--cochange-max-files",
+    values["cochange-max-files"],
+  );
+  const minSupport = positiveInt(
+    "--cochange-min-support",
+    values["cochange-min-support"],
+  );
+  if (values["no-hints"]) {
+    if (
+      days !== undefined ||
+      maxFiles !== undefined ||
+      minSupport !== undefined
+    )
+      throw new UsageError("--no-hints cannot be combined with --cochange-*");
+    return { hints: false };
+  }
+  return {
+    hints: {
+      cochange: {
+        ...(days !== undefined ? { days } : {}),
+        ...(maxFiles !== undefined ? { maxFiles } : {}),
+        ...(minSupport !== undefined ? { minSupport } : {}),
+      },
+    },
+  };
+}
+
 /** Runs the engine with the shared cache and a worker pool, as the app does. */
 async function analyzeWithCache(
   target: string,
@@ -156,6 +221,7 @@ async function analyzeCommand(
       json: { type: "boolean", default: false },
       since: { type: "string" },
       coverage: { type: "string" },
+      ...HINT_ARGS,
     },
     allowPositionals: true,
     strict: true,
@@ -166,6 +232,7 @@ async function analyzeCommand(
       ? undefined
       : new Set(changedSince(target, values.since));
   const { graph, meta } = await analyzeWithCache(target, io, {
+    ...hintsOf(values),
     ...(forceReread ? { forceReread } : {}),
     ...(values.coverage === undefined
       ? {}
@@ -204,6 +271,7 @@ async function findingsCommand(
       "min-confidence": { type: "string" },
       "fail-on": { type: "string" },
       "include-dismissed": { type: "boolean", default: false },
+      ...HINT_ARGS,
     },
     allowPositionals: true,
     strict: true,
@@ -211,7 +279,11 @@ async function findingsCommand(
   const minFlag = level("--min-confidence", values["min-confidence"]);
   const failOn = level("--fail-on", values["fail-on"]);
   const target = targetOf("findings", positionals);
-  const { root, config, graph, meta } = await analyzeWithCache(target, io, {});
+  const { root, config, graph, meta } = await analyzeWithCache(
+    target,
+    io,
+    hintsOf(values),
+  );
   const dismissed = DismissalStore.forProject(root).ids();
   const includeDismissed = values["include-dismissed"];
   const minConfidence = minFlag ?? config.config.findings.minConfidence;

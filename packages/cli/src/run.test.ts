@@ -85,6 +85,15 @@ describe("epoch analyze (human summary)", () => {
       "git          no churn or risk score (not-a-repo)",
     );
     expect(r.stdout).toContain("coverage     none found");
+    expect(r.stdout).toMatch(
+      /hints {8}\d+ likely relations \(heuristic scorer\): no co-change \(not-a-repo\), shared strings \d+ pairs/,
+    );
+  });
+
+  it("skips hint edges with --no-hints", async () => {
+    const r = await cli("analyze", monorepo, "--no-hints");
+    expect(r.code).toBe(EXIT_OK);
+    expect(r.stdout).toContain("hints        off");
   });
 
   it("uses the coverage report given with --coverage", async () => {
@@ -124,6 +133,14 @@ describe("epoch errors", () => {
     [["frobnicate"], "unknown command: frobnicate"],
     [["analyze"], "analyze needs exactly one <path>"],
     [["analyze", monorepo, "--nope"], "Unknown option"],
+    [
+      ["analyze", monorepo, "--cochange-days", "0"],
+      "--cochange-days must be a positive whole number, got 0",
+    ],
+    [
+      ["findings", monorepo, "--no-hints", "--cochange-min-support", "2"],
+      "--no-hints cannot be combined with --cochange-*",
+    ],
   ])("exits 1 with usage for %j", async (argv, message) => {
     const r = await cli(...argv);
     expect(r.code).toBe(EXIT_ERROR);

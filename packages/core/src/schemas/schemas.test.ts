@@ -152,6 +152,7 @@ describe("contract schemas", () => {
         parse: 2,
         resolve: 3,
         graph: 4,
+        enrich: 0,
         score: 0,
         findings: 0,
         total: 10,
@@ -181,6 +182,13 @@ describe("contract schemas", () => {
         minConfidence: "medium",
         counts: { high: 0, medium: 0, low: 0 },
         frameworks: [],
+      },
+      hints: {
+        cochange: { status: "off", commits: 0, pairs: 0 },
+        strings: { pairs: 0 },
+        embeddings: { status: "off", pairs: 0 },
+        scorer: "heuristic",
+        edges: 0,
       },
     };
     expect(AnalysisMeta.parse(meta)).toEqual(meta);

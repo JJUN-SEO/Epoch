@@ -1,4 +1,6 @@
+import { compareCodeUnits } from "../canonical.js";
 import type { GraphEdge } from "../schemas/graph.js";
+import { byPair } from "./cochange.js";
 import type {
   CandidatePair,
   HintSignals,
@@ -106,19 +108,43 @@ export function hintEdges(
     );
     out.push(...list.slice(0, opts.perNode));
   }
-  return out.sort((a, b) =>
-    a.source !== b.source
-      ? a.source < b.source
-        ? -1
-        : 1
-      : a.target !== b.target
-        ? a.target < b.target
-          ? -1
-          : 1
-        : a.kind < b.kind
-          ? -1
-          : a.kind > b.kind
-            ? 1
-            : 0,
+  return out.sort(compareEdges);
+}
+
+/** What a hint edge rests on, in words: "co-change", "shared strings"... */
+export function hintSourceLabel(
+  e: Pick<GraphEdge, "kind" | "provenance">,
+): string {
+  if (e.provenance === "model") return "a model's judgment";
+  if (e.kind === "cochange") return "co-change";
+  if (e.kind === "shared-string") return "shared strings";
+  return "similar content";
+}
+
+/** The canonical edge order: (source, target, kind). */
+export function compareEdges(a: GraphEdge, b: GraphEdge): number {
+  return (
+    compareCodeUnits(a.source, b.source) ||
+    compareCodeUnits(a.target, b.target) ||
+    compareCodeUnits(a.kind, b.kind)
   );
+}
+
+/** One candidate per directed pair, with every generator's signals for it. */
+export function mergeCandidates(
+  ...lists: readonly (readonly CandidatePair[])[]
+): CandidatePair[] {
+  const byKey = new Map<string, CandidatePair>();
+  for (const list of lists) {
+    for (const c of list) {
+      const key = `${c.source}\u0000${c.target}`;
+      const prev = byKey.get(key);
+      byKey.set(key, {
+        source: c.source,
+        target: c.target,
+        signals: { ...prev?.signals, ...c.signals },
+      });
+    }
+  }
+  return [...byKey.values()].sort(byPair);
 }
