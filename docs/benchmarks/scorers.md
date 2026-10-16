@@ -8,7 +8,7 @@ Host: linux x64 (6.18.44-fc-v139), 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16
 
 For each repository, T is 180 days before HEAD's commit date and T0 is 180 days before T. At each, the last mainline commit is analyzed in a shared clone, and every candidate the Enrich stage proposes (git co-change in the 365 days before that commit, shared rare strings in its files) is kept with its signals. A candidate `source -> target` claims "when target changes, source changes too"; the next 180 days of non-merge commits (at most 50 files each, renames followed) judge it when target changed: positive if a commit changed both. Candidates whose target did not change are left out, and so are pairs a fact edge already covers (they are never shown as hints).
 
-The heuristic's coefficients are fitted on the T0 labels (a weighted logistic regression, each repository weighing the same, L2 1 on the slopes). All scorers are evaluated on T. Nothing after T is used to propose, fit or choose.
+The heuristic has two coefficient sets: one for the candidates the app proposes without an embedding model (co-change and shared strings, no cosine), one for every candidate when the model ran (each then has a cosine). Each is fitted on the T0 labels (a weighted logistic regression, each repository weighing the same, L2 1 on the slopes). All scorers are evaluated on T. Nothing after T is used to propose, fit or choose.
 
 ## Data
 
@@ -23,17 +23,19 @@ Candidate recall: of the directed pairs of files that changed together after T, 
 
 ## Fitted coefficients
 
-| Coefficient                         | Fitted on T0 | Shipped (at run time) |
-| ----------------------------------- | ------------ | --------------------- |
-| intercept                           | -1.849       | -1.849                |
-| co-change ratio                     | 0.789        | 0.789                 |
-| co-change support, ln(1 + together) | 1.025        | 1.025                 |
-| shared-string weight                | -0.000       | -0.000                |
-| embedding cosine                    | 0.000        | 0.000                 |
+| Coefficient                         | Without a model: fitted on T0 | Without a model: shipped | With a model: fitted on T0 | With a model: shipped |
+| ----------------------------------- | ----------------------------- | ------------------------ | -------------------------- | --------------------- |
+| intercept                           | -1.849                        | -1.849                   | not fitted                 | -1.849                |
+| co-change ratio                     | 0.789                         | 0.789                    | not fitted                 | 0.789                 |
+| co-change support, ln(1 + together) | 1.025                         | 1.025                    | not fitted                 | 1.025                 |
+| shared-string weight                | -0.000                        | -0.000                   | not fitted                 | -0.000                |
+| embedding cosine                    | 0.000                         | 0.000                    | not fitted                 | 0.000                 |
 
-Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored. No embedding signal is in this run (the model could not be downloaded yet), so its coefficient stays 0 and is not fitted.
+Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored. This run had no embedding model, so the set for candidates with a cosine is not fitted.
 
-## Scorers at T, all repositories
+## Scorers at T without a model, all repositories
+
+The candidates as the app proposes them when no embedding model is available.
 
 | Scorer                          | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC |
 | ------------------------------- | ------ | ------------- | ------ | ----- | ----- | ------- |
@@ -42,15 +44,19 @@ Shipped: packages/scorers/src/coefficients.json when this report was generated. 
 | Co-change ratio alone           | 3145   | 38.9%         | 0.214  | 0.238 | 0.195 | 0.727   |
 | Constant (T0 positive rate)     | 3145   | 38.9%         | 0.439  | 0.240 | 0.051 | 0.500   |
 
+Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).
+
+## Model scorers
+
 | Scorer                 | Status                                                                                               |
 | ---------------------- | ---------------------------------------------------------------------------------------------------- |
 | Local model (Ollama)   | not run                                                                                              |
 | LLM (Claude, your key) | not run                                                                                              |
 | Jev                    | not built: Jev's docs (docs.typesafe.ai) could not be read, and its API is never written from memory |
 
-Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).
+## Heuristic, fitted on T0, in detail
 
-### Precision and recall by threshold (heuristic, fitted)
+### Precision and recall by threshold
 
 | Threshold | At or above | Precision | Recall |
 | --------- | ----------- | --------- | ------ |
@@ -63,7 +69,7 @@ Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores ran
 | 0.80      | 303         | 95.7%     | 23.7%  |
 | 0.90      | 273         | 98.5%     | 22.0%  |
 
-### Reliability (heuristic, fitted)
+### Reliability
 
 | Predicted | Candidates | Mean predicted | Observed |
 | --------- | ---------- | -------------- | -------- |
@@ -76,7 +82,7 @@ Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores ran
 | 0.8–0.9   | 30         | 0.854          | 70.0%    |
 | 0.9–1.0   | 273        | 0.943          | 98.5%    |
 
-## By repository (heuristic, fitted)
+### By repository
 
 | Repository | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC | Precision at 0.5 | Recall at 0.5 |
 | ---------- | ------ | ------------- | ------ | ----- | ----- | ------- | ---------------- | ------------- |
@@ -85,7 +91,7 @@ Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores ran
 | flask-full | 26     | 0.0%          | 0.165  | 0.038 | 0.165 | –       | 0.0%             | –             |
 | cli-full   | 578    | 17.1%         | 0.246  | 0.174 | 0.113 | 0.441   | 23.1%            | 21.2%         |
 
-## By signal (heuristic, fitted, all repositories)
+### By signal, all repositories
 
 | Signal                       | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC |
 | ---------------------------- | ------ | ------------- | ------ | ----- | ----- | ------- |
@@ -97,9 +103,9 @@ Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores ran
 
 | Repository | Files mapped | Hint edges | Nodes over the cap | Precision of drawn edges | Precision at 0.5+  | Enrich stage | Whole analysis |
 | ---------- | ------------ | ---------- | ------------------ | ------------------------ | ------------------ | ------------ | -------------- |
-| zod        | 400          | 207        | 11                 | 47.5% (202 judged)       | 57.3% (110 judged) | 241 ms       | 3.1 s          |
-| vitest     | 2259         | 901        | 46                 | 58.1% (830 judged)       | 73.7% (437 judged) | 181 ms       | 4.6 s          |
-| flask-full | 83           | 4          | 0                  | 0.0% (2 judged)          | 0.0% (2 judged)    | 34 ms        | 0.5 s          |
-| cli-full   | 742          | 346        | 7                  | 19.0% (147 judged)       | 23.6% (89 judged)  | 110 ms       | 1.4 s          |
+| zod        | 400          | 207        | 11                 | 47.5% (202 judged)       | 57.3% (110 judged) | 277 ms       | 3.4 s          |
+| vitest     | 2259         | 901        | 46                 | 58.1% (830 judged)       | 73.7% (437 judged) | 188 ms       | 4.9 s          |
+| flask-full | 83           | 4          | 0                  | 0.0% (2 judged)          | 0.0% (2 judged)    | 29 ms        | 0.5 s          |
+| cli-full   | 742          | 346        | 7                  | 19.0% (147 judged)       | 23.6% (89 judged)  | 116 ms       | 1.5 s          |
 
 Enrich stage time is the run without a cache: the co-change log is read from git. With the cache, the commit sets of a HEAD are read once.

@@ -84,6 +84,8 @@ pnpm e2e       # Playwright end-to-end and security tests against the built app
 
 The headless CLI shares the engine: `node packages/cli/dist/bin.js analyze <folder> [--json] [--coverage <report>]` after `pnpm build`.
 
+Similarity hints need the local embedding model, which is not in the repository. `node scripts/fetch-model.mjs` downloads the pinned default into `models/` (checked against its sha256; behind a proxy, set `NODE_USE_ENV_PROXY=1`). `pnpm dev` and `pnpm package` then use it, and the CLI takes `--embedding-model models/<id>`. Without it, everything else works and similarity is off.
+
 | Command                      | What it does                                                        |
 | ---------------------------- | ------------------------------------------------------------------- |
 | `pnpm build`                 | Compile every package (`dist/`, and the app's `out/`)               |
@@ -95,6 +97,7 @@ The headless CLI shares the engine: `node packages/cli/dist/bin.js analyze <fold
 | `pnpm bench:accuracy-python` | Python edge accuracy against grimp (needs a virtualenv)             |
 | `pnpm bench:accuracy-go`     | Go edge accuracy against `go list` (needs a Go toolchain)           |
 | `pnpm bench:watch`           | Watcher latency and churn cost                                      |
+| `pnpm bench:scorers`         | Hint scorers on a temporal holdout (`--embedding-model <dir>`)      |
 | `pnpm typecheck`             | Type-check every package                                            |
 | `pnpm lint`                  | Prettier check, then ESLint on every package                        |
 | `pnpm test`                  | Build, then run each package's Vitest suite                         |

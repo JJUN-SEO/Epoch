@@ -619,6 +619,8 @@ async function main(): Promise<void> {
     "",
     scorerTable(pooledWithout, withoutScorers),
     "",
+    "Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).",
+    "",
   );
   if (embedder) {
     const shared = runs.flatMap((r) =>
@@ -647,9 +649,9 @@ async function main(): Promise<void> {
     "",
     ...modelSection(runs, model, fittedScorer),
     "",
-    "Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).",
+    `## ${primary?.name ?? ""}, in detail`,
     "",
-    `### Precision and recall by threshold (${primary?.name ?? ""})`,
+    "### Precision and recall by threshold",
     "",
   );
   const fittedPooled = metrics(pooled, primary?.p ?? (() => 0));
@@ -664,7 +666,7 @@ async function main(): Promise<void> {
       ]),
     ),
     "",
-    `### Reliability (${primary?.name ?? ""})`,
+    "### Reliability",
     "",
     table(
       ["Predicted", "Candidates", "Mean predicted", "Observed"],
@@ -678,7 +680,7 @@ async function main(): Promise<void> {
         ]),
     ),
     "",
-    `## By repository (${primary?.name ?? ""})`,
+    "### By repository",
     "",
     table(
       [
@@ -712,7 +714,7 @@ async function main(): Promise<void> {
       }),
     ),
     "",
-    `## By signal (${primary?.name ?? ""}, all repositories)`,
+    "### By signal, all repositories",
     "",
   );
   const signals = [...new Set(pooled.map((l) => signalOf(l.candidate)))].sort();
