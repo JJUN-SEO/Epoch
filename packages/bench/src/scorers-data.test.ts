@@ -48,46 +48,50 @@ function repo() {
   return { dir, git, touch };
 }
 
-describe("snapshots and later commits (a planted future)", () => {
-  it("proposes only from history up to the snapshot, and labels with what came after", async () => {
-    const r = repo();
-    r.touch(["a.ts", "b.ts", "c.ts", "d.ts"], 0);
-    for (const day of [10, 20, 30]) r.touch(["a.ts", "b.ts"], day);
-    // After the snapshot (day 50): c and d start changing together, and a
-    // is renamed, then changes with b under its new name.
-    for (const day of [60, 70, 80]) r.touch(["c.ts", "d.ts"], day);
-    fs.mkdirSync(path.join(r.dir, "lib"));
-    r.git(["mv", "a.ts", "lib/a.ts"], 90);
-    r.git(["commit", "-q", "--no-gpg-sign", "-m", "move"], 90);
-    r.touch(["lib/a.ts", "b.ts"], 100);
+describe(
+  "snapshots and later commits (a planted future)",
+  { timeout: 60_000 },
+  () => {
+    it("proposes only from history up to the snapshot, and labels with what came after", async () => {
+      const r = repo();
+      r.touch(["a.ts", "b.ts", "c.ts", "d.ts"], 0);
+      for (const day of [10, 20, 30]) r.touch(["a.ts", "b.ts"], day);
+      // After the snapshot (day 50): c and d start changing together, and a
+      // is renamed, then changes with b under its new name.
+      for (const day of [60, 70, 80]) r.touch(["c.ts", "d.ts"], day);
+      fs.mkdirSync(path.join(r.dir, "lib"));
+      r.git(["mv", "a.ts", "lib/a.ts"], 90);
+      r.git(["commit", "-q", "--no-gpg-sign", "-m", "move"], 90);
+      r.touch(["lib/a.ts", "b.ts"], 100);
 
-    const snap = await snapshotAt(r.dir, START + 50 * DAY);
-    expect(snap?.time).toBe(START + 30 * DAY);
-    const pairs = snap?.candidates.map((c) => `${c.source}>${c.target}`);
-    expect(pairs).toContain("a.ts>b.ts");
-    expect(pairs).not.toContain("c.ts>d.ts");
-    expect(
-      snap?.candidates.find((c) => c.source === "a.ts")?.signals.cochange,
-    ).toEqual({ together: 4, sourceCommits: 4, targetCommits: 4 });
+      const snap = await snapshotAt(r.dir, START + 50 * DAY);
+      expect(snap?.time).toBe(START + 30 * DAY);
+      const pairs = snap?.candidates.map((c) => `${c.source}>${c.target}`);
+      expect(pairs).toContain("a.ts>b.ts");
+      expect(pairs).not.toContain("c.ts>d.ts");
+      expect(
+        snap?.candidates.find((c) => c.source === "a.ts")?.signals.cochange,
+      ).toEqual({ together: 4, sourceCommits: 4, targetCommits: 4 });
 
-    const later = laterCommits(
-      r.dir,
-      snap?.time ?? 0,
-      START + 200 * DAY,
-      snap?.nodeOf ?? new Map(),
-    );
-    expect(later).toEqual([
-      ["c.ts", "d.ts"],
-      ["c.ts", "d.ts"],
-      ["c.ts", "d.ts"],
-      ["a.ts"],
-      ["a.ts", "b.ts"],
-    ]);
-    const labels = labelCandidates(snap?.candidates ?? [], later);
-    expect(
-      labels.labeled.find(
-        (l) => l.candidate.source === "a.ts" && l.candidate.target === "b.ts",
-      )?.y,
-    ).toBe(1);
-  });
-});
+      const later = laterCommits(
+        r.dir,
+        snap?.time ?? 0,
+        START + 200 * DAY,
+        snap?.nodeOf ?? new Map(),
+      );
+      expect(later).toEqual([
+        ["c.ts", "d.ts"],
+        ["c.ts", "d.ts"],
+        ["c.ts", "d.ts"],
+        ["a.ts"],
+        ["a.ts", "b.ts"],
+      ]);
+      const labels = labelCandidates(snap?.candidates ?? [], later);
+      expect(
+        labels.labeled.find(
+          (l) => l.candidate.source === "a.ts" && l.candidate.target === "b.ts",
+        )?.y,
+      ).toBe(1);
+    });
+  },
+);

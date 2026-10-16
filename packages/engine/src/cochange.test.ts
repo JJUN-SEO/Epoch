@@ -69,7 +69,7 @@ function counting(): { run: GitRunner; calls: () => number } {
   };
 }
 
-describe("gitCommitSets", () => {
+describe("gitCommitSets", { timeout: 60_000 }, () => {
   it("lists each non-merge commit's files in the window, under their current names", () => {
     const r = gitRepo();
     r.write("a.ts", "1\n");

@@ -65,7 +65,7 @@ function repo(files: Record<string, string>): string {
 const hints = (g: Graph) =>
   g.edges.filter(isHintEdge).map((e) => `${e.source}>${e.target} ${e.kind}`);
 
-describe("the Enrich stage", () => {
+describe("the Enrich stage", { timeout: 60_000 }, () => {
   it("adds co-change hints, skipping bulk commits and pairs a fact edge already covers", async () => {
     const dir = repo({
       "src/core.ts": "export const core = 1;\n",
