@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { Graph, GraphEdge, GraphNode } from "@epoch-dev/core";
-import { PACKAGE_DIRECTORY_EVIDENCE } from "@epoch-dev/core";
-import { packageFolders } from "./packages.js";
+import type { Graph, GraphEdge, GraphNode } from "../schemas/index.js";
+import { PACKAGE_DIRECTORY_EVIDENCE } from "./build.js";
+import { nodeFolder, packageFolders } from "./folders.js";
 
 const node = (id: string): GraphNode => ({
   id,
@@ -89,5 +89,15 @@ describe("packageFolders", () => {
       "pkg:example.com/m/a/b": "a/b",
     });
     expect(packageFolders(graph(["a.ts"])).size).toBe(0);
+  });
+
+  it("gives any node's folder", () => {
+    const g = graph(
+      ["pkg:example.com/m/a", "a/a_test.go", "top.go"],
+      [testLink("a/a_test.go", "pkg:example.com/m/a")],
+    );
+    expect(nodeFolder("pkg:example.com/m/a", g)).toBe("a");
+    expect(nodeFolder("a/a_test.go", g)).toBe("a");
+    expect(nodeFolder("top.go", g)).toBe("");
   });
 });

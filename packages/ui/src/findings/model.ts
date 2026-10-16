@@ -5,8 +5,8 @@ import {
   type Finding,
   type FindingKind,
   type Graph,
+  packageFolders,
 } from "@epoch-dev/core";
-import { packageFolders } from "../graph/packages";
 
 /*
  * Pure helpers behind the findings UI: which graph nodes a finding touches,

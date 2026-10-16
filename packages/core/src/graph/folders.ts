@@ -1,4 +1,5 @@
-import { PACKAGE_DIRECTORY_EVIDENCE, type Graph } from "@epoch-dev/core";
+import type { Graph } from "../schemas/index.js";
+import { PACKAGE_DIRECTORY_EVIDENCE } from "./build.js";
 
 /*
  * Where each Go package node sits in the folder map (ADR-013). A package id
@@ -81,4 +82,13 @@ export function packageFolders(graph: Graph): ReadonlyMap<string, string> {
   }
   memo.set(graph, folders);
   return folders;
+}
+
+/**
+ * The folder a node sits in ("" for the root): a file's directory, or a Go
+ * package's folder from packageFolders.
+ */
+export function nodeFolder(id: string, graph: Graph): string {
+  if (id.startsWith("pkg:")) return packageFolders(graph).get(id) ?? "";
+  return folderOf(id);
 }

@@ -5,9 +5,8 @@ import {
   type EdgeKind,
   type Graph,
   type GraphEdge,
+  packageFolders,
 } from "@epoch-dev/core";
-
-import { packageFolders } from "./packages.js";
 
 export { isHintEdge };
 

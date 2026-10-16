@@ -20,6 +20,8 @@ export * from "./graph/reachability.js";
 export * from "./graph/blast-radius.js";
 export * from "./graph/delta.js";
 export * from "./graph/scc.js";
+export * from "./graph/folders.js";
+export * from "./summaries.js";
 export type * from "./interfaces/adapter.js";
 export type * from "./interfaces/services.js";
 export type * from "./interfaces/api.js";
