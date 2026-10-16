@@ -164,6 +164,69 @@ test("blast radius colors what depends on the selected file, by depth", async ()
   expect(violations).toEqual([]);
 });
 
+test("hint edges stay hidden until asked; the slider filters them, and Likely blast radius follows them", async () => {
+  const dir = project({
+    "src/a.ts": 'import { b } from "./b";\nexport const a = b;\n',
+    "src/b.ts": "export const b = 1;\n",
+    "src/c.ts": "export const c = 1;\n",
+  });
+  git(dir, "init", "-q", "-b", "main");
+  git(dir, "add", "-A");
+  git(dir, "commit", "-q", "-m", "one");
+  // b and c change together in every commit that touches either.
+  for (let i = 0; i < 3; i++) {
+    fs.appendFileSync(path.join(dir, "src/b.ts"), "// edit\n");
+    fs.appendFileSync(path.join(dir, "src/c.ts"), "// edit\n");
+    git(dir, "add", "-A");
+    git(dir, "commit", "-q", "-m", `edit ${String(i)}`);
+  }
+  await open(dir);
+  const { page } = epoch;
+  await expect(stats(page)).toHaveText("3 files · 1 edges");
+  await expect(page.getByTestId("hints-status")).toHaveText(
+    "2 likely relations",
+  );
+  const hints = (await mainGraph(page)).edges.filter((e) => e.confidence < 1);
+  const atLeast = (t: number) =>
+    String(hints.filter((e) => e.confidence >= t).length);
+  const canvas = page.getByTestId("graph-canvas");
+  // Facts only by default (CLAUDE.md "Edge traversal policy").
+  await expect(canvas).toHaveAttribute("data-hint-edges", "0");
+
+  await page.getByLabel("Hints", { exact: true }).check();
+  await expect(canvas).toHaveAttribute("data-hint-edges", atLeast(0.5));
+  const slider = page.getByLabel("Lowest hint confidence");
+  await slider.press("End");
+  await expect(canvas).toHaveAttribute("data-hint-edges", atLeast(0.95));
+  await slider.press("Home");
+  await expect(canvas).toHaveAttribute("data-hint-edges", atLeast(0.2));
+
+  // The details list them apart from imports, with their evidence as text.
+  await selectNode(page, "src/c.ts");
+  await page.getByRole("tab", { name: "Details" }).click();
+  const likely = page.getByTestId("likely-related");
+  await expect(likely).toContainText("src/b.ts");
+  await expect(likely).toContainText(
+    "changed in 4 of the 4 commits that changed src/b.ts",
+  );
+
+  // Likely mode adds what changes with b: c, at the slider's threshold.
+  await selectNode(page, "src/b.ts");
+  await page.getByRole("tab", { name: "Impact" }).click();
+  const impact = page.getByTestId("impact");
+  await expect(page.getByTestId("impact-total")).toHaveText("1 file");
+  await impact.getByRole("button", { name: "Likely", exact: true }).click();
+  await expect(page.getByTestId("impact-total")).toHaveText("2 files");
+  await expect(page.getByTestId("impact-via-hints")).toContainText(
+    "1 reached only through likely relations",
+  );
+  await expect(impact).toContainText("likely");
+
+  await page.getByLabel("Hints", { exact: true }).uncheck();
+  await expect(canvas).toHaveAttribute("data-hint-edges", "0");
+  expect(violations).toEqual([]);
+});
+
 test("risk needs git history, and says so without it", async () => {
   const dir = project(FILES);
   await open(dir);

@@ -14,6 +14,7 @@ export type CommandId =
   | "panel.inspector"
   | "graph.fit"
   | "graph.barrels"
+  | "graph.hints"
   | "graph.expandAll"
   | "graph.collapseAll"
   | "graph.colorBy"

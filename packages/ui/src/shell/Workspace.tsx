@@ -40,7 +40,9 @@ import {
   expandTo,
   initialExpanded,
   isDirId,
+  isHintEdge,
   representative,
+  type EdgeDisplay,
 } from "../graph/aggregate";
 import { nodeColors, type ColorBy } from "../graph/colors";
 import type { CanvasControls } from "../graph/cy";
@@ -56,7 +58,7 @@ import { useFindings } from "../findings/useFindings";
 import { graph3dData } from "../graph3d/data";
 import { webglAvailable } from "../graph3d/support";
 import { isMac } from "../platform";
-import { loadPrefs, savePrefs, type Prefs } from "../prefs";
+import { clampThreshold, loadPrefs, savePrefs, type Prefs } from "../prefs";
 import { CanvasToolbar } from "./CanvasToolbar";
 import { CommandPalette } from "./CommandPalette";
 import {
@@ -170,9 +172,20 @@ export function Workspace({
   const graph3dControls = useRef<CanvasControls | undefined>(undefined);
   const webgl = useMemo(webglAvailable, []);
   const mode3d = prefs.graphMode === "3d" && webgl;
+  const display = useMemo<EdgeDisplay>(
+    () => ({
+      showViaBarrel,
+      ...(prefs.hints ? { hintThreshold: prefs.hintThreshold } : {}),
+    }),
+    [showViaBarrel, prefs.hints, prefs.hintThreshold],
+  );
+  const hintCount = useMemo(
+    () => graph.edges.filter(isHintEdge).length,
+    [graph],
+  );
   const data3d = useMemo(
-    () => (mode3d ? graph3dData(graph, showViaBarrel) : undefined),
-    [mode3d, graph, showViaBarrel],
+    () => (mode3d ? graph3dData(graph, display) : undefined),
+    [mode3d, graph, display],
   );
   const focusControls = useRef<CanvasControls | undefined>(undefined);
 
@@ -183,15 +196,15 @@ export function Workspace({
     [graph, prefs.colorBy],
   );
   const visible = useMemo(
-    () => aggregate(graph, { expanded, showViaBarrel }),
-    [graph, expanded, showViaBarrel],
+    () => aggregate(graph, { expanded, ...display }),
+    [graph, expanded, display],
   );
   const focusHood = useMemo(
     () =>
       center === undefined
         ? undefined
-        : neighborhood(graph, center, { hops, showViaBarrel }),
-    [graph, center, hops, showViaBarrel],
+        : neighborhood(graph, center, { hops, ...display }),
+    [graph, center, hops, display],
   );
   const groups =
     openGroups.center === center ? openGroups.ids : new Set<string>();
@@ -209,8 +222,8 @@ export function Workspace({
   const selectedHood = useMemo(() => {
     if (!isFileNode(selected)) return undefined;
     if (selected === center && focusHood) return focusHood;
-    return neighborhood(graph, selected, { hops, showViaBarrel });
-  }, [graph, isFileNode, selected, center, focusHood, hops, showViaBarrel]);
+    return neighborhood(graph, selected, { hops, ...display });
+  }, [graph, isFileNode, selected, center, focusHood, hops, display]);
 
   const [watchNoticeClosed, setWatchNoticeClosed] = useState(false);
 
@@ -249,9 +262,17 @@ export function Workspace({
   // Blast radius of the selection (core's pure function, as the API uses).
   const [impactOn, setImpactOn] = useState(false);
   const [impactSettings, setImpactSettings] = useState<ImpactSettings>({
+    mode: "certain",
     includeTypeOnly: true,
     maxDepth: undefined,
   });
+  const impactMode = useMemo(
+    () =>
+      impactSettings.mode === "likely"
+        ? ({ mode: "likely", hintThreshold: prefs.hintThreshold } as const)
+        : ({ mode: "certain" } as const),
+    [impactSettings.mode, prefs.hintThreshold],
+  );
   useEffect(() => {
     setImpactSettings((s) =>
       s.maxDepth === undefined ? s : { ...s, maxDepth: undefined },
@@ -261,11 +282,11 @@ export function Workspace({
     () =>
       isFileNode(selected)
         ? blastRadius(graph, selected, {
-            mode: "certain",
+            ...impactMode,
             includeTypeOnly: impactSettings.includeTypeOnly,
           })
         : undefined,
-    [graph, isFileNode, selected, impactSettings.includeTypeOnly],
+    [graph, isFileNode, selected, impactMode, impactSettings.includeTypeOnly],
   );
   const impact = useMemo(() => {
     const max = impactSettings.maxDepth;
@@ -273,11 +294,11 @@ export function Workspace({
       return impactFull;
     }
     return blastRadius(graph, impactFull.nodeId, {
-      mode: "certain",
+      ...impactMode,
       includeTypeOnly: impactSettings.includeTypeOnly,
       maxDepth: max,
     });
-  }, [graph, impactFull, impactSettings]);
+  }, [graph, impactFull, impactMode, impactSettings]);
   /** Drawn node -> distance from the selection (folders: their nearest file). */
   const visibleImpact = useMemo(() => {
     if (!impactOn || !impact) return undefined;
@@ -414,6 +435,9 @@ export function Workspace({
     "graph.barrels": () => {
       setShowViaBarrel((s) => !s);
     },
+    "graph.hints": () => {
+      updatePrefs({ hints: !prefs.hints });
+    },
     "graph.expandAll": () => {
       setExpanded(new Set(allDirs));
     },
@@ -474,6 +498,11 @@ export function Workspace({
     {
       id: "graph.barrels",
       title: showViaBarrel ? "Hide Barrel Imports" : "Show Barrel Imports",
+      enabled: true,
+    },
+    {
+      id: "graph.hints",
+      title: prefs.hints ? "Hide Hint Edges" : "Show Hint Edges",
       enabled: true,
     },
     {
@@ -917,6 +946,15 @@ export function Workspace({
               }}
               showViaBarrel={showViaBarrel}
               onShowViaBarrel={setShowViaBarrel}
+              hints={prefs.hints}
+              onHints={(on) => {
+                updatePrefs({ hints: on });
+              }}
+              hintThreshold={prefs.hintThreshold}
+              onHintThreshold={(t) => {
+                updatePrefs({ hintThreshold: clampThreshold(t) });
+              }}
+              hintCount={hintCount}
               hops={hops}
               onHops={(h: Hops) => {
                 updatePrefs({ hops: h });
@@ -999,6 +1037,8 @@ export function Workspace({
                   result={impact}
                   settings={impactSettings}
                   onSettings={setImpactSettings}
+                  hintThreshold={prefs.hintThreshold}
+                  hintCount={hintCount}
                   shown={impactOn}
                   onShown={(on) => {
                     if (on !== impactOn) toggleImpact();

@@ -15,6 +15,8 @@ export function affectedLabel(r: BlastRadiusResult): string {
 }
 
 export interface ImpactSettings {
+  /** certain: fact edges; likely: plus hint edges at or above the hint threshold. */
+  readonly mode: "certain" | "likely";
   readonly includeTypeOnly: boolean;
   /** Hops to follow; undefined for all. */
   readonly maxDepth: number | undefined;
@@ -23,7 +25,8 @@ export interface ImpactSettings {
 /**
  * Blast radius of the selection (CLAUDE.md "Blast radius"): what transitively
  * depends on it, by depth, directory and language. Certain mode follows fact
- * edges only; Likely mode adds hint edges, which arrive in M6.
+ * edges only; Likely mode adds hint edges at or above the hint threshold
+ * (the toolbar's slider), and marks what only they reach.
  */
 export function ImpactPanel(props: {
   readonly selected: string | undefined;
@@ -33,6 +36,10 @@ export function ImpactPanel(props: {
   readonly result: BlastRadiusResult | undefined;
   readonly settings: ImpactSettings;
   readonly onSettings: (s: ImpactSettings) => void;
+  /** Likely mode follows hint edges at or above this confidence. */
+  readonly hintThreshold: number;
+  /** Hint edges in this analysis; Likely mode needs some. */
+  readonly hintCount: number;
   readonly shown: boolean;
   readonly onShown: (shown: boolean) => void;
   readonly onShow: (id: string) => void;
@@ -47,10 +54,14 @@ export function ImpactPanel(props: {
     );
   }
   const depths = Array.from({ length: full.maxDepth }, (_, i) => i + 1);
-  const byDepth = new Map<number, string[]>();
+  const byDepth = new Map<number, { id: string; viaHint: boolean }[]>();
   for (const a of result.affected) {
-    byDepth.set(a.depth, [...(byDepth.get(a.depth) ?? []), a.id]);
+    byDepth.set(a.depth, [
+      ...(byDepth.get(a.depth) ?? []),
+      { id: a.id, viaHint: a.viaHint },
+    ]);
   }
+  const likely = settings.mode === "likely" && props.hintCount > 0;
   const dirs = Object.entries(result.byDirectory)
     .sort(([a, x], [b, y]) => y - x || (a < b ? -1 : 1))
     .slice(0, 10);
@@ -75,6 +86,13 @@ export function ImpactPanel(props: {
             </span>
           )}
         </p>
+        {likely && (
+          <p data-testid="impact-via-hints" className="text-muted mt-1 text-xs">
+            {result.viaHints === 0
+              ? `No more through likely relations at or above ${props.hintThreshold.toFixed(2)}.`
+              : `${String(result.viaHints)} reached only through likely relations (confidence ${props.hintThreshold.toFixed(2)} or more), marked "likely".`}
+          </p>
+        )}
       </header>
       <div className="flex flex-col gap-2 px-3 pt-3">
         <div className="flex flex-wrap items-center gap-2">
@@ -89,13 +107,17 @@ export function ImpactPanel(props: {
               {
                 value: "likely",
                 label: "Likely",
-                disabled: true,
+                disabled: props.hintCount === 0,
                 title:
-                  "Adds inferred relations (co-change, shared strings); hint edges arrive in M6",
+                  props.hintCount === 0
+                    ? "No likely relations in this analysis (they come from git co-change and shared strings)"
+                    : `Also follows likely relations (co-change, shared strings) at or above ${props.hintThreshold.toFixed(2)}; set the threshold with the Hints slider`,
               },
             ]}
-            value="certain"
-            onChange={() => undefined}
+            value={props.hintCount === 0 ? "certain" : settings.mode}
+            onChange={(mode) => {
+              props.onSettings({ ...settings, mode });
+            }}
           />
           <label className="text-muted inline-flex items-center gap-1.5 text-[12px]">
             Depth
@@ -176,16 +198,26 @@ export function ImpactPanel(props: {
             ({ids.length})
           </SectionTitle>
           <ul className="px-1.5">
-            {ids.slice(0, LIST_LIMIT).map((id) => (
+            {ids.slice(0, LIST_LIMIT).map(({ id, viaHint }) => (
               <li key={id}>
                 <button
                   type="button"
-                  className="hover:bg-hover block w-full rounded-md px-1.5 py-0.5 text-left text-[13px]"
+                  className="hover:bg-hover flex w-full items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left text-[13px]"
                   onClick={() => {
                     props.onShow(id);
                   }}
                 >
-                  <PathLabel id={id} />
+                  <span className="min-w-0 flex-1">
+                    <PathLabel id={id} />
+                  </span>
+                  {viaHint && (
+                    <span
+                      className="text-muted border-strong-line shrink-0 rounded border border-dashed px-1 text-[11px]"
+                      title="Reached only through a likely relation, not a proven import"
+                    >
+                      likely
+                    </span>
+                  )}
                 </button>
               </li>
             ))}

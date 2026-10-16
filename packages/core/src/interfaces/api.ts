@@ -32,13 +32,16 @@ export type WatchStatus =
 
 /**
  * @provisional What the latest analysis used: git history, a coverage
- * report, epoch.config.json, and what the Findings stage could check.
+ * report, epoch.config.json, what the Findings stage could check, and where
+ * the hint edges came from.
  */
 export interface AnalysisInfo {
   readonly git: AnalysisMeta["git"];
   readonly coverage: AnalysisMeta["coverage"];
   readonly config: AnalysisMeta["config"];
   readonly findings: AnalysisMeta["findings"];
+  /** The Enrich stage (M6): which hint sources ran, and how many hint edges it made. */
+  readonly hints: AnalysisMeta["hints"];
 }
 
 /** @provisional */

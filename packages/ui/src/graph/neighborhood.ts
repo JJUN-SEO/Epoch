@@ -1,5 +1,5 @@
 import type { EdgeKind, Graph } from "@epoch-dev/core";
-import { isHintEdge, isShownEdge } from "./aggregate";
+import { isHintEdge, isShownEdge, type EdgeDisplay } from "./aggregate";
 
 /*
  * The files around one file: what it imports (directly or within a few hops)
@@ -9,9 +9,8 @@ import { isHintEdge, isShownEdge } from "./aggregate";
  * core with its own policy. Pure, for the tests and the static demo.
  */
 
-export interface NeighborhoodOptions {
+export interface NeighborhoodOptions extends EdgeDisplay {
   readonly hops: 1 | 2 | 3;
-  readonly showViaBarrel: boolean;
 }
 
 export interface Neighbor {
@@ -84,7 +83,7 @@ export function neighborhood(
   options: NeighborhoodOptions,
 ): Neighborhood {
   const shown = graph.edges.filter(
-    (e) => e.source !== e.target && isShownEdge(e, options.showViaBarrel),
+    (e) => e.source !== e.target && isShownEdge(e, options),
   );
   const forward: Adjacency = new Map();
   const backward: Adjacency = new Map();

@@ -58,6 +58,7 @@ const infoOf = (r: AnalyzeResult): AnalysisInfo => ({
   coverage: r.meta.coverage,
   config: r.meta.config,
   findings: r.meta.findings,
+  hints: r.meta.hints,
 });
 
 /**

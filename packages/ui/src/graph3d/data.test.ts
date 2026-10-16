@@ -16,7 +16,7 @@ describe("graph3dData", () => {
   );
 
   it("indexes every file, sorted, with its parent folder as its group", () => {
-    const d = graph3dData(g, false);
+    const d = graph3dData(g, { showViaBarrel: false });
     expect(d.ids).toEqual(["index.ts", "lib/c.ts", "src/a.ts", "src/b.ts"]);
     expect([...d.groups]).toEqual([0, 1, 2, 2]);
     expect(d.languages).toEqual([
@@ -28,19 +28,24 @@ describe("graph3dData", () => {
   });
 
   it("draws the 2D graph's edges once per pair, without self-loops", () => {
-    const d = graph3dData(g, false);
+    const d = graph3dData(g, { showViaBarrel: false, hintThreshold: 0.5 });
     // index -> lib/c, src/a -> src/b (import + type-only merged), src/b -> lib/c (hint)
     expect([...d.links]).toEqual([0, 1, 2, 3, 3, 1]);
     expect(d.hints).toEqual([false, false, true]);
   });
 
-  it("adds via-barrel edges only when asked", () => {
-    const d = graph3dData(g, true);
+  it("adds via-barrel and hint edges only when asked", () => {
+    const d = graph3dData(g, { showViaBarrel: true, hintThreshold: 0.5 });
     expect([...d.links]).toEqual([0, 1, 0, 2, 2, 3, 3, 1]);
+    const facts = graph3dData(g, { showViaBarrel: false });
+    expect([...facts.links]).toEqual([0, 1, 2, 3]);
+    expect(
+      graph3dData(g, { showViaBarrel: false, hintThreshold: 0.7 }).hints,
+    ).toEqual([false, false]);
   });
 
   it("lists each node's outgoing and incoming edges", () => {
-    const d = graph3dData(g, false);
+    const d = graph3dData(g, { showViaBarrel: false, hintThreshold: 0.5 });
     const { out, into } = edgesByNode(d);
     expect(out).toEqual([[0], [], [1], [2]]);
     expect(into).toEqual([[], [0, 2], [], [1]]);

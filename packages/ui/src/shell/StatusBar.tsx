@@ -1,5 +1,6 @@
 import {
   LANGUAGE_TIERS,
+  isHintEdge,
   type AnalysisInfo,
   type Graph,
   type WatchStatus,
@@ -62,6 +63,31 @@ export function gitSummary(info: AnalysisInfo | null): {
   }
 }
 
+/** One line on the hint edges (likely relations), and what they rest on. */
+export function hintsSummary(info: AnalysisInfo | null): {
+  text: string;
+  title: string;
+} | null {
+  const h = info?.hints;
+  if (!h) return null;
+  if (h.scorer === "none") {
+    return { text: "Hints off", title: "Likely relations were not computed." };
+  }
+  const c = h.cochange;
+  const cochange =
+    c.status === "usable" || c.status === "shallow"
+      ? `co-change in ${plural(c.commits, "commit")} of the last year${c.status === "shallow" ? " (a shallow clone: only the fetched history)" : ""}`
+      : c.status === "not-a-repo"
+        ? "no co-change (not a git repository)"
+        : c.status === "off"
+          ? "no co-change (off)"
+          : `no co-change (${c.status})`;
+  return {
+    text: plural(h.edges, "likely relation"),
+    title: `Inferred, not proven: ${cochange}; shared rare strings (${plural(h.strings.pairs, "pair")}). Scored by the ${h.scorer} scorer. Drawn dashed when Hints is on; never counted as imports.`,
+  };
+}
+
 function watchLabel(watch: WatchStatus, updatedAt: Date | undefined) {
   switch (watch.state) {
     case "watching":
@@ -117,12 +143,15 @@ export function StatusBar(props: {
     else byLanguage.set(n.language, (byLanguage.get(n.language) ?? 0) + 1);
   }
   const git = gitSummary(props.analysis ?? null);
+  const hints = hintsSummary(props.analysis ?? null);
+  let hintEdges = 0;
+  for (const e of graph.edges) if (isHintEdge(e)) hintEdges++;
   const coverage = props.analysis?.coverage;
   const watch = props.watch && watchLabel(props.watch, props.updatedAt);
   return (
     <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px] whitespace-nowrap">
       <span data-testid="graph-stats">
-        {nodeCounts(graph)} · {graph.edges.length} edges
+        {nodeCounts(graph)} · {graph.edges.length - hintEdges} edges
         {graph.unresolved.length > 0
           ? ` · ${String(graph.unresolved.length)} unresolved imports`
           : ""}
@@ -143,6 +172,11 @@ export function StatusBar(props: {
       {git && (
         <span data-testid="git-status" title={git.title}>
           {git.text}
+        </span>
+      )}
+      {hints && (
+        <span data-testid="hints-status" title={hints.title}>
+          {hints.text}
         </span>
       )}
       {props.analysis && (

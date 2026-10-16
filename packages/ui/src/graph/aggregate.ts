@@ -1,5 +1,6 @@
 import {
   DISPLAY_EDGE_KINDS,
+  hintSourceLabel,
   isHintEdge,
   type EdgeKind,
   type Graph,
@@ -52,6 +53,8 @@ export interface VisibleEdge {
   readonly kinds: readonly EdgeKind[];
   /** Graph edges merged into this one. */
   readonly count: number;
+  /** Hints only: what the relation rests on, in words, for the hover text. */
+  readonly detail?: string;
 }
 
 export interface VisibleGraph {
@@ -59,21 +62,38 @@ export interface VisibleGraph {
   readonly edges: readonly VisibleEdge[];
 }
 
-export interface AggregateOptions {
-  /** Directory paths that are open. */
-  readonly expanded: ReadonlySet<string>;
+/** Which edges the graph views draw (CLAUDE.md "Edge traversal policy"). */
+export interface EdgeDisplay {
   /** Show via-barrel edges (hidden by default; CLAUDE.md "Edge traversal policy"). */
   readonly showViaBarrel: boolean;
+  /**
+   * Draw hint edges at or above this confidence. Absent: hints are hidden,
+   * as the default display shows fact edges only.
+   */
+  readonly hintThreshold?: number | undefined;
+}
+
+export interface AggregateOptions extends EdgeDisplay {
+  /** Directory paths that are open. */
+  readonly expanded: ReadonlySet<string>;
 }
 
 /**
  * Whether the graph views draw an edge: the default display set of the
- * traversal policy, hints, and via-barrel edges only when asked for.
+ * traversal policy, plus via-barrel edges and hints only when asked for.
  */
-export const isShownEdge = (e: GraphEdge, showViaBarrel: boolean): boolean =>
-  isHintEdge(e) ||
-  DISPLAY_EDGE_KINDS.has(e.kind) ||
-  (e.kind === "via-barrel" && showViaBarrel);
+export const isShownEdge = (e: GraphEdge, display: EdgeDisplay): boolean =>
+  isHintEdge(e)
+    ? display.hintThreshold !== undefined &&
+      e.confidence >= display.hintThreshold
+    : DISPLAY_EDGE_KINDS.has(e.kind) ||
+      (e.kind === "via-barrel" && display.showViaBarrel);
+
+/** A hint edge in words: "Likely relation (co-change, 0.80): <evidence>". */
+export function hintDetail(e: GraphEdge): string {
+  const head = `Likely relation (${hintSourceLabel(e)}, ${e.confidence.toFixed(2)})`;
+  return e.evidence.length === 0 ? head : `${head}: ${e.evidence.join("; ")}`;
+}
 
 /**
  * The folders above a node: "a/b/c.ts" -> ["a", "a/b"]. A Go package sits in
@@ -209,10 +229,11 @@ export function aggregate(
       hint: boolean;
       kinds: Set<EdgeKind>;
       count: number;
+      strongest?: GraphEdge;
     }
   >();
   for (const e of graph.edges) {
-    if (!isShownEdge(e, options.showViaBarrel)) continue;
+    if (!isShownEdge(e, options)) continue;
     const hint = isHintEdge(e);
     const source = representative(e.source, expanded, graph);
     const target = representative(e.target, expanded, graph);
@@ -222,6 +243,8 @@ export function aggregate(
     if (m) {
       m.kinds.add(e.kind);
       m.count++;
+      if (hint && e.confidence > (m.strongest?.confidence ?? 0))
+        m.strongest = e;
     } else {
       merged.set(key, {
         source,
@@ -229,6 +252,7 @@ export function aggregate(
         hint,
         kinds: new Set([e.kind]),
         count: 1,
+        ...(hint ? { strongest: e } : {}),
       });
     }
   }
@@ -239,6 +263,14 @@ export function aggregate(
     hint: m.hint,
     kinds: [...m.kinds].sort(),
     count: m.count,
+    ...(m.strongest === undefined
+      ? {}
+      : {
+          detail:
+            m.count === 1
+              ? hintDetail(m.strongest)
+              : `${String(m.count)} likely relations, the strongest ${m.strongest.confidence.toFixed(2)}`,
+        }),
   }));
 
   return {

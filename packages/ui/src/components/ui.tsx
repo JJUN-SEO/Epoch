@@ -149,6 +149,41 @@ export function Toggle(props: {
   );
 }
 
+/** A compact range input with its value shown beside it. */
+export function Slider(props: {
+  readonly label: string;
+  readonly value: number;
+  readonly min: number;
+  readonly max: number;
+  readonly step: number;
+  readonly onChange: (value: number) => void;
+  readonly format: (value: number) => string;
+  readonly title?: string;
+}) {
+  return (
+    <label
+      className="no-drag text-muted inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs font-medium whitespace-nowrap"
+      title={props.title}
+    >
+      <input
+        type="range"
+        aria-label={props.label}
+        className="accent-accent w-20 cursor-pointer"
+        min={props.min}
+        max={props.max}
+        step={props.step}
+        value={props.value}
+        onChange={(e) => {
+          props.onChange(Number(e.target.value));
+        }}
+      />
+      <output className="w-10 text-right tabular-nums">
+        {props.format(props.value)}
+      </output>
+    </label>
+  );
+}
+
 export function Kbd({ children }: { readonly children: ReactNode }) {
   return (
     <kbd className="border-line bg-sunken text-muted rounded border px-1 font-sans text-[11px] leading-4">

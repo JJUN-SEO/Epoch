@@ -8,7 +8,12 @@ import {
 } from "lucide-react";
 import type { ColorBy } from "../graph/colors";
 import { HOP_OPTIONS, type Hops } from "../components/NeighborsPanel";
-import { IconButton, Segmented, Toggle } from "../components/ui";
+import { IconButton, Segmented, Slider, Toggle } from "../components/ui";
+import {
+  HINT_THRESHOLD_MAX,
+  HINT_THRESHOLD_MIN,
+  HINT_THRESHOLD_STEP,
+} from "../prefs";
 import type { View } from "./Sidebar";
 
 /** The floating toolbar over the canvas. */
@@ -21,6 +26,13 @@ export function CanvasToolbar(props: {
   readonly onColorBy: (by: ColorBy) => void;
   readonly showViaBarrel: boolean;
   readonly onShowViaBarrel: (show: boolean) => void;
+  /** Hint edges (likely relations) drawn, dashed, at or above the threshold. */
+  readonly hints: boolean;
+  readonly onHints: (show: boolean) => void;
+  readonly hintThreshold: number;
+  readonly onHintThreshold: (threshold: number) => void;
+  /** Hint edges in this analysis. */
+  readonly hintCount: number;
   readonly hops: Hops;
   readonly onHops: (hops: Hops) => void;
   readonly onExpandAll: () => void;
@@ -41,7 +53,7 @@ export function CanvasToolbar(props: {
     <div
       role="toolbar"
       aria-label="Canvas"
-      className="border-line bg-raised/95 shadow-pop absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-1 rounded-xl border p-1 backdrop-blur"
+      className="border-line bg-raised/95 shadow-pop absolute bottom-4 left-1/2 flex w-max max-w-[calc(100%-2rem)] -translate-x-1/2 flex-wrap items-center justify-center gap-1 rounded-xl border p-1 backdrop-blur"
     >
       <IconButton icon={ZoomOut} label="Zoom out" onClick={props.onZoomOut} />
       <IconButton icon={ZoomIn} label="Zoom in" onClick={props.onZoomIn} />
@@ -77,7 +89,7 @@ export function CanvasToolbar(props: {
                 : "Select a file to see its blast radius"
             }
             onClick={props.onImpact}
-            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium transition-colors disabled:opacity-35 ${props.impact ? "bg-active text-fg" : "text-muted hover:text-fg hover:bg-hover"}`}
+            className={`inline-flex h-7 items-center gap-1.5 rounded-md px-2 text-xs font-medium whitespace-nowrap transition-colors disabled:opacity-35 ${props.impact ? "bg-active text-fg" : "text-muted hover:text-fg hover:bg-hover"}`}
           >
             <Radar size={14} aria-hidden="true" />
             Blast radius
@@ -127,6 +139,28 @@ export function CanvasToolbar(props: {
         checked={props.showViaBarrel}
         onChange={props.onShowViaBarrel}
       />
+      <Toggle
+        label="Hints"
+        title={
+          props.hintCount === 0
+            ? "No likely relations in this analysis (they come from git co-change and shared strings)"
+            : `Draw ${String(props.hintCount)} likely relations as dashed edges: inferred from git co-change and shared strings, not proven imports`
+        }
+        checked={props.hints}
+        onChange={props.onHints}
+      />
+      {props.hints && (
+        <Slider
+          label="Lowest hint confidence"
+          title="Hide likely relations below this confidence; the Likely blast radius uses the same threshold"
+          value={props.hintThreshold}
+          min={HINT_THRESHOLD_MIN}
+          max={HINT_THRESHOLD_MAX}
+          step={HINT_THRESHOLD_STEP}
+          onChange={props.onHintThreshold}
+          format={(v) => `≥ ${v.toFixed(2)}`}
+        />
+      )}
     </div>
   );
 }

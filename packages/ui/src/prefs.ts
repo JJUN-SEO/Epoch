@@ -1,3 +1,4 @@
+import { HINT_DEFAULTS } from "@epoch-dev/core";
 import type { ColorBy } from "./graph/colors";
 
 /*
@@ -17,6 +18,10 @@ export interface Prefs {
   readonly inspectorTab: "details" | "neighbors" | "impact";
   /** The graph view's drawing: the 2D graph, or the optional 3D overview. */
   readonly graphMode: "2d" | "3d";
+  /** Draw hint edges (likely relations); off by default, as CLAUDE.md's default display shows facts only. */
+  readonly hints: boolean;
+  /** The lowest hint confidence drawn, and the threshold of the blast radius's Likely mode. */
+  readonly hintThreshold: number;
 }
 
 export const DEFAULT_PREFS: Prefs = {
@@ -28,7 +33,24 @@ export const DEFAULT_PREFS: Prefs = {
   hops: 1,
   inspectorTab: "details",
   graphMode: "2d",
+  hints: false,
+  hintThreshold: HINT_DEFAULTS.threshold,
 };
+
+/** No hint edge is weaker than the floor, so the slider starts there. */
+export const HINT_THRESHOLD_MIN = HINT_DEFAULTS.floor;
+export const HINT_THRESHOLD_MAX = 0.95;
+export const HINT_THRESHOLD_STEP = 0.05;
+
+/** A threshold on the slider's steps, inside its range. */
+export function clampThreshold(v: number): number {
+  const stepped = Math.round(v / HINT_THRESHOLD_STEP) * HINT_THRESHOLD_STEP;
+  return (
+    Math.round(
+      Math.min(HINT_THRESHOLD_MAX, Math.max(HINT_THRESHOLD_MIN, stepped)) * 100,
+    ) / 100
+  );
+}
 
 export const PANEL_MIN = 200;
 export const PANEL_MAX = 520;
@@ -65,6 +87,11 @@ export function parsePrefs(raw: unknown): Prefs {
         : d.inspectorTab,
     graphMode:
       r.graphMode === "2d" || r.graphMode === "3d" ? r.graphMode : d.graphMode,
+    hints: typeof r.hints === "boolean" ? r.hints : d.hints,
+    hintThreshold:
+      typeof r.hintThreshold === "number" && Number.isFinite(r.hintThreshold)
+        ? clampThreshold(r.hintThreshold)
+        : d.hintThreshold,
   };
 }
 

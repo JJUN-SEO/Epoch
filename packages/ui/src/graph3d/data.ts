@@ -1,5 +1,5 @@
 import type { Graph } from "@epoch-dev/core";
-import { isHintEdge, isShownEdge } from "../graph/aggregate";
+import { isHintEdge, isShownEdge, type EdgeDisplay } from "../graph/aggregate";
 
 /*
  * What the 3D overview draws: every file (no folder boxes; folders show as
@@ -24,7 +24,7 @@ export interface Graph3DData {
 const folderOf = (id: string): string =>
   id.includes("/") ? id.slice(0, id.lastIndexOf("/")) : "";
 
-export function graph3dData(graph: Graph, showViaBarrel: boolean): Graph3DData {
+export function graph3dData(graph: Graph, display: EdgeDisplay): Graph3DData {
   const nodes = [...graph.nodes].sort((a, b) =>
     a.id < b.id ? -1 : a.id > b.id ? 1 : 0,
   );
@@ -43,7 +43,7 @@ export function graph3dData(graph: Graph, showViaBarrel: boolean): Graph3DData {
 
   const pairs = new Map<string, { s: number; t: number; hint: boolean }>();
   for (const e of graph.edges) {
-    if (e.source === e.target || !isShownEdge(e, showViaBarrel)) continue;
+    if (e.source === e.target || !isShownEdge(e, display)) continue;
     const s = index.get(e.source);
     const t = index.get(e.target);
     if (s === undefined || t === undefined) continue;

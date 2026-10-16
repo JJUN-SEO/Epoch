@@ -119,22 +119,65 @@ describe("aggregate", () => {
     expect(ids(v.edges)).toEqual(["main.ts->dir:src"]);
   });
 
-  it("hides via-barrel edges unless asked, and dashes hints", () => {
+  it("hides via-barrel and hint edges unless asked, and draws hints at or above the threshold, dashed", () => {
     const h = graph(
-      ["a.ts", "b.ts", "index.ts"],
+      ["a.ts", "b.ts", "c.ts", "index.ts"],
       [
         edge("a.ts", "index.ts", "via-barrel"),
         edge("a.ts", "b.ts"),
-        edge("a.ts", "b.ts", "cochange", 0.8),
+        {
+          ...edge("a.ts", "b.ts", "cochange", 0.8),
+          evidence: ["changed in 4 of the 5 commits that changed b.ts"],
+        },
+        edge("c.ts", "b.ts", "shared-string", 0.3),
       ],
     );
-    const hidden = aggregate(h, { expanded: new Set(), showViaBarrel: false });
-    expect(hidden.edges.map((e) => [e.id, e.hint])).toEqual([
+    const facts = aggregate(h, { expanded: new Set(), showViaBarrel: false });
+    expect(facts.edges.map((e) => [e.id, e.hint])).toEqual([
+      ["a.ts->b.ts", false],
+    ]);
+    const hints = aggregate(h, {
+      expanded: new Set(),
+      showViaBarrel: false,
+      hintThreshold: 0.5,
+    });
+    expect(hints.edges.map((e) => [e.id, e.hint])).toEqual([
       ["a.ts->b.ts", false],
       ["a.ts->b.ts (hint)", true],
     ]);
+    expect(hints.edges[1]?.detail).toBe(
+      "Likely relation (co-change, 0.80): changed in 4 of the 5 commits that changed b.ts",
+    );
+    expect(hints.edges[0]?.detail).toBeUndefined();
+    expect(
+      ids(
+        aggregate(h, {
+          expanded: new Set(),
+          showViaBarrel: false,
+          hintThreshold: 0.2,
+        }).edges,
+      ),
+    ).toContain("c.ts->b.ts (hint)");
     const shown = aggregate(h, { expanded: new Set(), showViaBarrel: true });
     expect(ids(shown.edges)).toContain("a.ts->index.ts");
+  });
+
+  it("merges hints into a closed folder, naming how many and the strongest", () => {
+    const h = graph(
+      ["x/a.ts", "x/b.ts", "c.ts"],
+      [
+        edge("c.ts", "x/a.ts", "cochange", 0.6),
+        edge("c.ts", "x/b.ts", "shared-string", 0.7),
+      ],
+    );
+    const v = aggregate(h, {
+      expanded: new Set(),
+      showViaBarrel: false,
+      hintThreshold: 0.5,
+    });
+    expect(v.edges.map((e) => [e.id, e.detail])).toEqual([
+      ["c.ts->dir:x (hint)", "2 likely relations, the strongest 0.70"],
+    ]);
   });
 
   it("puts Go package nodes in their folders (ADR-013)", () => {

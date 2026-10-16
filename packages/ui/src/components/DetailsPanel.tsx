@@ -2,6 +2,8 @@ import { Crosshair, FolderOpen, FolderClosed } from "lucide-react";
 import { useMemo } from "react";
 import {
   LANGUAGE_TIERS,
+  hintSourceLabel,
+  isHintEdge,
   isScoredNode,
   riskBreakdowns,
   type AnalysisInfo,
@@ -73,6 +75,84 @@ function EdgeList(props: {
                   {e.kind}
                 </span>
                 {e.evidence.map((ev) => (
+                  <span key={ev} className="text-muted selectable text-[11px]">
+                    {ev}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Hint edges around a node, one row per other node, the most likely first. */
+export function likelyRelations(
+  graph: Graph,
+  id: string,
+): {
+  other: string;
+  confidence: number;
+  sources: string[];
+  evidence: string[];
+}[] {
+  const byOther = new Map<string, GraphEdge[]>();
+  for (const e of graph.edges) {
+    if (!isHintEdge(e) || e.source === e.target) continue;
+    const other =
+      e.source === id ? e.target : e.target === id ? e.source : undefined;
+    if (other === undefined) continue;
+    byOther.set(other, [...(byOther.get(other) ?? []), e]);
+  }
+  return [...byOther]
+    .map(([other, edges]) => ({
+      other,
+      confidence: Math.max(...edges.map((e) => e.confidence)),
+      sources: [...new Set(edges.map(hintSourceLabel))].sort(),
+      evidence: [...new Set(edges.flatMap((e) => e.evidence))],
+    }))
+    .sort(
+      (a, b) =>
+        b.confidence - a.confidence ||
+        (a.other < b.other ? -1 : a.other > b.other ? 1 : 0),
+    );
+}
+
+/** Likely relations (hints): inferred, never proven, so set apart from imports. */
+function LikelyList(props: {
+  readonly graph: Graph;
+  readonly id: string;
+  readonly onShow: (id: string) => void;
+}) {
+  const rows = likelyRelations(props.graph, props.id);
+  if (rows.length === 0) return null;
+  return (
+    <section data-testid="likely-related">
+      <SectionTitle>Likely related ({rows.length})</SectionTitle>
+      <p className="text-muted px-3 pb-1 text-[11px]">
+        Inferred from git history and shared strings, not from imports. They may
+        change together; check before relying on it.
+      </p>
+      <ul className="px-1.5">
+        {rows.map((r) => (
+          <li key={r.other}>
+            <div className="hover:bg-hover rounded-md px-1.5 py-1">
+              <button
+                type="button"
+                className="block w-full text-left text-[13px]"
+                onClick={() => {
+                  props.onShow(r.other);
+                }}
+              >
+                <PathLabel id={r.other} />
+              </button>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-muted border-strong-line rounded border border-dashed px-1 text-[11px] tabular-nums">
+                  likely {r.confidence.toFixed(2)} · {r.sources.join(", ")}
+                </span>
+                {r.evidence.map((ev) => (
                   <span key={ev} className="text-muted selectable text-[11px]">
                     {ev}
                   </span>
@@ -285,8 +365,12 @@ export function DetailsPanel({
 
   const node = graph.nodes.find((n) => n.id === selected);
   if (!node) return null;
-  const outgoing = graph.edges.filter((e) => e.source === node.id);
-  const incoming = graph.edges.filter((e) => e.target === node.id);
+  const outgoing = graph.edges.filter(
+    (e) => e.source === node.id && !isHintEdge(e),
+  );
+  const incoming = graph.edges.filter(
+    (e) => e.target === node.id && !isHintEdge(e),
+  );
   const unresolved = graph.unresolved.filter((u) => u.from === node.id);
   const tier = LANGUAGE_TIERS[node.language];
 
@@ -344,6 +428,7 @@ export function DetailsPanel({
         other={(e) => e.source}
         onShow={onShow}
       />
+      <LikelyList graph={graph} id={node.id} onShow={onShow} />
       {unresolved.length > 0 && (
         <section>
           <SectionTitle>Unresolved imports ({unresolved.length})</SectionTitle>

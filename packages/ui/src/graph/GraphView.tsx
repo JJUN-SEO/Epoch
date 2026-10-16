@@ -1,5 +1,6 @@
 import type {
   Core,
+  EdgeSingular,
   ElementDefinition,
   EventObject,
   NodeSingular,
@@ -79,6 +80,7 @@ function elementsOf(
         source: e.source,
         target: e.target,
         hint: e.hint,
+        detail: e.detail ?? "",
         width: Math.min(4, 1 + Math.log2(e.count)),
       },
     })),
@@ -100,6 +102,10 @@ export function GraphView(props: GraphViewProps) {
   const needsFit = useRef(false);
   const [laidOut, setLaidOut] = useState(0);
   const [busy, setBusy] = useState(false);
+  /** The hovered hint edge's evidence, as text, where the pointer is. */
+  const [edgeTip, setEdgeTip] = useState<
+    { x: number; y: number; text: string } | undefined
+  >();
 
   useImperativeHandle(
     props.controlsRef,
@@ -148,6 +154,15 @@ export function GraphView(props: GraphViewProps) {
         highlightNeighbors(cy, handlers.current.selected);
       }
     });
+    cy.on("mouseover", "edge", (e) => {
+      const detail: unknown = (e.target as EdgeSingular).data("detail");
+      if (typeof detail !== "string" || detail === "") return;
+      const p = e.renderedPosition;
+      setEdgeTip({ x: p.x, y: p.y, text: detail });
+    });
+    cy.on("mouseout", "edge", () => {
+      setEdgeTip(undefined);
+    });
     const stopTheme = onThemeChange(() => {
       cy.style(graphStylesheet(readCanvasTheme()));
     });
@@ -189,6 +204,7 @@ export function GraphView(props: GraphViewProps) {
       })
       .then((result) => {
         if (cancelled || !result) return;
+        setEdgeTip(undefined);
         cy.batch(() => {
           cy.elements().remove();
           cy.add(
@@ -290,8 +306,19 @@ export function GraphView(props: GraphViewProps) {
         className="h-full w-full"
         data-testid="graph-canvas"
         data-layouts={laidOut}
+        data-hint-edges={props.visible.edges.filter((e) => e.hint).length}
         aria-hidden="true"
       />
+      {edgeTip && (
+        <div
+          role="tooltip"
+          data-testid="edge-tip"
+          className="bg-raised border-line shadow-pop pointer-events-none absolute max-w-80 rounded-md border px-2 py-1 text-xs"
+          style={{ left: edgeTip.x + 12, top: edgeTip.y + 12 }}
+        >
+          {edgeTip.text}
+        </div>
+      )}
       {busy && (
         <div className="bg-raised text-muted shadow-pop pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs">
           Laying out…

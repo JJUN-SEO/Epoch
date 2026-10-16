@@ -16,12 +16,13 @@ export const ProgressMessage = z.object({
   total: z.number().int().nonnegative(),
 });
 
-/** What the analysis used: git history, coverage, config and findings checks (AnalysisInfo). */
+/** What the analysis used: git history, coverage, config, findings checks and hint sources (AnalysisInfo). */
 export const AnalysisInfoMessage = z.strictObject({
   git: AnalysisMeta.shape.git,
   coverage: AnalysisMeta.shape.coverage,
   config: AnalysisMeta.shape.config,
   findings: AnalysisMeta.shape.findings,
+  hints: AnalysisMeta.shape.hints,
 });
 
 /** Lines a code preview may return at most (CodePreview). */
