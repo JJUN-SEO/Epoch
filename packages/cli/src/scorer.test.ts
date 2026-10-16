@@ -19,13 +19,24 @@ afterAll(() => {
   fs.rmSync(cacheDir, { recursive: true, force: true });
 });
 
+// Keys come from the environment here; the OS keychain is never asked.
+const noKeychain = {
+  get: () => Promise.resolve(undefined),
+  set: () => Promise.reject(new Error("not in this test")),
+  remove: () => Promise.resolve(false),
+};
+
 async function cli(...argv: string[]) {
   let stdout = "";
   let stderr = "";
-  const code = await run(argv, {
-    stdout: { write: (s: string) => (stdout += s) },
-    stderr: { write: (s: string) => (stderr += s) },
-  });
+  const code = await run(
+    argv,
+    {
+      stdout: { write: (s: string) => (stdout += s) },
+      stderr: { write: (s: string) => (stderr += s) },
+    },
+    { keychain: noKeychain },
+  );
   return { code, stdout, stderr };
 }
 
@@ -54,7 +65,7 @@ describe("epoch --scorer", () => {
   it.each([
     [
       ["--scorer", "llm"],
-      "needs your own Anthropic key in the ANTHROPIC_API_KEY",
+      "needs your own Anthropic key: set ANTHROPIC_API_KEY",
     ],
     [["--scorer", "local"], "--scorer local needs --model"],
     [["--scorer", "jev"], "The Jev scorer is not built"],

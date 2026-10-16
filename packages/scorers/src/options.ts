@@ -133,7 +133,7 @@ export function resolveModel(
   const apiKey = env.ANTHROPIC_API_KEY;
   if (apiKey === undefined || apiKey === "") {
     throw new ScorerUsageError(
-      "--scorer llm needs your own Anthropic key in the ANTHROPIC_API_KEY environment variable",
+      "--scorer llm needs your own Anthropic key: set ANTHROPIC_API_KEY, or store it with `epoch auth set anthropic`",
     );
   }
   const maxSpend = amount("--max-spend", values["max-spend"]);

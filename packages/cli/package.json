@@ -31,5 +31,8 @@
     "@epoch-dev/core": "workspace:*",
     "@epoch-dev/engine": "workspace:*",
     "@epoch-dev/scorers": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "2.1.0"
   }
 }

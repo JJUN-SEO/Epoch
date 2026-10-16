@@ -67,6 +67,15 @@ jobs:
 
       - run: pnpm test
 
+      # The OS keychain itself (ADR-009): store, read and remove a throwaway
+      # key. Linux runners have no Secret Service; the tests' fake covers it.
+      - name: The real OS keychain
+        if: runner.os != 'Linux'
+        timeout-minutes: 3
+        env:
+          EPOCH_TEST_REAL_KEYCHAIN: "1"
+        run: pnpm --filter @epoch-dev/cli exec vitest run src/auth.test.ts -t "osKeychain"
+
       # The zero-network test runs in pnpm test on every OS (the built CLI
       # under scripts/no-network.mjs). On Linux the same analysis also runs
       # in a network namespace, where the kernel itself has no way out.

@@ -30,6 +30,15 @@ import {
   installTripwire,
   type ScorerNetwork,
 } from "@epoch-dev/scorers";
+import {
+  AuthUsageError,
+  PROVIDERS,
+  authCommand,
+  osKeychain,
+  resolveKey,
+  type KeyInput,
+  type Keychain,
+} from "./auth.js";
 import { formatFindings } from "./findings.js";
 import { chooseScorer } from "./scorer.js";
 import { formatSummary } from "./summary.js";
@@ -40,9 +49,21 @@ export interface CliIo {
   readonly stderr: { write(chunk: string): unknown; isTTY?: boolean };
 }
 
-/** The io of one run, and where its scorer's requests may go (--offline). */
+/** What a run reads besides its arguments; tests pass their own. */
+export interface RunDeps {
+  /** Where `epoch auth` stores keys (default: the OS keychain). */
+  readonly keychain?: Keychain;
+  /** Where `epoch auth set` reads a key (default: standard input). */
+  readonly input?: KeyInput;
+  /** Where model keys are looked up first (default: process.env). */
+  readonly env?: NodeJS.ProcessEnv;
+}
+
+/** The io of one run, where its scorer's requests may go (--offline), and where its keys are. */
 interface RunIo extends CliIo {
   readonly network: ScorerNetwork;
+  readonly env: NodeJS.ProcessEnv;
+  readonly keychain: Keychain;
 }
 
 export const EXIT_OK = 0;
@@ -59,6 +80,7 @@ export const USAGE = `Usage:
   epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>]
                         [--include-dismissed] [hint options]
   epoch cache stats | clear | prune [--max-size <MB>]
+  epoch auth set | status | remove <provider>
 
 Commands:
   analyze <path>   Build the dependency graph of a project folder (read-only)
@@ -68,6 +90,14 @@ Commands:
   cache stats      Show where the cache is and what it holds
   cache clear      Delete everything in the cache (it is derived data)
   cache prune      Evict least-recently-used entries down to --max-size
+  auth set <provider>
+                   Store your own key (provider: anthropic) in the OS
+                   keychain; it is read from standard input (typed hidden,
+                   or piped), never from the command line
+  auth status      Show where each key is found, never the key; an
+                   environment variable (ANTHROPIC_API_KEY) is used first
+  auth remove <provider>
+                   Delete a stored key from the OS keychain
 
 Options:
   --offline          Turn the network off for this run; a model on this
@@ -101,9 +131,10 @@ Hint options (likely relations, never facts; computed on this machine):
                      EPOCH_EMBEDDING_MODEL, else off)
   --scorer <name>    heuristic (default: no model, nothing leaves this machine);
                      local: an Ollama server on this machine (needs --model);
-                     llm: Claude with your own ANTHROPIC_API_KEY (sends file
-                     excerpts to Anthropic; needs --consent-send, --max-spend,
-                     --price-in, --price-out); jev: not built yet
+                     llm: Claude with your own key, from ANTHROPIC_API_KEY or
+                     epoch auth (sends file excerpts to Anthropic; needs
+                     --consent-send, --max-spend, --price-in, --price-out);
+                     jev: not built yet
   --model <name>     The model for --scorer local or llm (llm default: ${DEFAULT_LLM_MODEL})
   --max-pairs <n>    Candidate pairs a model scores at most (default 200)
   --max-spend <USD>  Stop before a request could pass this spend (llm)
@@ -121,7 +152,12 @@ class UsageError extends Error {}
 
 /** Our own usage errors and node:util parseArgs rejections (unknown option, extra positional). */
 function isUsageError(err: unknown): boolean {
-  if (err instanceof UsageError || err instanceof ScorerUsageError) return true;
+  if (
+    err instanceof UsageError ||
+    err instanceof ScorerUsageError ||
+    err instanceof AuthUsageError
+  )
+    return true;
   const code =
     typeof err === "object" && err !== null && "code" in err
       ? err.code
@@ -207,6 +243,7 @@ function hintsOf(
   },
   target: string,
   io: RunIo,
+  env: NodeJS.ProcessEnv,
 ): {
   options: Pick<AnalyzeOptions, "hints">;
   summary: () => string | undefined;
@@ -239,13 +276,7 @@ function hintsOf(
     };
   }
   const embedder = embedderOf(values["embedding-model"]);
-  const chosen = chooseScorer(
-    values,
-    target,
-    io.stderr,
-    process.env,
-    io.network,
-  );
+  const chosen = chooseScorer(values, target, io.stderr, env, io.network);
   return {
     options: {
       hints: {
@@ -261,6 +292,26 @@ function hintsOf(
     summary: chosen.summary,
     close: () => embedder?.close() ?? Promise.resolve(),
   };
+}
+
+/**
+ * The environment a model scorer reads its key from: as it is, or with the
+ * key from the OS keychain when it has none (ADR-009). The keychain is
+ * opened only for a scorer that needs a key.
+ */
+async function scorerEnv(
+  values: ScorerValues & { "no-hints": boolean },
+  io: RunIo,
+): Promise<NodeJS.ProcessEnv> {
+  if (values.scorer !== "llm" || values["no-hints"]) return io.env;
+  const key = await resolveKey("anthropic", io.env, io.keychain);
+  if (key.value !== undefined)
+    return { ...io.env, [PROVIDERS.anthropic.env]: key.value };
+  if (key.unavailable !== undefined)
+    io.stderr.write(
+      `epoch: the OS keychain is not available (${key.unavailable})\n`,
+    );
+  return io.env;
 }
 
 /** Runs the engine with the shared cache and a worker pool, as the app does. */
@@ -315,7 +366,7 @@ async function analyzeCommand(
     values.since === undefined
       ? undefined
       : new Set(changedSince(target, values.since));
-  const hints = hintsOf(values, target, io);
+  const hints = hintsOf(values, target, io, await scorerEnv(values, io));
   const { graph, meta } = await analyzeWithCache(target, io, {
     ...hints.options,
     ...(forceReread ? { forceReread } : {}),
@@ -366,7 +417,7 @@ async function findingsCommand(
   const minFlag = level("--min-confidence", values["min-confidence"]);
   const failOn = level("--fail-on", values["fail-on"]);
   const target = targetOf("findings", positionals);
-  const hints = hintsOf(values, target, io);
+  const hints = hintsOf(values, target, io, await scorerEnv(values, io));
   const { root, config, graph, meta } = await analyzeWithCache(
     target,
     io,
@@ -483,7 +534,11 @@ function cacheCommand(args: readonly string[], io: CliIo): number {
  * can be tested in-process. Progress, warnings and errors go to stderr;
  * with --json, stdout holds nothing but the graph.
  */
-export async function run(argv: readonly string[], io: CliIo): Promise<number> {
+export async function run(
+  argv: readonly string[],
+  io: CliIo,
+  deps: RunDeps = {},
+): Promise<number> {
   // --offline goes before or after the command. It turns the network off in
   // this process (the tripwire), and keeps only a model on this machine,
   // through the fetch from before the tripwire.
@@ -493,7 +548,9 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
   const network: ScorerNetwork = wire
     ? { offline, fetch: wire.passthrough }
     : {};
-  const runIo: RunIo = { ...io, network };
+  const keychain = deps.keychain ?? osKeychain();
+  const env = deps.env ?? process.env;
+  const runIo: RunIo = { ...io, network, env, keychain };
   try {
     if (command === "-h" || command === "--help" || command === "help") {
       io.stdout.write(USAGE);
@@ -502,6 +559,12 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
     if (command === "analyze") return await analyzeCommand(rest, runIo);
     if (command === "findings") return await findingsCommand(rest, runIo);
     if (command === "cache") return cacheCommand(rest, io);
+    if (command === "auth")
+      return await authCommand(rest, io, {
+        keychain,
+        env,
+        input: deps.input ?? process.stdin,
+      });
     throw new UsageError(
       command === undefined ? "missing command" : `unknown command: ${command}`,
     );
