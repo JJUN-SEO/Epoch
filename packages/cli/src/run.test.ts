@@ -269,7 +269,8 @@ describe("the built bin", () => {
       },
     );
     expect(() => Graph.parse(JSON.parse(stdout))).not.toThrow();
-  });
+    // A whole process and an analysis: slow on a loaded Windows runner.
+  }, 60_000);
 });
 
 describe("epoch analyze --since", () => {
@@ -280,7 +281,7 @@ describe("epoch analyze --since", () => {
     expect(bad.code).toBe(EXIT_ERROR);
     expect(bad.stderr).toContain("unknown commit");
     expect(bad.stdout).toBe("");
-  });
+  }, 60_000);
 });
 
 describe("epoch cache", () => {

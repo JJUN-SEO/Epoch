@@ -22,6 +22,8 @@ import { run } from "./run.js";
  */
 
 const KEY = "sk-test-0123456789abcdef";
+/** Tests that run an analysis: slow on a loaded Windows runner. */
+const ANALYZE_MS = 60_000;
 
 // A throwaway cache, never the user's.
 const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-auth-"));
@@ -303,73 +305,89 @@ describe("resolveKey", () => {
     });
   });
 
-  it("feeds --scorer llm a keychain key when the environment has none", async () => {
-    const keychain = new FakeKeychain();
-    keychain.entries.set("anthropic", KEY);
-    const c = capture();
-    const code = await run(
-      [
-        "analyze",
-        project(),
-        "--scorer",
-        "llm",
-        "--max-spend",
-        "0.01",
-        "--price-in",
-        "1",
-        "--price-out",
-        "5",
-      ],
-      c.io,
-      { keychain, env: {} },
-    );
-    // Without --consent-send the scorer prints its plan and stops: it had a key.
-    expect(code).toBe(1);
-    expect(c.err()).toContain("Nothing has been sent");
-    expect(c.err()).not.toContain("needs your own Anthropic key");
-    expect(c.out() + c.err()).not.toContain(KEY);
-  });
+  it(
+    "feeds --scorer llm a keychain key when the environment has none",
+    async () => {
+      const keychain = new FakeKeychain();
+      keychain.entries.set("anthropic", KEY);
+      const c = capture();
+      const code = await run(
+        [
+          "analyze",
+          project(),
+          "--scorer",
+          "llm",
+          "--max-spend",
+          "0.01",
+          "--price-in",
+          "1",
+          "--price-out",
+          "5",
+        ],
+        c.io,
+        { keychain, env: {} },
+      );
+      // Without --consent-send the scorer prints its plan and stops: it had a key.
+      expect(code).toBe(1);
+      expect(c.err()).toContain("Nothing has been sent");
+      expect(c.err()).not.toContain("needs your own Anthropic key");
+      expect(c.out() + c.err()).not.toContain(KEY);
+    },
+    ANALYZE_MS,
+  );
 
-  it("asks for a key in either place when there is none", async () => {
-    const c = capture();
-    const code = await run(["analyze", project(), "--scorer", "llm"], c.io, {
-      keychain: new FakeKeychain(),
-      env: {},
-    });
-    expect(code).toBe(1);
-    expect(c.err()).toContain("epoch auth set anthropic");
-    expect(c.err()).toContain("ANTHROPIC_API_KEY");
-  });
+  it(
+    "asks for a key in either place when there is none",
+    async () => {
+      const c = capture();
+      const code = await run(["analyze", project(), "--scorer", "llm"], c.io, {
+        keychain: new FakeKeychain(),
+        env: {},
+      });
+      expect(code).toBe(1);
+      expect(c.err()).toContain("epoch auth set anthropic");
+      expect(c.err()).toContain("ANTHROPIC_API_KEY");
+    },
+    ANALYZE_MS,
+  );
 
-  it("says why the keychain was not used", async () => {
-    const keychain = new FakeKeychain();
-    keychain.unavailable = "no Secret Service is running";
-    const c = capture();
-    const code = await run(["analyze", project(), "--scorer", "llm"], c.io, {
-      keychain,
-      env: {},
-    });
-    expect(code).toBe(1);
-    expect(c.err()).toContain(
-      "the OS keychain is not available (no Secret Service is running)",
-    );
-  });
-
-  it("does not open the keychain unless a model needs a key", async () => {
-    const keychain = new FakeKeychain();
-    keychain.unavailable = "should not be asked";
-    const c = capture();
-    expect(await run(["analyze", project()], c.io, { keychain, env: {} })).toBe(
-      0,
-    );
-    expect(
-      await run(["analyze", project(), "--scorer", "llm"], c.io, {
+  it(
+    "says why the keychain was not used",
+    async () => {
+      const keychain = new FakeKeychain();
+      keychain.unavailable = "no Secret Service is running";
+      const c = capture();
+      const code = await run(["analyze", project(), "--scorer", "llm"], c.io, {
         keychain,
-        env: { ANTHROPIC_API_KEY: "from-env" },
-      }),
-    ).toBe(1);
-    expect(c.err()).not.toContain("should not be asked");
-  });
+        env: {},
+      });
+      expect(code).toBe(1);
+      expect(c.err()).toContain(
+        "the OS keychain is not available (no Secret Service is running)",
+      );
+    },
+    ANALYZE_MS,
+  );
+
+  it(
+    "does not open the keychain unless a model needs a key",
+    async () => {
+      const keychain = new FakeKeychain();
+      keychain.unavailable = "should not be asked";
+      const c = capture();
+      expect(
+        await run(["analyze", project()], c.io, { keychain, env: {} }),
+      ).toBe(0);
+      expect(
+        await run(["analyze", project(), "--scorer", "llm"], c.io, {
+          keychain,
+          env: { ANTHROPIC_API_KEY: "from-env" },
+        }),
+      ).toBe(1);
+      expect(c.err()).not.toContain("should not be asked");
+    },
+    ANALYZE_MS,
+  );
 });
 
 // The real OS keychain, where CI turns it on (macOS and Windows; Linux CI
