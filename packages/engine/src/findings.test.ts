@@ -2,20 +2,27 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import type { Finding, GitHistoryProvider } from "@epoch-dev/core";
+import type {
+  Finding,
+  GitHistoryProvider,
+  RelationScorer,
+} from "@epoch-dev/core";
 import { analyze } from "./analyze.js";
 
 /**
  * The findings fixtures (PLAN.md M5): every case under
  * fixtures/<language>/findings/<case>/ is a mini repo with an expected.json.
  * Git history comes from a fake GitHistoryProvider described in case.json,
- * so each rubric cap is tested without a real repository. Findings are
+ * so each rubric cap is tested without a real repository. Hint edges come
+ * only to cases whose case.json sets hints.probability: a fixed scorer gives
+ * every candidate that probability, so the expectations never depend on the
+ * heuristic's fitted coefficients. Findings are
  * compared on kind, subject, confidence, caps and locations; every finding
  * must also carry evidence, at least one caveat, and soft wording.
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
-  typescript: 33,
+  typescript: 34,
   python: 12,
   go: 10,
 };
@@ -57,11 +64,28 @@ function fakeHistory(h: FakeHistory): GitHistoryProvider {
   };
 }
 
+/** A scorer that gives every candidate the same probability. */
+function fixedScorer(probability: number): RelationScorer {
+  return {
+    scoreRelations: (candidates) =>
+      Promise.resolve(
+        candidates.map((c) => ({
+          source: c.source,
+          target: c.target,
+          probability,
+          rationale: "",
+        })),
+      ),
+    classifyFiles: () => Promise.resolve([]),
+  };
+}
+
 interface Case {
   readonly language: string;
   readonly name: string;
   readonly dir: string;
   readonly history: FakeHistory;
+  readonly hints?: { readonly probability: number };
 }
 
 function listCases(): Case[] {
@@ -73,12 +97,13 @@ function listCases(): Case[] {
       const dir = path.join(root, name);
       const meta = JSON.parse(
         fs.readFileSync(path.join(dir, "case.json"), "utf8"),
-      ) as { history?: FakeHistory };
+      ) as { history?: FakeHistory; hints?: { probability: number } };
       out.push({
         language,
         name,
         dir,
         history: meta.history ?? DEFAULT_HISTORY,
+        ...(meta.hints ? { hints: meta.hints } : {}),
       });
     }
   }
@@ -110,6 +135,15 @@ describe("findings fixtures", () => {
           history: fakeHistory(c.history),
           now: new Date(`${c.history.now}T00:00:00Z`),
         },
+        hints: c.hints
+          ? {
+              scorer: {
+                id: "fixed",
+                scorer: fixedScorer(c.hints.probability),
+                byModel: false,
+              },
+            }
+          : false,
       });
       expect(
         graph.findings.map((f) => ({

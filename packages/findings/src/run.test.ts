@@ -192,6 +192,62 @@ describe("runFindings", () => {
     expect(out.findings.map((f) => f.subject.name)).toEqual(["b.ts"]);
   });
 
+  it("caps an unreached file at Medium when a strong hint links it to a reached file", async () => {
+    const files = ["main.ts", "lib.ts", "strong.ts", "weak.ts", "pair.ts"].map(
+      (p) => file(p),
+    );
+    const hint = (source: string, target: string, confidence: number) => ({
+      source,
+      target,
+      kind: "shared-string" as const,
+      provenance: "shared-string" as const,
+      confidence,
+      evidence: ['both use the rare string "user.created"'],
+    });
+    const graph: Graph = {
+      ...graphOf(files.map((f) => f.path)),
+      edges: [
+        {
+          source: "main.ts",
+          target: "lib.ts",
+          kind: "import",
+          provenance: "resolver",
+          confidence: 1,
+          evidence: [],
+        },
+        // A hint in either direction links the two files.
+        hint("lib.ts", "strong.ts", 0.7),
+        // Below the threshold: no cap.
+        hint("weak.ts", "lib.ts", 0.4),
+        // Links two unreached files: no cap.
+        hint("pair.ts", "weak.ts", 0.9),
+      ],
+    };
+    const out = await runFindings(
+      input(files, {
+        graph,
+        roots: [{ file: "main.ts", reason: "manifest", source: "test" }],
+        hintThreshold: 0.5,
+      }),
+    );
+    const bySubject = new Map(out.findings.map((f) => [f.subject.name, f]));
+    expect(bySubject.get("strong.ts")).toMatchObject({
+      confidence: "medium",
+      caps: ["strong-hint"],
+    });
+    expect(bySubject.get("strong.ts")?.caveats).toContain(
+      'A likely relation links it to `lib.ts`, which an entry point reaches (shared strings, confidence 0.70: both use the rare string "user.created"), so it may be used in a way imports do not show.',
+    );
+    expect(bySubject.get("weak.ts")).toMatchObject({
+      confidence: "high",
+      caps: [],
+    });
+    expect(bySubject.get("pair.ts")).toMatchObject({
+      confidence: "high",
+      caps: [],
+    });
+  });
+
   it("sorts findings by kind, subject and id", async () => {
     const out = await runFindings(
       input(

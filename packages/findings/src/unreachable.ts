@@ -2,11 +2,14 @@ import {
   CONFIG_ENTRY_SOURCE,
   REACHABILITY_EDGE_KINDS,
   applyCaps,
+  hintSourceLabel,
+  isHintEdge,
   stronglyConnectedComponents,
   type EntryPoint,
   type Finding,
   type GitHistoryProvider,
   type Graph,
+  type GraphEdge,
   type RubricCap,
 } from "@epoch-dev/core";
 import { frameworkMatcher, type DetectedFramework } from "./frameworks.js";
@@ -68,6 +71,8 @@ export interface UnreachableInput {
   readonly historyStatus: HistoryStatus;
   readonly now: Date;
   readonly staleAfterDays: number;
+  /** Hint edges at or above this confidence cap a finding (strong-hint). */
+  readonly hintThreshold: number;
   readonly hash: (text: string) => string;
 }
 
@@ -227,6 +232,21 @@ export async function unreachableFindings(
     set.add(e.source);
     importersOf.set(e.target, set);
   }
+  // Strong hints linking an unreached node to a reached one, either way:
+  // the file may be used in a way the imports do not show (M6, ADR-008).
+  const strongHints = new Map<string, { other: string; edge: GraphEdge }[]>();
+  for (const e of input.graph.edges) {
+    if (!isHintEdge(e) || e.confidence < input.hintThreshold) continue;
+    for (const [mine, other] of [
+      [e.source, e.target],
+      [e.target, e.source],
+    ] as const) {
+      if (reached.has(mine) || !reached.has(other)) continue;
+      const list = strongHints.get(mine) ?? [];
+      list.push({ other, edge: e });
+      strongHints.set(mine, list);
+    }
+  }
   const rootCounts = new Map<string, number>();
   for (const r of input.roots)
     rootCounts.set(r.reason, (rootCounts.get(r.reason) ?? 0) + 1);
@@ -294,6 +314,20 @@ export async function unreachableFindings(
           recency = `Last changed ${plural(age, "day")} ago.`;
         }
       }
+    }
+
+    const hint = ids
+      .flatMap((id) => strongHints.get(id) ?? [])
+      .sort(
+        (a, b) =>
+          b.edge.confidence - a.edge.confidence ||
+          (a.other < b.other ? -1 : a.other > b.other ? 1 : 0),
+      )[0];
+    if (hint !== undefined) {
+      caps.push("strong-hint");
+      caveats.push(
+        `A likely relation links it to \`${hint.other}\`, which an entry point reaches (${hintSourceLabel(hint.edge)}, confidence ${hint.edge.confidence.toFixed(2)}: ${hint.edge.evidence.join("; ")}), so it may be used in a way imports do not show.`,
+      );
     }
 
     const outside = [

@@ -1,4 +1,9 @@
-import { compareCodeUnits, globMatcher, type Finding } from "@epoch-dev/core";
+import {
+  HINT_DEFAULTS,
+  compareCodeUnits,
+  globMatcher,
+  type Finding,
+} from "@epoch-dev/core";
 import { deadBranchFindings } from "./dead-branch.js";
 import type { FindingsInput, FindingsOutput, HistoryStatus } from "./input.js";
 import { staleFlagFindings, unassessableUsages } from "./stale-flag.js";
@@ -48,6 +53,7 @@ export async function runFindings(
       historyStatus: usable ? "usable" : history === "usable" ? "off" : history,
       now: input.now,
       staleAfterDays,
+      hintThreshold: input.hintThreshold ?? HINT_DEFAULTS.threshold,
       hash: input.hash,
     })),
   ];

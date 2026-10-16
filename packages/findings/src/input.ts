@@ -43,6 +43,11 @@ export interface FindingsInput {
   readonly now: Date;
   /** A stable string hash (sha256 hex in the engine), injected to keep this package pure. */
   readonly hash: (text: string) => string;
+  /**
+   * A hint edge at or above this confidence is strong enough to cap an
+   * unreachable-file finding (default: HINT_DEFAULTS.threshold, ADR-008).
+   */
+  readonly hintThreshold?: number;
 }
 
 export interface FindingsOutput {

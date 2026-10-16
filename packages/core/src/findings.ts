@@ -94,6 +94,11 @@ export const RUBRIC_CAPS = {
     level: "medium",
     reason: "git history was not available to check recent changes",
   },
+  "strong-hint": {
+    level: "medium",
+    reason:
+      "a likely relation (a hint edge) links it to code an entry point reaches",
+  },
 } as const satisfies Record<string, { level: Confidence; reason: string }>;
 export type RubricCap = keyof typeof RUBRIC_CAPS;
 

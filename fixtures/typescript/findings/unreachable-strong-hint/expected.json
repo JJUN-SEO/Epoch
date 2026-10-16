@@ -1,0 +1,19 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": { "type": "file", "name": "src/listener.ts" },
+      "confidence": "medium",
+      "caps": ["strong-hint"],
+      "locations": [{ "file": "src/listener.ts" }]
+    },
+    {
+      "kind": "unreachable-file",
+      "subject": { "type": "file", "name": "src/orphan.ts" },
+      "confidence": "high",
+      "caps": [],
+      "locations": [{ "file": "src/orphan.ts" }]
+    }
+  ],
+  "unassessableFlags": 0
+}

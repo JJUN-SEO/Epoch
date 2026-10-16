@@ -1,0 +1,5 @@
+{
+  "description": "An orphan that a strong hint (a shared rare string, scored 0.8 by a fixed scorer) links to a reached file: capped at Medium. The orphan with no hint stays High.",
+  "adapters": ["typescript"],
+  "hints": { "probability": 0.8 }
+}
