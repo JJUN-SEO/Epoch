@@ -82,9 +82,19 @@ export function hintsSummary(info: AnalysisInfo | null): {
         : c.status === "off"
           ? "no co-change (off)"
           : `no co-change (${c.status})`;
+  const e = h.embeddings;
+  const model = e.model ?? "the local model";
+  const similarity =
+    e.status === "ready"
+      ? `; similar content (${plural(e.pairs, "pair")}, ${model}, on this machine)`
+      : e.status === "pending"
+        ? `; similar content: being computed by ${model}, on this machine`
+        : e.status === "unavailable"
+          ? `; no similar content (${model} could not be loaded)`
+          : "";
   return {
-    text: plural(h.edges, "likely relation"),
-    title: `Inferred, not proven: ${cochange}; shared rare strings (${plural(h.strings.pairs, "pair")}). Scored by the ${h.scorer} scorer. Drawn dashed when Hints is on; never counted as imports.`,
+    text: `${plural(h.edges, "likely relation")}${e.status === "pending" ? " (adding similarity…)" : ""}`,
+    title: `Inferred, not proven: ${cochange}; shared rare strings (${plural(h.strings.pairs, "pair")})${similarity}. Scored by the ${h.scorer} scorer. Drawn dashed when Hints is on; never counted as imports.`,
   };
 }
 

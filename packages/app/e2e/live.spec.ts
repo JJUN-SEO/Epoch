@@ -183,6 +183,7 @@ test("hint edges stay hidden until asked; the slider filters them, and Likely bl
   await open(dir);
   const { page } = epoch;
   await expect(stats(page)).toHaveText("3 files · 1 edges");
+  // Co-change only: launch() turns the local embedding model off.
   await expect(page.getByTestId("hints-status")).toHaveText(
     "2 likely relations",
   );

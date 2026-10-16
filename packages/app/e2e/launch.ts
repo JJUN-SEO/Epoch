@@ -13,6 +13,14 @@ const appDir = path.resolve(import.meta.dirname, "..");
 export const target: "build" | "packaged" =
   process.env.EPOCH_E2E_TARGET === "packaged" ? "packaged" : "build";
 
+/** The packaged app's resources folder (next to app.asar). */
+export function packagedResources(): string {
+  const exe = packagedExecutable();
+  return process.platform === "darwin"
+    ? path.resolve(path.dirname(exe), "../Resources")
+    : path.join(path.dirname(exe), "resources");
+}
+
 /** The executable electron-builder --dir wrote under release/ for this OS. */
 export function packagedExecutable(): string {
   const release = path.join(appDir, "release");
@@ -124,6 +132,9 @@ export async function launch(
       ...(process.env as Record<string, string>),
       EPOCH_CACHE_DIR: path.join(home, "cache"),
       EPOCH_DATA_DIR: path.join(home, "data"),
+      // The local embedding model adds similarity hints in a second pass;
+      // tests that want it (similarity.spec.ts) turn it back on.
+      EPOCH_EMBEDDING_MODEL: "off",
       ...env,
     },
   };

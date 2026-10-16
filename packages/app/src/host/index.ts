@@ -12,11 +12,14 @@ import {
   FsReader,
   ParsePool,
   analyze,
+  localEmbedder,
   openCache,
   watchProject,
+  type AnalyzeOptions,
   type AnalyzeResult,
   type ProjectWatcher,
 } from "@epoch-dev/engine";
+import type { Embedder } from "@epoch-dev/core";
 import {
   HostRequest,
   MAX_PREVIEW_LINES,
@@ -31,6 +34,12 @@ import {
  * (the engine's FsReader) and never executes project code. After an analysis
  * it watches the folder and sends main the difference each time the graph
  * changes.
+ *
+ * With the bundled embedding model (main passes its folder), the first graph
+ * is sent without similarity hints, marked pending; the watcher then
+ * re-analyzes with the model and sends the difference, and keeps the model
+ * for later changes. Vectors are cached, so a project opened again embeds
+ * only its changed files.
  */
 
 const port = process.parentPort;
@@ -40,11 +49,34 @@ const pool = new ParsePool({
   workerFile: path.join(import.meta.dirname, "parse-worker.js"),
 });
 const churnMemo = new ChurnMemo();
+const embedder = embedderFrom(process.argv);
 let queue = Promise.resolve();
 let watcher: ProjectWatcher | undefined;
 
 /** Larger files are not previewed: reading them would only stall the host. */
 const MAX_PREVIEW_FILE_BYTES = 8 * 1024 * 1024;
+
+/**
+ * The local model in the folder after --embedding-model, started only when a
+ * file needs a vector. A folder that cannot be read still gives an embedder,
+ * one that fails, so the model is reported unavailable rather than off.
+ */
+function embedderFrom(argv: readonly string[]): Embedder | undefined {
+  const at = argv.indexOf("--embedding-model");
+  const dir = at < 0 ? undefined : argv[at + 1];
+  if (dir === undefined) return undefined;
+  try {
+    return localEmbedder(dir);
+  } catch (error) {
+    return {
+      modelId: "bundled model",
+      embed: () =>
+        Promise.reject(
+          error instanceof Error ? error : new Error(String(error)),
+        ),
+    };
+  }
+}
 
 /** At most one progress message per interval, plus every stage change and stage end. */
 const PROGRESS_INTERVAL_MS = 50;
@@ -125,7 +157,7 @@ async function run(
       send({ type: "progress", id: request.id, progress });
     }
   };
-  const options = { cache, pool, churnMemo };
+  const options: AnalyzeOptions = { cache, pool, churnMemo };
   let result: AnalyzeResult;
   try {
     result = await analyze(request.root, { ...options, onProgress });
@@ -137,14 +169,24 @@ async function run(
     });
     return;
   }
+  const first = infoOf(result);
+  const firstInfo: AnalysisInfo = embedder
+    ? {
+        ...first,
+        hints: {
+          ...first.hints,
+          embeddings: { status: "pending", model: embedder.modelId, pairs: 0 },
+        },
+      }
+    : first;
   send({
     type: "result",
     id: request.id,
     graph: result.graph,
-    info: infoOf(result),
+    info: firstInfo,
   });
   let graph: Graph = result.graph;
-  let info = JSON.stringify(infoOf(result));
+  let info = JSON.stringify(firstInfo);
   watcher = await watchProject(result, {
     analyze: options,
     onUpdate: (next) => {
@@ -159,6 +201,12 @@ async function run(
       send({ type: "watch-status", status });
     },
   });
+  if (embedder) {
+    await watcher.reconfigure({
+      ...options,
+      hints: { embeddings: { embedder } },
+    });
+  }
 }
 
 port.on("message", ({ data }) => {

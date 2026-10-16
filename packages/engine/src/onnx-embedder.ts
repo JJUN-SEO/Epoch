@@ -1,9 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Tokenizer } from "./tokenizer.js";
 import ort from "onnxruntime-node";
-import { z } from "zod";
-import type { Embedder } from "@epoch-dev/core";
+import { modelIdOf, readModelSpec, type LocalEmbedder } from "./model.js";
+import { Tokenizer } from "./tokenizer.js";
 
 /*
  * The local embedding model (M6, ADR-008): a sentence-embedding ONNX model
@@ -15,16 +14,6 @@ import type { Embedder } from "@epoch-dev/core";
  * and scaled to unit length.
  */
 
-export const ModelSpec = z.object({
-  id: z.string().min(1),
-  revision: z.string().min(1),
-  pooling: z.enum(["mean", "cls"]),
-  normalize: z.boolean(),
-  maxTokens: z.number().int().min(3),
-  dimensions: z.number().int().positive(),
-});
-export type ModelSpec = z.infer<typeof ModelSpec>;
-
 /*
  * One text per run: the runtime picks different numeric kernels for
  * different tensor shapes, so a text padded into a batch gets a vector that
@@ -34,11 +23,7 @@ export type ModelSpec = z.infer<typeof ModelSpec>;
  */
 const BATCH = 1;
 
-export interface OnnxEmbedder extends Embedder {
-  readonly spec: ModelSpec;
-  /** Frees the native session. */
-  close(): Promise<void>;
-}
+export type OnnxEmbedder = LocalEmbedder;
 
 function readJson(file: string): unknown {
   return JSON.parse(fs.readFileSync(file, "utf8"));
@@ -49,7 +34,7 @@ function readJson(file: string): unknown {
  * tokenizer_config.json). Throws if a file is missing or malformed.
  */
 export async function loadOnnxEmbedder(dir: string): Promise<OnnxEmbedder> {
-  const spec = ModelSpec.parse(readJson(path.join(dir, "epoch-model.json")));
+  const spec = readModelSpec(dir);
   // The Tokenizer takes the parsed JSON files as plain objects.
   const tokenizer = new Tokenizer(
     readJson(path.join(dir, "tokenizer.json")) as object,
@@ -137,7 +122,7 @@ export async function loadOnnxEmbedder(dir: string): Promise<OnnxEmbedder> {
 
   return {
     spec,
-    modelId: `${spec.id}@${spec.revision.slice(0, 12)}`,
+    modelId: modelIdOf(spec),
     async embed(texts) {
       const out: Float32Array[] = [];
       for (let i = 0; i < texts.length; i += BATCH) {

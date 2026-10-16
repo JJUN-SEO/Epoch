@@ -18,6 +18,10 @@ afterAll(() => {
 const monorepo = fileURLToPath(
   new URL("../../../fixtures/typescript/monorepo/", import.meta.url),
 );
+// The engine's tiny test model: the runtime path without a real model.
+const tinyModel = fileURLToPath(
+  new URL("../../engine/src/fixtures/tiny-embedder/", import.meta.url),
+);
 
 async function cli(...argv: string[]) {
   let stdout = "";
@@ -90,6 +94,14 @@ describe("epoch analyze (human summary)", () => {
     );
   });
 
+  it("adds similarity hints from a local embedding model folder", async () => {
+    const r = await cli("analyze", monorepo, "--embedding-model", tinyModel);
+    expect(r.code).toBe(EXIT_OK);
+    expect(r.stdout).toMatch(
+      /shared strings \d+ pairs, similarity \d+ pairs \(tiny-embedder@000000000000\)/,
+    );
+  });
+
   it("skips hint edges with --no-hints", async () => {
     const r = await cli("analyze", monorepo, "--no-hints");
     expect(r.code).toBe(EXIT_OK);
@@ -140,6 +152,14 @@ describe("epoch errors", () => {
     [
       ["findings", monorepo, "--no-hints", "--cochange-min-support", "2"],
       "--no-hints cannot be combined with --cochange-*",
+    ],
+    [
+      ["analyze", monorepo, "--no-hints", "--embedding-model", "models/x"],
+      "--no-hints cannot be combined with --cochange-*, --embedding-model",
+    ],
+    [
+      ["analyze", monorepo, "--embedding-model", monorepo],
+      "--embedding-model: no embedding model in",
     ],
   ])("exits 1 with usage for %j", async (argv, message) => {
     const r = await cli(...argv);

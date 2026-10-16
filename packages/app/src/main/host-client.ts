@@ -43,9 +43,14 @@ export class HostClient {
   private nextId = 0;
   private exited = false;
 
-  constructor(entry: string, listeners: HostListeners) {
+  /** `args`: the host's command line (the local model's folder, main/model.ts). */
+  constructor(
+    entry: string,
+    listeners: HostListeners,
+    args: readonly string[] = [],
+  ) {
     this.listeners = listeners;
-    this.child = utilityProcess.fork(entry, [], {
+    this.child = utilityProcess.fork(entry, [...args], {
       serviceName: "Epoch analysis host",
     });
     this.child.on("message", (message: unknown) => {

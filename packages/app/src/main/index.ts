@@ -14,6 +14,7 @@ import { hardenSession, hardenWebContents, openExternally } from "./harden";
 import { HostClient } from "./host-client";
 import { createRouter } from "./ipc";
 import { buildMenu } from "./menu";
+import { embeddingModelDir, hostModelArgs } from "./model";
 import { APP_ENTRY_URL, devServerOrigin } from "./policy";
 import { ProjectSession } from "./project";
 import { Projects } from "./projects";
@@ -37,6 +38,15 @@ const uiUrl = devOrigin === undefined ? APP_ENTRY_URL : `${devOrigin}/`;
 const outDir = path.dirname(import.meta.dirname);
 const preload = path.join(outDir, "preload", "index.cjs");
 const hostEntry = path.join(import.meta.dirname, "host.js");
+// The local embedding model the host may use (bundled; never downloaded).
+const hostArgs = hostModelArgs(
+  embeddingModelDir({
+    packaged: app.isPackaged,
+    resourcesPath: process.resourcesPath,
+    appPath: app.getAppPath(),
+    env: process.env,
+  }),
+);
 
 /** One project session per window, keyed by its web contents. */
 const sessions = new Map<WebContents, ProjectSession>();
@@ -73,20 +83,24 @@ async function openWindow(stateFile: string): Promise<BrowserWindow> {
   const contents = win.webContents;
   sessions.set(
     contents,
-    new ProjectSession((listeners) => new HostClient(hostEntry, listeners), {
-      onProgress: (progress) => {
-        if (!contents.isDestroyed()) contents.send(EVENTS.progress, progress);
+    new ProjectSession(
+      (listeners) => new HostClient(hostEntry, listeners, hostArgs),
+      {
+        onProgress: (progress) => {
+          if (!contents.isDestroyed()) contents.send(EVENTS.progress, progress);
+        },
+        onDelta: (delta) => {
+          if (!contents.isDestroyed()) contents.send(EVENTS.graphDelta, delta);
+        },
+        onWatchStatus: (status) => {
+          if (!contents.isDestroyed())
+            contents.send(EVENTS.watchStatus, status);
+        },
+        onAnalysisInfo: (info) => {
+          if (!contents.isDestroyed()) contents.send(EVENTS.analysisInfo, info);
+        },
       },
-      onDelta: (delta) => {
-        if (!contents.isDestroyed()) contents.send(EVENTS.graphDelta, delta);
-      },
-      onWatchStatus: (status) => {
-        if (!contents.isDestroyed()) contents.send(EVENTS.watchStatus, status);
-      },
-      onAnalysisInfo: (info) => {
-        if (!contents.isDestroyed()) contents.send(EVENTS.analysisInfo, info);
-      },
-    }),
+    ),
   );
   win.on("close", () => {
     saveWindowState(stateFile, {

@@ -133,7 +133,12 @@ export const AnalysisMeta = z.strictObject({
     }),
     strings: z.strictObject({ pairs: Count }),
     embeddings: z.strictObject({
-      status: z.enum(["ready", "unavailable", "off"]),
+      /**
+       * ready: the local model ran; unavailable: it failed to load; off: no
+       * model; pending: the app shows the graph first and adds similarity
+       * hints in a second pass.
+       */
+      status: z.enum(["ready", "unavailable", "off", "pending"]),
       model: z.string().optional(),
       pairs: Count,
     }),

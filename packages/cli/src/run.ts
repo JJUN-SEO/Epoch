@@ -15,8 +15,10 @@ import {
   ParsePool,
   analyze,
   changedSince,
+  localEmbedder,
   openCache,
   type AnalyzeOptions,
+  type LocalEmbedder,
   type SqliteCacheStore,
 } from "@epoch-dev/engine";
 import {
@@ -75,13 +77,18 @@ Options:
   -h, --help         Show this help
 
 Hint options (likely relations, never facts; computed on this machine):
-  --no-hints         Skip hint edges (co-change and shared strings)
+  --no-hints         Skip hint edges (co-change, shared strings, similarity)
   --cochange-days <n>
                      Co-change window before HEAD's commit (default ${String(HINT_DEFAULTS.cochange.days)})
   --cochange-max-files <n>
                      Skip commits touching more files than this (default ${String(HINT_DEFAULTS.cochange.maxFiles)})
   --cochange-min-support <n>
                      Commits a pair needs together (default ${String(HINT_DEFAULTS.cochange.minSupport)})
+  --embedding-model <dir>
+                     Similarity hints from a local embedding model folder
+                     (scripts/fetch-model.mjs, or the one the app bundles);
+                     runs on this machine, never downloads (default:
+                     EPOCH_EMBEDDING_MODEL, else off)
   --scorer <name>    heuristic (default: no model, nothing leaves this machine);
                      local: an Ollama server on this machine (needs --model);
                      llm: Claude with your own ANTHROPIC_API_KEY (sends file
@@ -149,6 +156,7 @@ const HINT_ARGS = {
   "cochange-days": { type: "string" },
   "cochange-max-files": { type: "string" },
   "cochange-min-support": { type: "string" },
+  "embedding-model": { type: "string" },
   ...SCORER_ARGS,
 } as const;
 
@@ -163,19 +171,36 @@ function positiveInt(option: string, raw: string | undefined) {
   return n;
 }
 
-/** AnalyzeOptions.hints from the hint options, and the model scorer's summary. */
+/** The embedding model folder from --embedding-model or EPOCH_EMBEDDING_MODEL, started only if a file needs a vector. */
+function embedderOf(flag: string | undefined): LocalEmbedder | undefined {
+  const raw = flag ?? process.env.EPOCH_EMBEDDING_MODEL;
+  if (raw === undefined || raw === "") return undefined;
+  const dir = path.resolve(raw);
+  try {
+    return localEmbedder(dir);
+  } catch (err) {
+    const why = err instanceof Error ? err.message : String(err);
+    throw new UsageError(
+      `${flag === undefined ? "EPOCH_EMBEDDING_MODEL" : "--embedding-model"}: no embedding model in ${dir} (${why.split("\n")[0] ?? why})`,
+    );
+  }
+}
+
+/** AnalyzeOptions.hints from the hint options, the model scorer's summary, and what to free afterwards. */
 function hintsOf(
   values: ScorerValues & {
     "no-hints": boolean;
     "cochange-days"?: string | undefined;
     "cochange-max-files"?: string | undefined;
     "cochange-min-support"?: string | undefined;
+    "embedding-model"?: string | undefined;
   },
   target: string,
   io: CliIo,
 ): {
   options: Pick<AnalyzeOptions, "hints">;
   summary: () => string | undefined;
+  close: () => Promise<void>;
 } {
   const days = positiveInt("--cochange-days", values["cochange-days"]);
   const maxFiles = positiveInt(
@@ -191,13 +216,19 @@ function hintsOf(
       days !== undefined ||
       maxFiles !== undefined ||
       minSupport !== undefined ||
-      values.scorer !== "heuristic"
+      values.scorer !== "heuristic" ||
+      values["embedding-model"] !== undefined
     )
       throw new UsageError(
-        "--no-hints cannot be combined with --cochange-* or --scorer",
+        "--no-hints cannot be combined with --cochange-*, --embedding-model or --scorer",
       );
-    return { options: { hints: false }, summary: () => undefined };
+    return {
+      options: { hints: false },
+      summary: () => undefined,
+      close: () => Promise.resolve(),
+    };
   }
+  const embedder = embedderOf(values["embedding-model"]);
   const chosen = chooseScorer(values, target, io.stderr);
   return {
     options: {
@@ -207,10 +238,12 @@ function hintsOf(
           ...(maxFiles !== undefined ? { maxFiles } : {}),
           ...(minSupport !== undefined ? { minSupport } : {}),
         },
+        ...(embedder ? { embeddings: { embedder } } : {}),
         ...(chosen.hints ? { scorer: chosen.hints } : {}),
       },
     },
     summary: chosen.summary,
+    close: () => embedder?.close() ?? Promise.resolve(),
   };
 }
 
@@ -273,7 +306,7 @@ async function analyzeCommand(
     ...(values.coverage === undefined
       ? {}
       : { coverageFile: path.resolve(values.coverage) }),
-  });
+  }).finally(hints.close);
   const scorerSummary = hints.summary();
   if (scorerSummary !== undefined) io.stderr.write(`${scorerSummary}\n`);
   if (values.json) {
@@ -322,7 +355,7 @@ async function findingsCommand(
     target,
     io,
     hints.options,
-  );
+  ).finally(hints.close);
   const scorerSummary = hints.summary();
   if (scorerSummary !== undefined) io.stderr.write(`${scorerSummary}\n`);
   const dismissed = DismissalStore.forProject(root).ids();

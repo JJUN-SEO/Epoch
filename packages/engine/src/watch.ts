@@ -110,6 +110,12 @@ export const WATCH_LIMIT_MESSAGE =
 /** A watched project. Close it to stop watching and wait for any analysis in flight. */
 export interface ProjectWatcher {
   close(): Promise<void>;
+  /**
+   * Re-analyzes now with new options, which later re-analyses keep (the app
+   * adds the local embedding model this way after the first graph is shown).
+   * Queued behind any re-analysis in flight; reported through onUpdate.
+   */
+  reconfigure(analyze: AnalyzeOptions): Promise<void>;
 }
 
 /**
@@ -127,6 +133,7 @@ export async function watchProject(
   let walked = new Set(initial.dirs.walked);
   let skipped = new Set(initial.dirs.skipped);
   let head = readHeadCommit(reader, root);
+  let analyzeOptions = opts.analyze;
   // Fields, not locals: callbacks change them, and the checks must re-read them.
   const life = { closed: false, stopped: false };
   const isClosed = (): boolean => life.closed;
@@ -171,7 +178,7 @@ export async function watchProject(
         }
       }
       const result = await analyze(root, {
-        ...opts.analyze,
+        ...analyzeOptions,
         forceReread,
         ...(opts.git ? { git: opts.git } : {}),
       });
@@ -256,6 +263,11 @@ export async function watchProject(
       debouncer.dispose();
       clearInterval(poll);
       await watcher.close();
+      await running;
+    },
+    async reconfigure(next) {
+      analyzeOptions = next;
+      running = running.then(() => reanalyze(new Set()));
       await running;
     },
   };

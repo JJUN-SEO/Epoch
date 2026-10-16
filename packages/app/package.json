@@ -19,6 +19,7 @@
   "dependencies": {
     "@vscode/tree-sitter-wasm": "catalog:",
     "better-sqlite3": "catalog:",
+    "onnxruntime-node": "1.30.0",
     "piscina": "catalog:",
     "typescript": "catalog:",
     "web-tree-sitter": "catalog:"

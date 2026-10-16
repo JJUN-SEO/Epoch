@@ -14,7 +14,14 @@ function hintsLine(h: AnalysisMeta["hints"]): string {
     c.status === "usable" || c.status === "shallow"
       ? `co-change ${String(c.pairs)} pairs from ${String(c.commits)} commits${c.status === "shallow" ? " (shallow clone)" : ""}`
       : `no co-change (${c.status})`;
-  return `  hints        ${String(h.edges)} likely relations (${h.scorer} scorer): ${cochange}, shared strings ${String(h.strings.pairs)} pairs`;
+  const e = h.embeddings;
+  const similarity =
+    e.status === "ready"
+      ? `, similarity ${String(e.pairs)} pairs (${e.model ?? "local model"})`
+      : e.status === "unavailable"
+        ? `, similarity unavailable (${e.model ?? "local model"} failed to load)`
+        : "";
+  return `  hints        ${String(h.edges)} likely relations (${h.scorer} scorer): ${cochange}, shared strings ${String(h.strings.pairs)} pairs${similarity}`;
 }
 
 /**

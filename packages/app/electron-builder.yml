@@ -20,11 +20,35 @@ files:
   # better-sqlite3's C sources (for building from source); the prebuilt addon
   # is all that runs.
   - "!node_modules/better-sqlite3/{deps,src}/**"
+  # onnxruntime-node (the local embedding model, ADR-008) ships every
+  # platform's runtime; keep only this build's (${platform} is the build
+  # machine's OS, ${arch} the target's). On macOS the binding loads
+  # libonnxruntime.1.dylib, and the versioned file next to it is a
+  # byte-identical copy.
+  - "!node_modules/onnxruntime-node/bin/napi-v6/!(${platform})/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v6/${platform}/!(${arch})/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v6/darwin/*/libonnxruntime.1.*.*.dylib"
+  - "!node_modules/onnxruntime-node/{script,lib}/**"
+
+# The local embedding model, fetched at build time by scripts/fetch-model.mjs
+# (pinned revision and sha256); the installed app never downloads one. It is
+# models/manifest.json's default (src/main/model.test.ts checks this). Without
+# it the app runs with similarity hints off.
+extraResources:
+  - from: ../../models/all-minilm-l6-v2
+    to: model
+    filter:
+      - epoch-model.json
+      - model.onnx
+      - tokenizer.json
+      - tokenizer_config.json
 
 asar: true
-# A native addon cannot be loaded from inside an asar archive.
+# A native addon cannot be loaded from inside an asar archive, nor can the
+# runtime libraries it links.
 asarUnpack:
   - "**/*.node"
+  - "node_modules/onnxruntime-node/bin/**"
 
 # better-sqlite3 ships N-API prebuilds, which Electron loads as-is (ADR-004,
 # verified in M3), so nothing is rebuilt or compiled from source.

@@ -155,7 +155,7 @@ async function watched(dir: string) {
     },
     { timeout: 15_000, interval: 250 },
   );
-  return { initial, updates, batches, statuses };
+  return { initial, updates, batches, statuses, watcher: w, cache };
 }
 
 /** Waits until the latest update's graph equals a fresh analysis. */
@@ -199,6 +199,40 @@ describe("watchProject", () => {
       { from: "src/a.ts", specifier: "./b", reason: "not-found" },
     ]);
     expect(statuses.at(-1)).toEqual({ state: "watching" });
+  }, 40_000);
+
+  it("re-analyzes with new options at once, and keeps them for later changes", async () => {
+    const dir = project(FILES);
+    const { updates, watcher, cache } = await watched(dir);
+    const embedded: string[] = [];
+    const embedder = {
+      modelId: "stand-in",
+      embed: (texts: string[]) => {
+        embedded.push(...texts);
+        return Promise.resolve(texts.map(() => Float32Array.of(1, 0)));
+      },
+    };
+    const before = updates.length;
+    await watcher.reconfigure({
+      cache,
+      history: false,
+      hints: { embeddings: { embedder } },
+    });
+    expect(updates.length).toBe(before + 1);
+    expect(updates.at(-1)?.meta.hints.embeddings).toMatchObject({
+      status: "ready",
+      model: "stand-in",
+    });
+    expect(embedded).toHaveLength(2);
+
+    write(dir, "src/b.ts", "export const b = 2;\n");
+    await vi.waitFor(
+      () => {
+        expect(embedded).toHaveLength(3);
+      },
+      { timeout: 15_000, interval: 50 },
+    );
+    expect(updates.at(-1)?.meta.hints.embeddings.status).toBe("ready");
   }, 40_000);
 
   it("ends equal to a fresh analysis after a branch switch", async () => {

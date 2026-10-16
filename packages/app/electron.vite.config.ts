@@ -8,7 +8,8 @@ const uiRoot = resolve(import.meta.dirname, "../ui");
  * Bundling rule: the main process, the analysis host and all workspace code
  * are bundled. A package stays external (a runtime "dependency" in
  * package.json, shipped in the packaged app's node_modules) only when it loads
- * files next to itself at runtime: better-sqlite3 (native addon),
+ * files next to itself at runtime: better-sqlite3 and onnxruntime-node
+ * (native addons; the latter loaded only when the local model runs),
  * web-tree-sitter and @vscode/tree-sitter-wasm (WASM), piscina (its worker
  * runtime), and typescript (large CommonJS; the TS adapter's resolver). electron-vite externalizes exactly the
  * "dependencies" list.

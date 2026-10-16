@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 /* eslint-disable no-restricted-imports -- imported only to spy on: the test fails if inference opens a connection */
 import http from "node:http";
 import https from "node:https";
@@ -8,6 +9,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Tokenizer } from "./tokenizer.js";
+import { localEmbedder } from "./model.js";
 import { loadOnnxEmbedder } from "./onnx-embedder.js";
 
 /*
@@ -86,6 +88,48 @@ describe("the ONNX embedder (tiny test model)", () => {
     await expect(
       loadOnnxEmbedder(path.join(HERE, "fixtures")),
     ).rejects.toThrow();
+  });
+});
+
+describe("localEmbedder", () => {
+  it("reads the description at once and starts the model on first use", async () => {
+    const lazy = localEmbedder(TINY);
+    expect(lazy.modelId).toBe("tiny-embedder@000000000000");
+    expect(lazy.spec.dimensions).toBe(4);
+    // Nothing started yet, so nothing to free.
+    await lazy.close();
+    const eager = await loadOnnxEmbedder(TINY);
+    const again = localEmbedder(TINY);
+    try {
+      const [a] = await again.embed(["src / auth / login"]);
+      const [b] = await eager.embed(["src / auth / login"]);
+      expect(Array.from(a ?? [])).toEqual(Array.from(b ?? []));
+    } finally {
+      await again.close();
+      await eager.close();
+    }
+  });
+
+  it("throws at once for a folder without a description", () => {
+    expect(() => localEmbedder(path.join(HERE, "fixtures"))).toThrow();
+  });
+
+  it("fails the first embed call when the model cannot load", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-model-"));
+    try {
+      for (const f of [
+        "epoch-model.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+      ])
+        fs.copyFileSync(path.join(TINY, f), path.join(dir, f));
+      fs.writeFileSync(path.join(dir, "model.onnx"), "not a model");
+      const lazy = localEmbedder(dir);
+      await expect(lazy.embed(["x"])).rejects.toThrow();
+      await lazy.close();
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
   });
 });
 

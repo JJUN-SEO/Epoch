@@ -1,6 +1,6 @@
 # ADR-008: Hint scoring, defaults, and the local embedding model
 
-- **Status:** Accepted for hint scoring and the defaults (measured 2026-10-16). The embedding model choice is pending: the model download is blocked in the build environment, so no candidate model could be measured yet.
+- **Status:** Accepted for hint scoring and the defaults (measured 2026-10-16) and for the embedding runtime and delivery. The embedding model choice is pending: the candidates' ONNX files cannot be downloaded in the build environment yet, so none has been measured.
 - **Date:** 2026-10-16
 - **Milestone:** M6
 
@@ -17,7 +17,7 @@ M6 adds hint edges: likely relations that are inferred, not proven, and that fee
 3. **Candidates.** Generated before any scoring, never all pairs:
    - **Co-change:** non-merge commits in the 365 days before HEAD's commit date, renames followed; commits touching more than 50 files are skipped (counted over every file they touched); a pair needs 3 commits together. Go files lift to their package nodes. The commit sets are cached per HEAD.
    - **Shared strings:** `FileFacts.strings` (ADR-014). Each string adds its rarity, ln(N / df), to a pair's weight; a string in more than 5 files links nothing.
-   - **Embeddings:** pending (item 7).
+   - **Embeddings:** each file's nearest neighbors by a local model (item 7; the model is pending measurement).
 
    These cutoffs were set before measuring and were not tuned.
 
@@ -39,12 +39,17 @@ M6 adds hint edges: likely relations that are inferred, not proven, and that fee
 
 6. **Defaults: threshold 0.5, floor 0.2, 8 per node** (`HINT_DEFAULTS`). They were set before the first run and are kept as they were: the holdout describes them, it did not choose them. The threshold is likely mode's default (the user moves it with the Hints slider) and the strong-hint cap's line. For the cap, a lower line is the cautious direction, because the cap only lowers a finding's confidence.
 
-7. **Embedding runtime and model (pending).** The plan is `onnxruntime-node` 1.30.0 directly (MIT, N-API prebuilt binaries) with the model's own tokenizer:
-   - not `@huggingface/transformers`, which imports onnxruntime-web unconditionally and defaults its WASM path to a CDN, a run-time request Epoch must not make;
-   - the model is fetched at build time (pinned revision and sha256) and bundled, so the installed app never downloads it (docs/privacy.md);
-   - candidates to measure: all-MiniLM-L6-v2, bge-small-en-v1.5 and jina-embeddings-v2-small-en (size, CPU time per file, license, holdout precision).
-
-   Built and tested with a stand-in model, network-free: the `Embedder` interface (core), brute-force nearest neighbors (`embeddingCandidates`: each node's 10 most similar nodes at cosine 0.5 or more, a Go package as the mean of its files; both cutoffs provisional), and the engine side, which embeds each file's path plus its first 2,000 characters and caches the vectors by path, content hash and model, so a re-run embeds only changed files. A model that fails reports `unavailable`, and analysis goes on without it. Until a model is bundled, embeddings report status `off` and the cosine coefficient is 0. When the model can be downloaded, the ONNX runtime part is added, this ADR is amended with the measurements, and the coefficients and cutoffs are refitted by the same protocol.
+7. **Embedding runtime (built) and model (pending measurement).**
+   - **Runtime:** `onnxruntime-node` 1.30.0 (MIT, N-API prebuilt binaries) on the CPU, with `@huggingface/tokenizers` 0.2.0 (Apache-2.0, pure JavaScript, no network code). Not `@huggingface/transformers`, which imports onnxruntime-web unconditionally and defaults its WASM path to a CDN, a run-time request Epoch must not make. For each candidate model's tokenizer, the JavaScript token ids were checked against Hugging Face's Rust tokenizer (0.22.1) on a fixed set of code strings; the ids are a test fixture, rechecked whenever a model is present.
+   - **Determinism:** texts run one at a time. Padded into a batch, the same text gets a vector that differs in the last bits (the runtime picks other kernels for other shapes), which would make a cached vector differ from a fresh one. Cosines are rounded to 1e-4.
+   - **Text and neighbors:** each file's path plus its first 2,000 characters, cut to the model's token limit, pooled as the model was trained (mean or [CLS]) and normalized. Brute-force nearest neighbors (`embeddingCandidates`): each node's 10 most similar nodes at cosine 0.5 or more, a Go package as the mean of its files; both cutoffs provisional. With a model, every candidate whose nodes have vectors gets its cosine, so "no signal" is never read as "similarity 0".
+   - **Two coefficient sets:** one for candidates without a cosine (no model, or a model that failed), one for candidates with one. Until a model is measured both are the set in item 4, so the cosine changes no score and similarity-only candidates (0.136, below the floor) draw no edge.
+   - **Cache:** vectors are cached by path, content hash and model id (`<id>@<revision>`), numbers only, never source, so a re-run embeds only changed files. The runtime starts on the first file that needs a vector; a run whose vectors are all cached never loads it.
+   - **Delivery:** `models/manifest.json` pins each candidate to a Hugging Face revision and each file to its size and sha256; `scripts/fetch-model.mjs` downloads them at build time into the gitignored `models/<id>/` (CI does this before the tests and before packaging). The installer carries the manifest's default as `resources/model` (electron-builder `extraResources`, checked against the manifest by a test). The installed app never downloads a model (docs/privacy.md).
+   - **Packaging:** electron-builder keeps only the build platform's and target architecture's runtime: 45 MB on Linux x64 (in the packaged app), and from the npm package's files, 44.6 MB on macOS arm64 (the binding loads `libonnxruntime.1.dylib`; the versioned file next to it is a byte-identical copy and is left out), 64 MB on Windows x64 (with the DirectML libraries the runtime ships; whether the CPU-only path can drop them is untested). The package also carries the runtime's install-script dependencies (`global-agent`, `adm-zip`), which nothing loads at run time.
+   - **No Intel-Mac runtime:** `onnxruntime-node` 1.30.0 ships no `darwin/x64` binary. There the model fails to start and similarity reports `unavailable`; everything else works. Whether to ship an Intel-Mac build at all is M8's call.
+   - **In the app:** the analysis host sends the first graph without similarity hints, marked `pending`, then the watcher re-analyzes with the model and sends the difference, and keeps the model for later changes. `EPOCH_EMBEDDING_MODEL=off` turns the model off; a packaged app takes nothing else from that variable. In the CLI, `--embedding-model <dir>` (or `EPOCH_EMBEDDING_MODEL`) names a model folder; without it, similarity is off.
+   - **Model: pending.** Candidates: all-MiniLM-L6-v2 (Apache-2.0, 90.4 MB ONNX), bge-small-en-v1.5 (MIT, 133.1 MB) and jina-embeddings-v2-small-en (Apache-2.0, 129.8 MB), to be compared on CPU time per file and holdout precision with `pnpm bench:scorers --embedding-model models/<id>`, which fits and reports both coefficient sets. The ONNX files redirect to a Hugging Face CDN host the build environment does not reach yet, so none has been measured. The manifest's default (all-MiniLM-L6-v2, the smallest) is provisional until then; the measurements, the choice, the refitted coefficients and the cutoffs will be recorded here.
 
 8. **Opt-in model scorers, for the CLI and benchmarks in M6** (`--scorer local | llm`; the app's key UI, consent dialog and offline mode are M7):
    - **ModelScorer** scores only generated candidates, at most `--max-pairs` (default 200), the heuristic's likeliest first. For each pair it sends the start of each file (up to 6,000 characters, up to three files per Go package) with the pair's co-change counts and shared strings, and asks for a probability, a relation category and the names linking the two files. Every cited name is checked against the files' parse-tree facts (export names, imported names, key-like strings); unverified names are dropped and counted, never shown. Probabilities are clamped to at most 0.99. Its edges are `semantic` hints with provenance `model`.
@@ -103,4 +108,4 @@ The Local, Jev and LLM scorers were not run: the Local and LLM scorers need an O
 
 - Hints are calibrated on these repositories and labeled as likely, never as facts. The UI shows their evidence. The status bar says what they rest on.
 - Refitting is a script run: `pnpm bench:scorers <repos> --write-coefficients packages/scorers/src/coefficients.json`, then this ADR is updated with the new numbers.
-- The embedding section is amended once the model download is allowed. Until then, `off` is the honest status.
+- The embedding model choice is amended into item 7 once the candidates can be downloaded and measured. Until then the cosine coefficient is 0: a bundled model reports its similarity pairs, but they change no score and draw no edge.
