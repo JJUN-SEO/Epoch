@@ -8,3 +8,5 @@ export * from "./ollama.js";
 export * from "./anthropic.js";
 export * from "./jev.js";
 export * from "./options.js";
+export * from "./text-model.js";
+export * from "./summary/index.js";

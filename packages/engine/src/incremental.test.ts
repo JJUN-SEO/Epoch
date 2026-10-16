@@ -6,7 +6,9 @@ import fc from "fast-check";
 import type { Tree } from "web-tree-sitter";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  normalizeLine,
   serializeCanonical,
+  sourceLines,
   type AdapterRegistration,
   type CacheStore,
 } from "@epoch-dev/core";
@@ -129,11 +131,10 @@ describe("incremental analysis (PLAN.md M2 acceptance)", () => {
         encoding: "utf8",
       })) {
         if (!SOURCE.test(f)) continue;
-        for (const line of fs
-          .readFileSync(path.join(dir, f), "utf8")
-          .split(/\r?\n/)) {
-          if (line.trim().length >= 10) lines.add(line.trim());
-        }
+        for (const line of sourceLines(
+          fs.readFileSync(path.join(dir, f), "utf8"),
+        ))
+          lines.add(line);
       }
     }
     expect(store.stats().facts).toBeGreaterThan(0);
@@ -143,8 +144,10 @@ describe("incremental analysis (PLAN.md M2 acceptance)", () => {
       .filter((f) => fs.existsSync(f))
       .map((f) => fs.readFileSync(f).toString("latin1"))
       .join("\n");
+    // The same rule as the summary sanitizer (core source-lines.ts).
+    const stored = normalizeLine(bytes);
     expect(lines.size).toBeGreaterThan(50);
-    expect([...lines].filter((l) => bytes.includes(l))).toEqual([]);
+    expect([...lines].filter((l) => stored.includes(l))).toEqual([]);
   });
 });
 

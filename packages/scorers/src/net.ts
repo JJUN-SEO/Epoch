@@ -9,7 +9,14 @@
  * the caller names), since nothing leaves the machine.
  */
 
-export class NetworkBlockedError extends Error {}
+export class NetworkBlockedError extends Error {
+  /** offline: offline mode refused it; not-allowed: not a permitted destination. */
+  readonly reason: "offline" | "not-allowed";
+  constructor(message: string, reason: "offline" | "not-allowed") {
+    super(message);
+    this.reason = reason;
+  }
+}
 
 export interface NetOptions {
   /** Offline mode, read at each request: every request is refused. */
@@ -65,16 +72,18 @@ export function createNet(opts: NetOptions): Net {
     try {
       url = urlOf(input);
     } catch {
-      throw new NetworkBlockedError("not a URL");
+      throw new NetworkBlockedError("not a URL", "not-allowed");
     }
     if (offline() === true && !offlineAllowed.has(url.origin)) {
       throw new NetworkBlockedError(
         `offline: refused a request to ${url.origin}`,
+        "offline",
       );
     }
     if (!allowed.has(url.origin)) {
       throw new NetworkBlockedError(
         `not an allowed destination: ${url.origin}`,
+        "not-allowed",
       );
     }
     sent.push(`${url.origin}${url.pathname}`);
@@ -93,7 +102,8 @@ export function createNet(opts: NetOptions): Net {
     fetch: guarded,
     sent: () => [...sent],
     abortInFlight: () => {
-      for (const c of inFlight) c.abort(new NetworkBlockedError("offline"));
+      for (const c of inFlight)
+        c.abort(new NetworkBlockedError("offline", "offline"));
       inFlight.clear();
     },
   };

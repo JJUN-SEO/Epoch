@@ -17,6 +17,10 @@
     "./tripwire": {
       "types": "./dist/tripwire.d.ts",
       "default": "./dist/tripwire.js"
+    },
+    "./summary": {
+      "types": "./dist/summary/index.d.ts",
+      "default": "./dist/summary/index.js"
     }
   },
   "scripts": {

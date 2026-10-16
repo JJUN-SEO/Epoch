@@ -45,6 +45,7 @@ export function installTripwire(opts: TripwireOptions = {}): Tripwire {
     opts.onAttempt?.(name);
     return new NetworkBlockedError(
       `network is off in this process: refused ${name}`,
+      "not-allowed",
     );
   };
   // Replaced through a plain record: these objects are typed as fixed APIs.
