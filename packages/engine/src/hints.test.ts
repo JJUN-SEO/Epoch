@@ -3,7 +3,12 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { isHintEdge, type Graph, type RelationScorer } from "@epoch-dev/core";
+import {
+  isHintEdge,
+  type Embedder,
+  type Graph,
+  type RelationScorer,
+} from "@epoch-dev/core";
 import { analyze } from "./analyze.js";
 import { MemoryCacheStore } from "./cache/memory-store.js";
 import { toPosix } from "./discover.js";
@@ -218,5 +223,85 @@ describe("the Enrich stage", { timeout: 60_000 }, () => {
     });
     const noHistory = await analyze(dir, { history: false });
     expect(noHistory.meta.hints.cochange.status).toBe("off");
+  });
+  it("adds similarity candidates from a local embedding model, cached by content, and reports a failing model", async () => {
+    const dir = project({
+      "src/auth/login.ts": 'export const login = "token";\n// token token\n',
+      "src/auth/session.ts": "export const session = 1; // token\n",
+      "src/ui/button.ts": "export const button = 1; // render\n",
+      "src/ui/icon.ts": "export const icon = 1; // render render\n",
+    });
+    const texts: string[] = [];
+    const count = (text: string, word: string) => text.split(word).length - 1;
+    const embedder: Embedder = {
+      modelId: "fake-1",
+      embed: (batch) => {
+        texts.push(...batch);
+        return Promise.resolve(
+          batch.map((t) =>
+            Float32Array.from([count(t, "token"), count(t, "render"), 0.001]),
+          ),
+        );
+      },
+    };
+    const fixed: RelationScorer = {
+      scoreRelations: (candidates) =>
+        Promise.resolve(
+          candidates.map((c) => ({
+            source: c.source,
+            target: c.target,
+            probability: 0.6,
+            rationale: "",
+          })),
+        ),
+      classifyFiles: () => Promise.resolve([]),
+    };
+    const cache = new MemoryCacheStore();
+    const opts = {
+      cache,
+      hints: {
+        embeddings: { embedder },
+        scorer: { id: "fixed", scorer: fixed, byModel: false },
+      },
+    };
+    const { graph, meta } = await analyze(dir, opts);
+    expect(hints(graph)).toEqual([
+      "src/auth/login.ts>src/auth/session.ts semantic",
+      "src/auth/session.ts>src/auth/login.ts semantic",
+      "src/ui/button.ts>src/ui/icon.ts semantic",
+      "src/ui/icon.ts>src/ui/button.ts semantic",
+    ]);
+    const edge = graph.edges.find((e) => e.source === "src/ui/button.ts");
+    expect(edge).toMatchObject({
+      provenance: "embedding",
+      evidence: ["similar content (cosine 1.00)"],
+    });
+    expect(meta.hints.embeddings).toEqual({
+      status: "ready",
+      model: "fake-1",
+      pairs: 4,
+    });
+    // The text embedded is the path and the start of the file.
+    expect(texts).toContain(
+      "src/ui/button.ts\nexport const button = 1; // render\n",
+    );
+
+    // Unchanged files are not embedded again.
+    texts.length = 0;
+    expect((await analyze(dir, opts)).graph).toEqual(graph);
+    expect(texts).toEqual([]);
+
+    const broken: Embedder = {
+      modelId: "missing-model",
+      embed: () => Promise.reject(new Error("model files not found")),
+    };
+    const off = await analyze(dir, {
+      hints: { embeddings: { embedder: broken } },
+    });
+    expect(off.meta.hints.embeddings).toEqual({
+      status: "unavailable",
+      model: "missing-model",
+      pairs: 0,
+    });
   });
 });

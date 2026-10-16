@@ -476,6 +476,7 @@ export async function analyze(
             nodeOf,
             files: sources.map((s) => ({
               path: s.rel,
+              contentHash: s.contentHash,
               strings: s.facts.strings,
               exports: s.facts.exports.map((e) => e.name),
               importNames: [

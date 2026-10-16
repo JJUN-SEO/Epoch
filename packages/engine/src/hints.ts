@@ -1,6 +1,7 @@
 import {
   HINT_DEFAULTS,
   cochangeCandidates,
+  embeddingCandidates,
   hintEdges,
   isHintEdge,
   mergeCandidates,
@@ -8,6 +9,7 @@ import {
   type AnalysisMeta,
   type CandidatePair,
   type DerivedStore,
+  type Embedder,
   type Graph,
   type GraphEdge,
   type RelationScorer,
@@ -17,15 +19,18 @@ import {
 import { HeuristicScorer } from "@epoch-dev/scorers/heuristic";
 import type { ScorerContext } from "@epoch-dev/scorers";
 import { gitCommitSets } from "./cochange.js";
+import { embedFiles } from "./embeddings.js";
 import type { GitRunner } from "./git.js";
 import type { FsReader } from "./reader.js";
 
 /*
  * The Enrich stage (CLAUDE.md "Pipeline", stage 6, M6): hint edges from git
- * co-change and shared strings, scored by a RelationScorer (the heuristic by
- * default). Only generated candidates are scored, never all pairs. Hints are
- * recomputed every run, like the rest of the graph: co-change from the
- * commit sets (cached per HEAD), shared strings from the cached FileFacts.
+ * co-change, shared strings and (with a local model) embedding similarity,
+ * scored by a RelationScorer (the heuristic by default). Only generated
+ * candidates are scored, never all pairs. Hints are recomputed every run,
+ * like the rest of the graph: co-change from the commit sets (cached per
+ * HEAD), shared strings from the cached FileFacts, similarity from vectors
+ * cached by content and model.
  */
 
 export interface HintOptions {
@@ -39,6 +44,17 @@ export interface HintOptions {
       };
   /** Shared-string cutoffs, or false to skip shared strings. */
   readonly strings?: false | { readonly maxFiles?: number };
+  /**
+   * Similarity candidates from a local embedding model (ADR-008); off when
+   * absent. A model that fails reports status `unavailable`, and analysis
+   * goes on without them.
+   */
+  readonly embeddings?: {
+    readonly embedder: Embedder;
+    readonly k?: number;
+    readonly minCosine?: number;
+    readonly maxChars?: number;
+  };
   readonly floor?: number;
   readonly perNode?: number;
   /**
@@ -71,6 +87,7 @@ export interface EnrichInput {
   /** Each analyzed source file's facts: key-like strings, export and imported names. */
   readonly files: readonly {
     readonly path: string;
+    readonly contentHash: string;
     readonly strings: readonly string[];
     readonly exports: readonly string[];
     readonly importNames: readonly string[];
@@ -142,6 +159,41 @@ export async function enrich(
     stringPairs = pairs.length;
   }
 
+  let embeddings: AnalysisMeta["hints"]["embeddings"] = {
+    status: "off",
+    pairs: 0,
+  };
+  if (opts.embeddings) {
+    const cfg = { ...HINT_DEFAULTS.embeddings, ...opts.embeddings };
+    const { embedder } = cfg;
+    try {
+      const vectors = await embedFiles(input.files, embedder, {
+        read: (path) => input.reader.readFile(`${input.root}/${path}`),
+        maxChars: cfg.maxChars,
+        ...(input.store ? { store: input.store } : {}),
+      });
+      const pairs = embeddingCandidates(
+        vectors.map((v) => ({
+          id: input.nodeOf.get(v.path) ?? v.path,
+          vector: v.vector,
+        })),
+        { k: cfg.k, minCosine: cfg.minCosine },
+      );
+      candidates.push(pairs);
+      embeddings = {
+        status: "ready",
+        model: embedder.modelId,
+        pairs: pairs.length,
+      };
+    } catch {
+      embeddings = {
+        status: "unavailable",
+        model: embedder.modelId,
+        pairs: 0,
+      };
+    }
+  }
+
   const merged = mergeCandidates(...candidates);
   opts.onCandidates?.({ candidates: merged, nodeOf: input.nodeOf });
   const scorer = opts.scorer ?? {
@@ -168,7 +220,7 @@ export async function enrich(
     meta: {
       cochange,
       strings: { pairs: stringPairs },
-      embeddings: { status: "off", pairs: 0 },
+      embeddings,
       scorer: scorer.id,
       edges: edges.length,
     },

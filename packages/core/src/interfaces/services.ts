@@ -134,6 +134,16 @@ export interface FileRole {
   readonly confidence: number;
 }
 
+/**
+ * A local embedding model (M6, ADR-008): text in, one vector per text out.
+ * It generates candidates only (nearest neighbors); it never scores them.
+ */
+export interface Embedder {
+  /** Identifies the model and its revision; cached vectors are keyed by it. */
+  readonly modelId: string;
+  embed(texts: readonly string[]): Promise<Float32Array[]>;
+}
+
 /** CLAUDE.md "RelationScorer": models score hints, never facts or findings (M6). */
 export interface RelationScorer {
   scoreRelations(candidates: CandidatePair[]): Promise<ScoredRelation[]>;

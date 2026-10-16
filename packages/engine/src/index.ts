@@ -21,6 +21,7 @@ export * from "./changes.js";
 export * from "./churn.js";
 export * from "./cochange.js";
 export * from "./hints.js";
+export * from "./embeddings.js";
 export * from "./coverage.js";
 export * from "./score.js";
 export * from "./watch.js";

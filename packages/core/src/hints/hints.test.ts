@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { CandidatePair, ScoredRelation } from "../interfaces/services.js";
 import { cochangeCandidates } from "./cochange.js";
+import { embeddingCandidates } from "./embeddings.js";
 import { hintEdges, mergeCandidates } from "./edges.js";
 import { sharedStringCandidates } from "./strings.js";
 
@@ -273,5 +274,51 @@ describe("mergeCandidates", () => {
         },
       },
     ]);
+  });
+});
+
+describe("embeddingCandidates", () => {
+  const v = (...xs: number[]) => Float32Array.from(xs);
+
+  it("proposes each node's nearest neighbors above the cutoff, in both directions", () => {
+    const pairs = embeddingCandidates(
+      [
+        { id: "a.ts", vector: v(1, 0, 0) },
+        { id: "b.ts", vector: v(0.9, 0.1, 0) },
+        { id: "c.ts", vector: v(0, 1, 0) },
+        { id: "d.ts", vector: v(0, 0, 0) }, // no direction: skipped
+      ],
+      { k: 1, minCosine: 0.5 },
+    );
+    const cos = Math.round((0.9 / Math.hypot(0.9, 0.1)) * 1e4) / 1e4;
+    expect(pairs).toEqual([
+      {
+        source: "a.ts",
+        target: "b.ts",
+        signals: { embedding: { cosine: cos } },
+      },
+      {
+        source: "b.ts",
+        target: "a.ts",
+        signals: { embedding: { cosine: cos } },
+      },
+    ]);
+  });
+
+  it("keeps only k neighbors per node, and averages a package's files", () => {
+    const pairs = embeddingCandidates(
+      [
+        { id: "x", vector: v(1, 0) },
+        { id: "pkg:p", vector: v(1, 0.2) },
+        { id: "pkg:p", vector: v(1, -0.2) }, // mean points along x
+        { id: "y", vector: v(1, 0.5) },
+      ],
+      { k: 1, minCosine: 0 },
+    );
+    expect(pairs.find((p) => p.source === "x")?.target).toBe("pkg:p");
+    expect(
+      pairs.find((p) => p.source === "x" && p.target === "pkg:p")?.signals
+        .embedding?.cosine,
+    ).toBe(1);
   });
 });

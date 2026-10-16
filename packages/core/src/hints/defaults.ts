@@ -12,4 +12,6 @@ export const HINT_DEFAULTS = {
   threshold: 0.5,
   cochange: { days: 365, maxFiles: 50, minSupport: 3 },
   strings: { maxFiles: 5 },
+  /** Provisional until ADR-008 measures a model (it is not downloadable yet). */
+  embeddings: { k: 10, minCosine: 0.5, maxChars: 2000 },
 } as const;
