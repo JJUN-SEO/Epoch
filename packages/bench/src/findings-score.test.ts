@@ -1,11 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { parseCsv, score } from "./findings-score.js";
+import { parseCsv, reviewedById, score } from "./findings-score.js";
 
 describe("findings review scoring", () => {
   it("parses quoted cells, doubled quotes and newlines inside quotes", () => {
     expect(parseCsv('a,b\n"x, y","say ""hi""\nthere"\n')).toEqual([
       ["a", "b"],
       ["x, y", 'say "hi"\nthere'],
+    ]);
+  });
+
+  it("keeps reviewed rows by finding id, skipping rows without a verdict", () => {
+    const rows = parseCsv(
+      'n,id,verdict,note\n1,aaa,yes,"orphaned, superseded"\n2,bbb,,\n3,ccc,no,\n',
+    );
+    expect([...reviewedById(rows)]).toEqual([
+      ["aaa", { verdict: "yes", note: "orphaned, superseded" }],
+      ["ccc", { verdict: "no", note: "" }],
     ]);
   });
 

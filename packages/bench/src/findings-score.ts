@@ -73,6 +73,26 @@ export function score(rows: readonly string[][]): Score[] {
   return [...out].map(([l, s]) => ({ level: l, ...s }));
 }
 
+/**
+ * Verdicts and notes already in a review sheet, by finding id, so writing the
+ * sheet again keeps the review (ids are stable: kind and subject, no lines).
+ */
+export function reviewedById(
+  rows: readonly string[][],
+): Map<string, { verdict: string; note: string }> {
+  const [header, ...body] = rows;
+  const col = (name: string) => header?.indexOf(name) ?? -1;
+  const [id, verdict, note] = [col("id"), col("verdict"), col("note")];
+  const out = new Map<string, { verdict: string; note: string }>();
+  for (const r of body) {
+    const key = r[id] ?? "";
+    const v = (r[verdict] ?? "").trim();
+    if (key !== "" && v !== "")
+      out.set(key, { verdict: v, note: r[note] ?? "" });
+  }
+  return out;
+}
+
 function main(): void {
   const { values } = parseArgs({
     options: {
