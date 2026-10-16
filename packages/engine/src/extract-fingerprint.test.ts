@@ -47,6 +47,7 @@ const ADAPTERS: readonly {
       "4": "4401ee4744eca6534f4484d35cc090db018b84574fdb72609ea59b001238640e",
       "5": "4401ee4744eca6534f4484d35cc090db018b84574fdb72609ea59b001238640e",
       "6": "9e8bcbe79d0a74b9f7f5cc2366f85c164fe058d3ba86dae2965f5f87a9a75de1",
+      "7": "05f3080942c44c2ae4021a831be52e6e6357c94e71012b0833b91110bd0a2041",
     },
   },
   {
@@ -58,6 +59,7 @@ const ADAPTERS: readonly {
       "1": "8f37d071cfb040a5f4e5e86e0ce58876756d4aa5460edab29f98cb2dcbcb54dc",
       "2": "68db627cf3d3a9726d5a25b8f83617a058562415c2d81e4f7e6312dc7349e730",
       "3": "68db627cf3d3a9726d5a25b8f83617a058562415c2d81e4f7e6312dc7349e730",
+      "4": "d1957cbee7582f7bcd4c26c06eb64e7ae4134dc49b47ea97d8323f00ef969614",
     },
   },
   {
@@ -69,6 +71,7 @@ const ADAPTERS: readonly {
       "1": "1ca97380485a034c9f90a2fd880c247128edf9e163f525d7c7287f4e970d686d",
       "2": "e7eb329c3ca3ed4e93b4444a3a5f8e60c7b18e2f7e98bb6a86aa2bb3f09d9ae9",
       "3": "e7eb329c3ca3ed4e93b4444a3a5f8e60c7b18e2f7e98bb6a86aa2bb3f09d9ae9",
+      "4": "3c9768bff279b003ca45fbdfacd5b11c9232399fe04944009f007baadfa82602",
     },
   },
 ];

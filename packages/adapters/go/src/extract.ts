@@ -1,13 +1,14 @@
 import { Query, type Language, type Node, type Tree } from "web-tree-sitter";
-import type {
-  ExportInfo,
-  ExtractorConfig,
-  FileFacts,
-  ParsedFile,
-  RawImport,
+import {
+  keyLikeStrings,
+  type ExportInfo,
+  type ExtractorConfig,
+  type FileFacts,
+  type ParsedFile,
+  type RawImport,
 } from "@epoch-dev/core";
 import { findingsFacts } from "./findings-facts.js";
-import { IMPORTS_QUERY } from "./queries.generated.js";
+import { IMPORTS_QUERY, STRINGS_QUERY } from "./queries.generated.js";
 
 const queries = new WeakMap<Language, Query>();
 
@@ -18,6 +19,18 @@ function queryFor(language: Language): Query {
     queries.set(language, q);
   }
   return q;
+}
+
+const stringQueries = new WeakMap<Language, Query>();
+
+/** Every string literal's value, in source order (FileFacts.strings, ADR-014). */
+function literalValues(root: Node): string[] {
+  let q = stringQueries.get(root.tree.language);
+  if (!q) {
+    q = new Query(root.tree.language, STRINGS_QUERY);
+    stringQueries.set(root.tree.language, q);
+  }
+  return q.captures(root).flatMap((c) => stringValue(c.node) ?? []);
 }
 
 /** Non-blank lines, CRLF-safe. */
@@ -134,9 +147,12 @@ export function extract(
   const exports: ExportInfo[] = [...new Set(declaredNames(root))]
     .filter(isExported)
     .map((name) => ({ name }));
+  const specifiers = imports.flatMap((i) =>
+    i.specifier === null ? [] : [i.specifier],
+  );
   const { flagUsages, constantConditions } = findingsFacts(
     root,
-    imports.flatMap((i) => (i.specifier === null ? [] : [i.specifier])),
+    specifiers,
     cfg,
   );
   return {
@@ -145,6 +161,7 @@ export function extract(
     exportAllFrom: [],
     flagUsages,
     constantConditions,
+    strings: keyLikeStrings(literalValues(root), new Set(specifiers)),
     isGenerated: isGenerated(root),
     loc: countLoc(file.text),
   };

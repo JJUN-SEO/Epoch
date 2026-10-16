@@ -401,6 +401,7 @@ export async function analyze(
                 exportAllFrom: [],
                 flagUsages: [],
                 constantConditions: [],
+                strings: [],
                 isGenerated: false,
                 loc: 0,
               }),

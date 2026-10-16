@@ -40,6 +40,7 @@ const facts = (n: number): CachedFacts => ({
     exportAllFrom: [],
     flagUsages: [],
     constantConditions: [],
+    strings: [],
     isGenerated: false,
     loc: n,
   },

@@ -108,6 +108,7 @@ describe("contract schemas", () => {
       exportAllFrom: ["./Button"],
       flagUsages: [],
       constantConditions: [],
+      strings: [],
       isGenerated: false,
       loc: 12,
     };

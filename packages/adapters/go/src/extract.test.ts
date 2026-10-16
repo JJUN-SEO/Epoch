@@ -142,6 +142,29 @@ describe("extract: exports and markers", () => {
   });
 });
 
+describe("extract: key-like strings", () => {
+  it("keeps interpreted and raw key-like literals, not import paths or prose", () => {
+    const f = facts(
+      lines(
+        "package main",
+        "",
+        "import (",
+        '\t"fmt"',
+        '\t"net/http"',
+        ")",
+        "",
+        "func main() {",
+        '\thttp.HandleFunc("/api/users/{id}", nil)',
+        '\tfmt.Println("hello world")',
+        "\tpublish(`orders.created`)",
+        "}",
+      ),
+      "main.go",
+    );
+    expect(f.strings).toEqual(["/api/users/{id}", "orders.created"]);
+  });
+});
+
 describe("files", () => {
   it("analyzes .go files the go tool builds", () => {
     expect(grammarFor("cmd/x/main.go")).toBe("go");

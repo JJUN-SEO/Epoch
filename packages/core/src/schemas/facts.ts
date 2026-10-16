@@ -71,6 +71,8 @@ export const FileFacts = z.strictObject({
   exportAllFrom: z.array(z.string()),
   flagUsages: z.array(FlagUsage),
   constantConditions: z.array(ConstantCondition),
+  /** Key-like literals (event names, routes, topics, config keys), for shared-string hints (ADR-014). */
+  strings: z.array(z.string().max(100)).max(64),
   /** A generated-file marker was found. */
   isGenerated: z.boolean(),
   loc: z.number().int().nonnegative(),

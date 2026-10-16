@@ -162,6 +162,7 @@ type FileFacts = {                 // cached unit: pure function of file content
   exportAllFrom: string[];         // specifiers of `export * from`
   flagUsages: FlagUsage[];
   constantConditions: ConstantCondition[];
+  strings: string[];               // key-like literals (event names, routes, topics, config keys), at most 64; shared-string hints (ADR-014)
   isGenerated: boolean;            // generated-file marker found
   loc: number;
 };
@@ -383,7 +384,7 @@ Everything is cached locally. The cache is derived data and always safe to delet
 - **Location:** one per-user cache directory resolved in `core` (e.g. via `env-paths`, app name `epoch`) so the app and the CLI share it. Owner-only permissions. Never inside the analyzed repo.
 - **What is cached:** `FileFacts` per file, keyed by hash(file contents + adapter id + adapter version + `extractorConfigHash`). `extractorConfigHash` covers the flag patterns, wrapper functions, and env prefixes, so changing them re-extracts. Also cached: embeddings (M6), summaries (M7), and git history lookups (M5, keyed by path and blob hash; approximate by design, see the findings ADR).
 - **What is NOT cached:** resolved edges, the graph, and findings. They are recomputed on every run from cached `FileFacts`, because adding or removing a file elsewhere, or editing tsconfig/go.mod/pyproject, can change how an unchanged file's imports resolve. Add resolution caching only if profiling shows it is the bottleneck, with explicit dependency tracking (ADR).
-- **No source stored.** The cache never stores file contents or code excerpts. Only short identifiers and literals that are part of the facts (specifiers, export names, flag keys) and derived values (hashes, metrics, scores, summaries). Display snippets are read from disk on demand.
+- **No source stored.** The cache never stores file contents or code excerpts. Only short identifiers and literals that are part of the facts (specifiers, export names, flag keys, key-like strings) and derived values (hashes, metrics, scores, summaries). Display snippets are read from disk on demand.
 - **Per-repo index.** File manifest and last analyzed commit, so `--since` and the watcher know what changed.
 - **Change detection.** File watcher events and `git diff` against the last analyzed commit; content-hash fallback for non-git folders.
 - **Early cutoff.** For downstream model-derived outputs (scores, summaries): if a recomputed input equals the previous one, stop propagating.

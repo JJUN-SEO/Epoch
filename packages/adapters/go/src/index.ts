@@ -24,7 +24,7 @@ export const goAdapter: LanguageAdapter<Tree> = {
   id: "go",
   tier: "A",
   extensions: EXTENSIONS,
-  version: "3", // bump whenever extract output can change (cache keys include it)
+  version: "4", // bump whenever extract output can change (cache keys include it)
   detectProjectRoots,
   extract,
   resolveImport,

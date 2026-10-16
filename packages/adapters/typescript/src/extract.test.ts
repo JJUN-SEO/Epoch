@@ -208,6 +208,27 @@ describe("extract: imports", () => {
   });
 });
 
+describe("extract: key-like strings", () => {
+  it("keeps key-like literals, not import specifiers, prose or templates with a substitution", () => {
+    const src = [
+      'import { a } from "lodash/fp";',
+      'import "./side";',
+      'emit("user.created");',
+      "const route = `/api/users/:id`;",
+      'const msg = "Hello world";',
+      "const t = `orders.${id}`;",
+      'subscribe("user.created");',
+      "const k = 'billing:invoice.paid';",
+      'const fs = require("node:fs");',
+    ].join("\n");
+    expect(facts("a.ts", src).strings).toEqual([
+      "/api/users/:id",
+      "billing:invoice.paid",
+      "user.created",
+    ]);
+  });
+});
+
 describe("extract: exports and re-exports", () => {
   const src = [
     'export { p, q as r } from "./f";', // 1

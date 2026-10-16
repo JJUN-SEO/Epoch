@@ -85,6 +85,7 @@ function input(
       exportAllFrom: stars.map(([spec]) => spec),
       flagUsages: [],
       constantConditions: [],
+      strings: [],
       isGenerated: false,
       loc: 1,
     },

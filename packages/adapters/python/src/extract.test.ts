@@ -247,6 +247,28 @@ describe("extract: file facts", () => {
   });
 });
 
+describe("extract: key-like strings", () => {
+  it("keeps plain key-like literals, not f-strings, prose or dynamic import names", () => {
+    const f = facts(
+      "app/jobs.py",
+      lines(
+        "import importlib",
+        'EVENT = "user.created"',
+        "def run(y):",
+        '    publish("orders-topic", f"x.{y}")',
+        '    os.environ.get("APP_SETTINGS_THEME")',
+        '    importlib.import_module("plugins.audit")',
+        '    print("Hello world")',
+      ),
+    );
+    expect(f.strings).toEqual([
+      "APP_SETTINGS_THEME",
+      "orders-topic",
+      "user.created",
+    ]);
+  });
+});
+
 describe("files", () => {
   it("maps .py and .pyi to the Python grammar", () => {
     expect(grammarFor("a/b.py")).toBe("python");

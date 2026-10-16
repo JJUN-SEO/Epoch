@@ -64,6 +64,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-011 | M1 | `churn90d` and `riskScore` are optional and absent until computed (M4), like `coverage` |
 | ADR-012 | M3.5 | Optional 3D overview: own renderer on three.js and d3-force-3d (the ready-made library violates the CSP); measured layout time, frame rate and picking |
 | ADR-013 | M4 | Go: packages as `pkg:` nodes (tests stay file nodes), go.mod/go.work resolution read as data, build tags not evaluated; measured against `go list` |
+| ADR-014 | M6 | `FileFacts.strings`: key-like literals (event names, routes, topics, config keys) for shared-string hints; a CLAUDE.md contract change |
 
 ## Questions to ask me
 
