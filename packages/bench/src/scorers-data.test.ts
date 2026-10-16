@@ -92,6 +92,33 @@ describe(
           (l) => l.candidate.source === "a.ts" && l.candidate.target === "b.ts",
         )?.y,
       ).toBe(1);
+
+      // A model scorer, when asked for, scores the snapshot's own files.
+      const seen: string[] = [];
+      const scored = await snapshotAt(r.dir, START + 50 * DAY, {
+        model: {
+          backend: {
+            id: "local:fake",
+            provider: "a fake local model",
+            destination: "http://127.0.0.1:11434",
+            remote: false,
+            maxOutputTokens: 10,
+            judge: (prompt) => {
+              seen.push(prompt.user);
+              return Promise.resolve({
+                verdict: { probability: 0.5, relation: "unclear", symbols: [] },
+                usage: { inputTokens: 1, outputTokens: 1 },
+              });
+            },
+          },
+          maxPairs: 10,
+          consent: false,
+        },
+      });
+      expect(
+        scored?.model?.scores.map((x) => `${x.source}>${x.target}`),
+      ).toEqual(["a.ts>b.ts", "b.ts>a.ts"]);
+      expect(seen[0]).toContain("export const x30 = 1;");
     });
   },
 );

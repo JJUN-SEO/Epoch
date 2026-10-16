@@ -474,9 +474,17 @@ export async function analyze(
             root: found.root,
             reader,
             nodeOf,
-            strings: sources.map((s) => ({
+            files: sources.map((s) => ({
               path: s.rel,
               strings: s.facts.strings,
+              exports: s.facts.exports.map((e) => e.name),
+              importNames: [
+                ...new Set(
+                  s.facts.imports.flatMap((i) =>
+                    i.names.map((n) => n.imported),
+                  ),
+                ),
+              ].filter((n) => n !== "*" && n !== "default"),
             })),
             history: opts.history !== false,
             ...(opts.git ? { run: opts.git } : {}),

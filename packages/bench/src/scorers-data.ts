@@ -2,8 +2,18 @@ import childProcess from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { HINT_DEFAULTS, isHintEdge, type CandidatePair } from "@epoch-dev/core";
-import { analyze, type ParsePool } from "@epoch-dev/engine";
+import {
+  HINT_DEFAULTS,
+  isHintEdge,
+  type CandidatePair,
+  type ScoredRelation,
+} from "@epoch-dev/core";
+import { FsReader, analyze, toPosix, type ParsePool } from "@epoch-dev/engine";
+import {
+  ModelScorer,
+  type ModelRunReport,
+  type ResolvedModel,
+} from "@epoch-dev/scorers";
 import { forwardCommits } from "./scorer-eval.js";
 
 /*
@@ -37,13 +47,23 @@ export interface Snapshot {
   readonly nodeOf: ReadonlyMap<string, string>;
   readonly enrichMs: number;
   readonly analyzeMs: number;
+  /** A model scorer's scores for this snapshot's candidates, when one was asked for. */
+  readonly model?: {
+    readonly scores: readonly ScoredRelation[];
+    readonly report: ModelRunReport;
+  };
 }
 
 /** The Enrich stage's candidates at the last mainline commit at or before `at`. */
 export async function snapshotAt(
   dir: string,
   at: number,
-  opts: { readonly pool?: ParsePool } = {},
+  opts: {
+    readonly pool?: ParsePool;
+    /** Also score the candidates with this model (it reads the snapshot's files). */
+    readonly model?: ResolvedModel;
+    readonly onPlan?: (text: string) => void;
+  } = {},
 ): Promise<Snapshot | undefined> {
   const commit = git(
     dir,
@@ -65,6 +85,20 @@ export async function snapshotAt(
           nodeOf: ReadonlyMap<string, string>;
         }
       | undefined;
+    let model: ModelScorer | undefined;
+    let scores: ScoredRelation[] = [];
+    if (opts.model) {
+      const root = toPosix(fs.realpathSync.native(tmp));
+      const reader = new FsReader(root);
+      model = new ModelScorer({
+        backend: opts.model.backend,
+        readText: (rel) => reader.readFile(`${root}/${rel}`),
+        consent: opts.model.consent,
+        maxPairs: opts.model.maxPairs,
+        ...(opts.model.spend ? { spend: opts.model.spend } : {}),
+        ...(opts.onPlan ? { onPlan: opts.onPlan } : {}),
+      });
+    }
     const t = performance.now();
     const { graph, meta } = await analyze(tmp, {
       ...(opts.pool ? { pool: opts.pool } : {}),
@@ -72,6 +106,24 @@ export async function snapshotAt(
         onCandidates: (info) => {
           captured = info;
         },
+        ...(model
+          ? {
+              scorer: {
+                id: model.id,
+                byModel: true,
+                prepare: (context) => {
+                  model.prepare(context);
+                },
+                scorer: {
+                  scoreRelations: async (candidates) => {
+                    scores = await model.scoreRelations(candidates);
+                    return scores;
+                  },
+                  classifyFiles: () => Promise.resolve([]),
+                },
+              },
+            }
+          : {}),
       },
     });
     const analyzeMs = performance.now() - t;
@@ -87,6 +139,7 @@ export async function snapshotAt(
       nodeOf: captured?.nodeOf ?? new Map(),
       enrichMs: meta.timingsMs.enrich,
       analyzeMs,
+      ...(model ? { model: { scores, report: model.report() } } : {}),
     };
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });

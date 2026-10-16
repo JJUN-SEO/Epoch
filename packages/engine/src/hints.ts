@@ -12,7 +12,10 @@ import {
   type GraphEdge,
   type RelationScorer,
 } from "@epoch-dev/core";
-import { HeuristicScorer } from "@epoch-dev/scorers";
+// The heuristic alone: the model scorers (and the Anthropic SDK) stay out
+// of the desktop app's bundle; they are CLI and benchmark only in M6.
+import { HeuristicScorer } from "@epoch-dev/scorers/heuristic";
+import type { ScorerContext } from "@epoch-dev/scorers";
 import { gitCommitSets } from "./cochange.js";
 import type { GitRunner } from "./git.js";
 import type { FsReader } from "./reader.js";
@@ -52,6 +55,8 @@ export interface HintOptions {
     readonly scorer: RelationScorer;
     /** A model scorer: its edges are `semantic` hints with provenance `model`. */
     readonly byModel: boolean;
+    /** Called with the analysis's files and their parse-tree facts before scoring (model scorers check cited symbols against them). */
+    readonly prepare?: (context: ScorerContext) => void;
   };
 }
 
@@ -63,10 +68,12 @@ export interface EnrichInput {
   readonly reader: FsReader;
   /** Repo-relative file -> its node (a Go package member -> the package). */
   readonly nodeOf: ReadonlyMap<string, string>;
-  /** Each analyzed source file's key-like strings (FileFacts.strings). */
-  readonly strings: readonly {
+  /** Each analyzed source file's facts: key-like strings, export and imported names. */
+  readonly files: readonly {
     readonly path: string;
     readonly strings: readonly string[];
+    readonly exports: readonly string[];
+    readonly importNames: readonly string[];
   }[];
   /** False when the run must not read git history (co-change is then off). */
   readonly history: boolean;
@@ -125,7 +132,7 @@ export async function enrich(
   if (opts.strings !== false) {
     const cfg = { ...HINT_DEFAULTS.strings, ...opts.strings };
     const pairs = sharedStringCandidates(
-      input.strings.map((f) => ({
+      input.files.map((f) => ({
         id: input.nodeOf.get(f.path) ?? f.path,
         strings: f.strings,
       })),
@@ -142,6 +149,7 @@ export async function enrich(
     scorer: new HeuristicScorer(),
     byModel: false,
   };
+  scorer.prepare?.({ nodeOf: input.nodeOf, files: input.files });
   const scored =
     merged.length === 0 ? [] : await scorer.scorer.scoreRelations(merged);
   const facts = new Set(

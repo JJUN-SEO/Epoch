@@ -15,16 +15,16 @@ Your code never leaves your machine by default, and Epoch never modifies your pr
 
 What leaves the machine, feature by feature (kept current in [docs/privacy.md](docs/privacy.md)):
 
-| Feature                                                       | What leaves the machine                                               | Default             | Status today  |
-| ------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------- | ------------- |
-| Parsing, graph, blast radius, risk score, git analysis        | Nothing                                                               | On                  | Built         |
-| Dead-feature detection (reachability, constants, git history) | Nothing                                                               | On                  | Built         |
-| Heuristic scorer, co-change and shared-string hints           | Nothing                                                               | On                  | Built         |
-| Embeddings similarity                                         | Nothing (a small local embedding model, bundled with the app)         | On                  | Not built yet |
-| Local-model scorer and summaries (e.g. Ollama)                | Nothing                                                               | Opt-in              | Not built yet |
-| Jev scorer                                                    | Code snippets and context sent to TypeSafe AI                         | Opt-in              | Not built yet |
-| LLM summaries and LLM scorer                                  | File source and neighbor summaries sent to the model provider         | Opt-in              | Not built yet |
-| Update check                                                  | A request to the release host for the latest version. No project data | On; can be disabled | Not built yet |
+| Feature                                                       | What leaves the machine                                               | Default             | Status today                                                                                                                                           |
+| ------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Parsing, graph, blast radius, risk score, git analysis        | Nothing                                                               | On                  | Built                                                                                                                                                  |
+| Dead-feature detection (reachability, constants, git history) | Nothing                                                               | On                  | Built                                                                                                                                                  |
+| Heuristic scorer, co-change and shared-string hints           | Nothing                                                               | On                  | Built                                                                                                                                                  |
+| Embeddings similarity                                         | Nothing (a small local embedding model, bundled with the app)         | On                  | Not built yet                                                                                                                                          |
+| Local-model scorer and summaries (e.g. Ollama)                | Nothing                                                               | Opt-in              | Scorer built for the CLI and benchmarks (`--scorer local`); summaries and the app's setting in M7                                                      |
+| Jev scorer                                                    | Code snippets and context sent to TypeSafe AI                         | Opt-in              | Not built: its docs could not be read                                                                                                                  |
+| LLM summaries and LLM scorer                                  | File source and neighbor summaries sent to the model provider         | Opt-in              | Scorer built for the CLI and benchmarks (`--scorer llm`, with your key, `--consent-send` and `--max-spend`); summaries, the app and offline mode in M7 |
+| Update check                                                  | A request to the release host for the latest version. No project data | On; can be disabled | Not built yet                                                                                                                                          |
 
 With no keys configured and update checks disabled, Epoch makes no network requests.
 

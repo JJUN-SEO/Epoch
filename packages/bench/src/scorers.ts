@@ -28,10 +28,17 @@ import {
 } from "@epoch-dev/core";
 import { ParsePool } from "@epoch-dev/engine";
 import {
+  ConsentRequired,
   DEFAULT_COEFFICIENTS,
   HeuristicScorer,
+  JEV_STATUS,
+  SCORER_ARGS,
   heuristicFeatures,
+  resolveModel,
+  runSummary,
   type HeuristicCoefficients,
+  type ModelRunReport,
+  type ResolvedModel,
 } from "@epoch-dev/scorers";
 import { hostInfo, pct, repoInfo, table, writeReport } from "./report.js";
 import {
@@ -84,8 +91,19 @@ async function split(
   at: number,
   days: number,
   pool: ParsePool,
+  model?: ResolvedModel,
 ): Promise<Split | undefined> {
-  const snapshot = await snapshotAt(dir, at, { pool });
+  const snapshot = await snapshotAt(dir, at, {
+    pool,
+    ...(model
+      ? {
+          model,
+          onPlan: (text: string) => {
+            process.stderr.write(text);
+          },
+        }
+      : {}),
+  });
   if (!snapshot) return undefined;
   const later = laterCommits(
     dir,
@@ -165,12 +183,101 @@ const signalOf = (c: CandidatePair): string =>
         ? "shared strings only"
         : "other";
 
+/** The model scorers' rows: measured on the pairs a model scored, next to the fitted heuristic on the same pairs. */
+function modelSection(
+  runs: readonly RepoRun[],
+  model: ResolvedModel | undefined,
+  heuristic: HeuristicScorer,
+): string[] {
+  const status = (kind: "local" | "llm") =>
+    model?.backend.id.startsWith(`${kind}:`) === true
+      ? "run (below)"
+      : "not run";
+  const lines = [
+    table(
+      ["Scorer", "Status"],
+      [
+        ["Local model (Ollama)", status("local")],
+        ["LLM (Claude, your key)", status("llm")],
+        ["Jev", JEV_STATUS],
+      ],
+    ),
+  ];
+  if (!model) return lines;
+  const judged: { p: number; h: number; y: number }[] = [];
+  const reports: ModelRunReport[] = [];
+  for (const r of runs) {
+    const m = r.test.snapshot.model;
+    if (!m) continue;
+    reports.push(m.report);
+    const scores = new Map(
+      m.scores.map((x) => [`${x.source}\u0000${x.target}`, x.probability]),
+    );
+    for (const l of r.test.labeled) {
+      const p = scores.get(`${l.candidate.source}\u0000${l.candidate.target}`);
+      if (p === undefined) continue;
+      judged.push({ p, h: heuristic.probability(l.candidate.signals), y: l.y });
+    }
+  }
+  const ys = judged.map((j) => j.y);
+  const row = (name: string, ps: number[]) => [
+    name,
+    String(ps.length),
+    pct(ys.filter((y) => y === 1).length / Math.max(1, ys.length)),
+    num(brier(ps, ys)),
+    num(expectedCalibrationError(ps, ys, BINS)),
+    num(rocAuc(ps, ys)),
+  ];
+  const sum = (f: (r: ModelRunReport) => number) =>
+    reports.reduce((n, r) => n + f(r), 0);
+  lines.push(
+    "",
+    `### ${model.backend.id} on the pairs it scored`,
+    "",
+    table(
+      ["Scorer", "Judged", "Positive rate", "Brier", "ECE", "ROC AUC"],
+      [
+        row(
+          model.backend.id,
+          judged.map((j) => j.p),
+        ),
+        row(
+          "Heuristic, fitted, same pairs",
+          judged.map((j) => j.h),
+        ),
+      ],
+    ),
+    "",
+    `It scored at most ${String(model.maxPairs)} pairs per repository, the heuristic's likeliest first, so these pairs are not a random sample. ${runSummary(
+      model.backend,
+      {
+        sent: sum((r) => r.sent),
+        scored: sum((r) => r.scored),
+        failed: sum((r) => r.failed),
+        skippedSecret: sum((r) => r.skippedSecret),
+        overLimit: sum((r) => r.overLimit),
+        stoppedAtCap: reports.some((r) => r.stoppedAtCap),
+        unsentAtCap: sum((r) => r.unsentAtCap),
+        unverifiedSymbols: sum((r) => r.unverifiedSymbols),
+        usage: {
+          inputTokens: sum((r) => r.usage.inputTokens),
+          outputTokens: sum((r) => r.usage.outputTokens),
+        },
+        spentUsd: model.spend?.spentUsd ?? 0,
+      },
+      model.spend,
+    )}.`,
+  );
+  return lines;
+}
+
 async function main(): Promise<void> {
   const { values, positionals } = parseArgs({
     options: {
       days: { type: "string", default: "180" },
       out: { type: "string", default: "docs/benchmarks/scorers.md" },
       "write-coefficients": { type: "string" },
+      ...SCORER_ARGS,
     },
     allowPositionals: true,
   });
@@ -180,6 +287,9 @@ async function main(): Promise<void> {
       "usage: pnpm bench:scorers <repo>... [--days 180] [--out <file>] [--write-coefficients <file>]",
     );
   }
+  // A model scorer (opt-in) scores each repository's T candidates; one
+  // spend cap covers the whole run.
+  const model = resolveModel(values);
   const pool = new ParsePool();
   const runs: RepoRun[] = [];
   try {
@@ -192,7 +302,7 @@ async function main(): Promise<void> {
       );
       const train = await split(dir, t - days * DAY, days, pool);
       process.stderr.write(`${info.name}: snapshot T ${date(t)}...\n`);
-      const test = await split(dir, t, days, pool);
+      const test = await split(dir, t, days, pool, model);
       if (!train || !test) {
         process.stderr.write(`${info.name}: history too short, skipped\n`);
         continue;
@@ -300,7 +410,7 @@ async function main(): Promise<void> {
       ]),
     ),
     "",
-    "Shipped: packages/scorers/src/coefficients.json when this report was generated (before the first fit, the provisional values ADR-008 replaced). No embedding signal is in this run (the model could not be downloaded yet), so its coefficient stays 0 and is not fitted.",
+    "Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored. No embedding signal is in this run (the model could not be downloaded yet), so its coefficient stays 0 and is not fitted.",
     "",
     "## Scorers at T, all repositories",
     "",
@@ -328,9 +438,7 @@ async function main(): Promise<void> {
       }),
     ),
     "",
-    "| Scorer | Local model (Ollama) | Jev | LLM (Claude) |",
-    "| --- | --- | --- | --- |",
-    "| Status | not run | not run | not run |",
+    ...modelSection(runs, model, fittedScorer),
     "",
     "Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).",
     "",
@@ -521,6 +629,11 @@ async function main(): Promise<void> {
 }
 
 main().catch((err: unknown) => {
-  process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+  // A plan waiting for consent prints as is: nothing was sent.
+  process.stderr.write(
+    err instanceof ConsentRequired
+      ? err.message
+      : `${err instanceof Error ? err.message : String(err)}\n`,
+  );
   process.exitCode = 1;
 });

@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@epoch-dev/core": "workspace:*",
-    "@epoch-dev/engine": "workspace:*"
+    "@epoch-dev/engine": "workspace:*",
+    "@epoch-dev/scorers": "workspace:*"
   }
 }

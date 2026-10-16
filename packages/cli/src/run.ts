@@ -19,7 +19,15 @@ import {
   type AnalyzeOptions,
   type SqliteCacheStore,
 } from "@epoch-dev/engine";
+import {
+  ConsentRequired,
+  DEFAULT_LLM_MODEL,
+  SCORER_ARGS,
+  ScorerUsageError,
+  type ScorerValues,
+} from "@epoch-dev/scorers";
 import { formatFindings } from "./findings.js";
+import { chooseScorer } from "./scorer.js";
 import { formatSummary } from "./summary.js";
 
 /** Where the CLI writes; the real bin passes process.stdout and process.stderr. */
@@ -74,6 +82,17 @@ Hint options (likely relations, never facts; computed on this machine):
                      Skip commits touching more files than this (default ${String(HINT_DEFAULTS.cochange.maxFiles)})
   --cochange-min-support <n>
                      Commits a pair needs together (default ${String(HINT_DEFAULTS.cochange.minSupport)})
+  --scorer <name>    heuristic (default: no model, nothing leaves this machine);
+                     local: an Ollama server on this machine (needs --model);
+                     llm: Claude with your own ANTHROPIC_API_KEY (sends file
+                     excerpts to Anthropic; needs --consent-send, --max-spend,
+                     --price-in, --price-out); jev: not built yet
+  --model <name>     The model for --scorer local or llm (llm default: ${DEFAULT_LLM_MODEL})
+  --max-pairs <n>    Candidate pairs a model scores at most (default 200)
+  --max-spend <USD>  Stop before a request could pass this spend (llm)
+  --price-in <USD>, --price-out <USD>
+                     Your model's prices per million input and output tokens
+  --consent-send     Send what the plan printed without it lists (llm)
 
 The cache lives in the per-user cache directory; set EPOCH_CACHE_DIR to move it.
 Dismissals live in the per-user data directory; set EPOCH_DATA_DIR to move it.
@@ -85,7 +104,7 @@ class UsageError extends Error {}
 
 /** Our own usage errors and node:util parseArgs rejections (unknown option, extra positional). */
 function isUsageError(err: unknown): boolean {
-  if (err instanceof UsageError) return true;
+  if (err instanceof UsageError || err instanceof ScorerUsageError) return true;
   const code =
     typeof err === "object" && err !== null && "code" in err
       ? err.code
@@ -130,6 +149,7 @@ const HINT_ARGS = {
   "cochange-days": { type: "string" },
   "cochange-max-files": { type: "string" },
   "cochange-min-support": { type: "string" },
+  ...SCORER_ARGS,
 } as const;
 
 function positiveInt(option: string, raw: string | undefined) {
@@ -143,13 +163,20 @@ function positiveInt(option: string, raw: string | undefined) {
   return n;
 }
 
-/** AnalyzeOptions.hints from the hint options. */
-function hintsOf(values: {
-  "no-hints": boolean;
-  "cochange-days"?: string | undefined;
-  "cochange-max-files"?: string | undefined;
-  "cochange-min-support"?: string | undefined;
-}): Pick<AnalyzeOptions, "hints"> {
+/** AnalyzeOptions.hints from the hint options, and the model scorer's summary. */
+function hintsOf(
+  values: ScorerValues & {
+    "no-hints": boolean;
+    "cochange-days"?: string | undefined;
+    "cochange-max-files"?: string | undefined;
+    "cochange-min-support"?: string | undefined;
+  },
+  target: string,
+  io: CliIo,
+): {
+  options: Pick<AnalyzeOptions, "hints">;
+  summary: () => string | undefined;
+} {
   const days = positiveInt("--cochange-days", values["cochange-days"]);
   const maxFiles = positiveInt(
     "--cochange-max-files",
@@ -163,19 +190,27 @@ function hintsOf(values: {
     if (
       days !== undefined ||
       maxFiles !== undefined ||
-      minSupport !== undefined
+      minSupport !== undefined ||
+      values.scorer !== "heuristic"
     )
-      throw new UsageError("--no-hints cannot be combined with --cochange-*");
-    return { hints: false };
+      throw new UsageError(
+        "--no-hints cannot be combined with --cochange-* or --scorer",
+      );
+    return { options: { hints: false }, summary: () => undefined };
   }
+  const chosen = chooseScorer(values, target, io.stderr);
   return {
-    hints: {
-      cochange: {
-        ...(days !== undefined ? { days } : {}),
-        ...(maxFiles !== undefined ? { maxFiles } : {}),
-        ...(minSupport !== undefined ? { minSupport } : {}),
+    options: {
+      hints: {
+        cochange: {
+          ...(days !== undefined ? { days } : {}),
+          ...(maxFiles !== undefined ? { maxFiles } : {}),
+          ...(minSupport !== undefined ? { minSupport } : {}),
+        },
+        ...(chosen.hints ? { scorer: chosen.hints } : {}),
       },
     },
+    summary: chosen.summary,
   };
 }
 
@@ -231,13 +266,16 @@ async function analyzeCommand(
     values.since === undefined
       ? undefined
       : new Set(changedSince(target, values.since));
+  const hints = hintsOf(values, target, io);
   const { graph, meta } = await analyzeWithCache(target, io, {
-    ...hintsOf(values),
+    ...hints.options,
     ...(forceReread ? { forceReread } : {}),
     ...(values.coverage === undefined
       ? {}
       : { coverageFile: path.resolve(values.coverage) }),
   });
+  const scorerSummary = hints.summary();
+  if (scorerSummary !== undefined) io.stderr.write(`${scorerSummary}\n`);
   if (values.json) {
     // stdout carries only the canonical, schema-validated Graph.
     io.stdout.write(serializeCanonical(graph));
@@ -279,11 +317,14 @@ async function findingsCommand(
   const minFlag = level("--min-confidence", values["min-confidence"]);
   const failOn = level("--fail-on", values["fail-on"]);
   const target = targetOf("findings", positionals);
+  const hints = hintsOf(values, target, io);
   const { root, config, graph, meta } = await analyzeWithCache(
     target,
     io,
-    hintsOf(values),
+    hints.options,
   );
+  const scorerSummary = hints.summary();
+  if (scorerSummary !== undefined) io.stderr.write(`${scorerSummary}\n`);
   const dismissed = DismissalStore.forProject(root).ids();
   const includeDismissed = values["include-dismissed"];
   const minConfidence = minFlag ?? config.config.findings.minConfidence;
@@ -407,6 +448,11 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
       command === undefined ? "missing command" : `unknown command: ${command}`,
     );
   } catch (err) {
+    if (err instanceof ConsentRequired) {
+      // Not a failure of the analysis: the plan, for the user to agree to.
+      io.stderr.write(err.message);
+      return EXIT_ERROR;
+    }
     const message = err instanceof Error ? err.message : String(err);
     io.stderr.write(`epoch: ${message}\n`);
     if (isUsageError(err)) io.stderr.write(`\n${USAGE}`);

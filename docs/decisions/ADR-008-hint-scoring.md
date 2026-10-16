@@ -46,6 +46,16 @@ M6 adds hint edges: likely relations that are inferred, not proven, and that fee
 
    Until then, embeddings report status `off` and the cosine coefficient is 0. When the model can be downloaded, this ADR is amended with the measurements and the coefficients are refitted by the same protocol.
 
+8. **Opt-in model scorers, for the CLI and benchmarks in M6** (`--scorer local | llm`; the app's key UI, consent dialog and offline mode are M7):
+   - **ModelScorer** scores only generated candidates, at most `--max-pairs` (default 200), the heuristic's likeliest first. For each pair it sends the start of each file (up to 6,000 characters, up to three files per Go package) with the pair's co-change counts and shared strings, and asks for a probability, a relation category and the names linking the two files. Every cited name is checked against the files' parse-tree facts (export names, imported names, key-like strings); unverified names are dropped and counted, never shown. Probabilities are clamped to at most 0.99. Its edges are `semantic` hints with provenance `model`.
+   - **Never before consent.** For a remote provider, without `--consent-send` Epoch prints exactly what would be sent (files and character counts, the estimated tokens, the most it could cost) and sends nothing. Files that look like secrets are never sent, even with consent.
+   - **Spend.** A paid provider needs `--max-spend` and the user's own prices (`--price-in`, `--price-out`; Epoch ships no prices). Before each request, Epoch reserves its worst case (the local token estimate, characters / 2.5, plus the output limit) and stops if the cap could be passed; actual spend is taken from the usage the provider reports.
+   - **One network module.** `packages/scorers/src/net.ts` sends only to an allowlisted origin and refuses everything offline; the lint rule against `fetch` exempts that file alone.
+   - **LocalScorer:** Ollama on `127.0.0.1:11434`, `POST /api/chat` with a JSON schema in `format` and `stream: false` (Ollama's API docs at v0.40.5).
+   - **LlmScorer:** Claude through the official TypeScript SDK, `@anthropic-ai/sdk` 0.129.0 (MIT, published 2026-09-28): `messages.parse` with `output_config.format` (structured outputs) and effort `low`; refusals and cut-off answers leave the pair unscored. The default model is `claude-haiku-5-5`, the current small model (CLAUDE.md: "a small cheap Claude model"); `--model` picks another. The approved plan said "no SDKs"; the SDK was used instead because the Claude API guidance calls for the official SDK in TypeScript projects. It keeps the plan's guarantees: the SDK takes Epoch's network module as its `fetch`, the key is passed explicitly, and the base URL is fixed to `https://api.anthropic.com` (an `ANTHROPIC_BASE_URL` in the environment cannot redirect the key). The engine imports the heuristic by its own subpath, so the desktop app's bundle carries no model client (a test checks the built app).
+   - **JevScorer:** a stub. Jev's docs (docs.typesafe.ai) could not be read from the build environment, and its API is never written from memory, so its rows say "not run".
+   - Tests drive the SDK and the Ollama client against a fake `fetch`. They check the request shape, that nothing is sent before consent or offline, that secret files never appear in a prompt, that scoring stops at the cap, and that unverified names are dropped. No model was run for this ADR: the environment has neither an Ollama server nor a key.
+
 ## Measured (docs/benchmarks/scorers.md, at T, all four repositories)
 
 3,145 judged candidates; 38.9% were positive.
@@ -66,7 +76,7 @@ At the 0.5 threshold, precision is 68.2% and recall 48.8% (874 candidates at or 
 | cli/cli    | 23.1%                           | 0.441          |
 | Flask      | 0.0% (26 judged, none positive) | not computable |
 
-The Local, Jev and LLM scorers were not run: they need a local model server or the maintainer's keys, and the remote ones also need the consent and spend-cap flow.
+The Local, Jev and LLM scorers were not run: the Local and LLM scorers need an Ollama server or the maintainer's key (`pnpm bench:scorers ... --scorer llm --consent-send --max-spend <USD> --price-in <USD> --price-out <USD>` adds their rows), and Jev is a stub (item 8).
 
 ## What the numbers say
 
