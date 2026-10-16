@@ -126,6 +126,8 @@ export function GraphView(props: GraphViewProps) {
   handlers.current = props;
   const needsFit = useRef(false);
   const [laidOut, setLaidOut] = useState(0);
+  /** How many nodes the last finished layout drew (for the e2e tests). */
+  const [drawn, setDrawn] = useState(0);
   const large = isLargeGraph(props.visible);
   const [busy, setBusy] = useState(false);
   /** The hovered hint edge's evidence, as text, where the pointer is. */
@@ -257,6 +259,7 @@ export function GraphView(props: GraphViewProps) {
         if (handlers.current.active) fitWithin(cy, MAX_FIT_ZOOM, false);
         else needsFit.current = true;
         setBusy(false);
+        setDrawn(props.visible.nodes.length);
         setLaidOut((n) => n + 1);
       });
     return () => {
@@ -345,6 +348,7 @@ export function GraphView(props: GraphViewProps) {
         className="h-full w-full"
         data-testid="graph-canvas"
         data-layouts={laidOut}
+        data-drawn={drawn}
         data-large={large}
         data-hint-edges={props.visible.edges.filter((e) => e.hint).length}
         aria-hidden="true"

@@ -199,14 +199,13 @@ test("expanding every folder of a large project packs it, folders drawn as frame
     "900 files · 870 edges",
   );
   await expect(canvas).toHaveAttribute("data-large", "false");
-  const layouts = Number(await canvas.getAttribute("data-layouts"));
   await epoch.page.getByRole("button", { name: "Expand all folders" }).click();
-  // Packed in the worker: well within the time a force layout of every file needed.
-  await expect(canvas).toHaveAttribute("data-layouts", String(layouts + 1), {
+  // 900 files, 30 folders and src, packed in the worker: well within the
+  // time a force layout of every file needed.
+  await expect(canvas).toHaveAttribute("data-drawn", "931", {
     timeout: 15_000,
   });
   await expect(canvas).toHaveAttribute("data-large", "true");
-  // 900 files, 30 folders and src.
   await expect(epoch.page.locator("button[data-node-id]")).toHaveCount(931);
   await selectNode(epoch.page, "src/f3/m0.ts");
   await expect(details(epoch.page)).toContainText("src/f3/m0.ts");
