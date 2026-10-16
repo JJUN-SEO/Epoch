@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { Worker } from "node:worker_threads";
 import { afterEach, describe, expect, it } from "vitest";
 import { installTripwire, type Tripwire } from "./tripwire.js";
@@ -112,7 +113,7 @@ describe("installTripwire", () => {
         },
       });
       const { installTripwire } = require(${JSON.stringify(
-        new URL("./tripwire.ts", import.meta.url).pathname,
+        fileURLToPath(new URL("./tripwire.ts", import.meta.url)),
       )});
       const wire = installTripwire();
       const out = [];
