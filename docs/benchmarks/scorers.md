@@ -6,32 +6,40 @@ Host: linux x64 (6.18.44-fc-v139), 4 × Intel(R) Xeon(R) Processor @ 2.10GHz, 16
 
 ## Protocol
 
-For each repository, T is 180 days before HEAD's commit date and T0 is 180 days before T. At each, the last mainline commit is analyzed in a shared clone, and every candidate the Enrich stage proposes (git co-change in the 365 days before that commit, shared rare strings in its files) is kept with its signals. A candidate `source -> target` claims "when target changes, source changes too"; the next 180 days of non-merge commits (at most 50 files each, renames followed) judge it when target changed: positive if a commit changed both. Candidates whose target did not change are left out, and so are pairs a fact edge already covers (they are never shown as hints).
+For each repository, T is 180 days before HEAD's commit date and T0 is 180 days before T. At each, the last mainline commit is analyzed in a shared clone, and every candidate the Enrich stage proposes (git co-change in the 365 days before that commit, shared rare strings in its files, and each file's nearest neighbors by the local embedding model) is kept with its signals. A candidate `source -> target` claims "when target changes, source changes too"; the next 180 days of non-merge commits (at most 50 files each, renames followed) judge it when target changed: positive if a commit changed both. Candidates whose target did not change are left out, and so are pairs a fact edge already covers (they are never shown as hints).
 
 The heuristic has two coefficient sets: one for the candidates the app proposes without an embedding model (co-change and shared strings, no cosine), one for every candidate when the model ran (each then has a cosine). Each is fitted on the T0 labels (a weighted logistic regression, each repository weighing the same, L2 1 on the slopes). All scorers are evaluated on T. Nothing after T is used to propose, fit or choose.
 
+## Embedding model
+
+| Model                                                                                         | License    | ONNX file | Dimensions | Token limit | Pooling | Files embedded | CPU time per file |
+| --------------------------------------------------------------------------------------------- | ---------- | --------- | ---------- | ----------- | ------- | -------------- | ----------------- |
+| all-minilm-l6-v2@1110a243fdf4 (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) | apache-2.0 | 90.4 MB   | 384        | 256         | mean    | 6572           | 21.6 ms           |
+
+Each file's text is its path and its first 2000 characters, run one at a time on the CPU (onnxruntime-node). Neighbors: the 10 nearest per file at cosine 0.5 or more.
+
 ## Data
 
-| Repository | HEAD                    | T0 commit               | T commit                | Candidates at T0 | Judged at T0 (positive) | Candidates at T | Fact-covered at T | Target unchanged at T | Judged at T (positive) | Candidate recall at T |
-| ---------- | ----------------------- | ----------------------- | ----------------------- | ---------------- | ----------------------- | --------------- | ----------------- | --------------------- | ---------------------- | --------------------- |
-| zod        | 680d19f7d1 (2026-10-13) | 8e4739fadb (2025-10-17) | c7805073fe (2026-02-15) | 454              | 252 (47.6%)             | 626             | 48                | 169                   | 417 (39.6%)            | 27.4% (192 of 702)    |
-| vitest     | 2899eb3e97 (2026-10-14) | 0d6e487022 (2025-10-18) | 6abd557b72 (2026-04-16) | 2956             | 2057 (50.9%)            | 3022            | 312               | 611                   | 2124 (45.1%)           | 7.3% (1116 of 15296)  |
-| flask-full | 22d924701a (2026-02-19) | 959052fb8d (2025-01-05) | 85793d6c22 (2025-08-19) | 220              | 59 (8.5%)               | 218             | 28                | 181                   | 26 (0.0%)              | 100.0% (2 of 2)       |
-| cli-full   | d2535897fd (2025-10-15) | 92ff87c6b7 (2024-10-18) | 0ffc887644 (2025-04-17) | 1518             | 685 (24.5%)             | 1628            | 247               | 880                   | 578 (17.1%)            | 20.9% (144 of 690)    |
+| Repository | HEAD                    | T0 commit               | T commit                | Candidates at T0 | Judged at T0 (positive) | Candidates at T | Similarity only at T | Fact-covered at T | Target unchanged at T | Judged at T (positive) | Candidate recall at T | Candidate recall without the model |
+| ---------- | ----------------------- | ----------------------- | ----------------------- | ---------------- | ----------------------- | --------------- | -------------------- | ----------------- | --------------------- | ---------------------- | --------------------- | ---------------------------------- |
+| zod        | 680d19f7d1 (2026-10-13) | 8e4739fadb (2025-10-17) | c7805073fe (2026-02-15) | 5518             | 1306 (14.5%)            | 6104            | 5478                 | 169               | 4162                  | 1853 (14.6%)           | 43.6% (306 of 702)    | 27.4% (192 of 702)                 |
+| vitest     | 2899eb3e97 (2026-10-14) | 0d6e487022 (2025-10-18) | 6abd557b72 (2026-04-16) | 31758            | 9162 (22.9%)            | 35548           | 32526                | 1207              | 23993                 | 10819 (21.5%)          | 17.2% (2636 of 15296) | 7.3% (1116 of 15296)               |
+| flask-full | 22d924701a (2026-02-19) | 959052fb8d (2025-01-05) | 85793d6c22 (2025-08-19) | 1190             | 205 (9.3%)              | 1184            | 966                  | 118               | 1113                  | 51 (0.0%)              | 100.0% (2 of 2)       | 100.0% (2 of 2)                    |
+| cli-full   | d2535897fd (2025-10-15) | 92ff87c6b7 (2024-10-18) | 0ffc887644 (2025-04-17) | 9226             | 3841 (13.7%)            | 9732            | 8104                 | 595               | 6655                  | 2749 (6.8%)            | 38.6% (266 of 690)    | 20.9% (144 of 690)                 |
 
-Candidate recall: of the directed pairs of files that changed together after T, the share the generators had proposed at T (fact-covered pairs included). The rest are pairs with no history together and no shared rare string; only a semantic signal could find them.
+Candidate recall: of the directed pairs of files that changed together after T, the share the generators had proposed at T (fact-covered pairs included), with and without the model's similarity candidates.
 
 ## Fitted coefficients
 
 | Coefficient                         | Without a model: fitted on T0 | Without a model: shipped | With a model: fitted on T0 | With a model: shipped |
 | ----------------------------------- | ----------------------------- | ------------------------ | -------------------------- | --------------------- |
-| intercept                           | -1.849                        | -1.849                   | not fitted                 | -1.849                |
-| co-change ratio                     | 0.789                         | 0.789                    | not fitted                 | 0.789                 |
-| co-change support, ln(1 + together) | 1.025                         | 1.025                    | not fitted                 | 1.025                 |
-| shared-string weight                | -0.000                        | -0.000                   | not fitted                 | -0.000                |
-| embedding cosine                    | 0.000                         | 0.000                    | not fitted                 | 0.000                 |
+| intercept                           | -1.849                        | -1.849                   | -3.193                     | -3.193                |
+| co-change ratio                     | 0.789                         | 0.789                    | 0.518                      | 0.518                 |
+| co-change support, ln(1 + together) | 1.025                         | 1.025                    | 1.336                      | 1.336                 |
+| shared-string weight                | -0.000                        | -0.000                   | -0.002                     | -0.002                |
+| embedding cosine                    | 0.000                         | 0.000                    | 1.524                      | 1.524                 |
 
-Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored. This run had no embedding model, so the set for candidates with a cosine is not fitted.
+Shipped: packages/scorers/src/coefficients.json when this report was generated. ADR-008 records the provisional values the first fit replaced, and how they scored.
 
 ## Scorers at T without a model, all repositories
 
@@ -46,6 +54,29 @@ The candidates as the app proposes them when no embedding model is available.
 
 Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores rank, apart from calibration (0.5 is chance).
 
+## Scorers at T with the model, all repositories
+
+Every candidate, similarity-only ones included, each with its cosine.
+
+| Scorer                                                                               | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC |
+| ------------------------------------------------------------------------------------ | ------ | ------------- | ------ | ----- | ----- | ------- |
+| Heuristic with a model, fitted on T0                                                 | 15472  | 18.0%         | 0.163  | 0.126 | 0.027 | 0.707   |
+| Heuristic with a model, shipped coefficients                                         | 15472  | 18.0%         | 0.163  | 0.126 | 0.027 | 0.707   |
+| Heuristic without a model, fitted on T0 (similarity-only pairs at 0: never proposed) | 15472  | 18.0%         | 0.076  | 0.139 | 0.113 | 0.659   |
+| Cosine alone                                                                         | 15472  | 18.0%         | 0.708  | 0.464 | 0.566 | 0.501   |
+| Co-change ratio alone                                                                | 15472  | 18.0%         | 0.044  | 0.149 | 0.141 | 0.638   |
+| Constant (T0 positive rate)                                                          | 15472  | 18.0%         | 0.195  | 0.148 | 0.015 | 0.500   |
+
+### The same, on the pairs both views share
+
+Co-change and shared-string candidates only: whether the cosine improves the scores of the pairs proposed without it.
+
+| Scorer                                                                               | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC |
+| ------------------------------------------------------------------------------------ | ------ | ------------- | ------ | ----- | ----- | ------- |
+| Heuristic with a model, fitted on T0                                                 | 3145   | 38.9%         | 0.360  | 0.190 | 0.080 | 0.763   |
+| Heuristic with a model, shipped coefficients                                         | 3145   | 38.9%         | 0.360  | 0.190 | 0.080 | 0.763   |
+| Heuristic without a model, fitted on T0 (similarity-only pairs at 0: never proposed) | 3145   | 38.9%         | 0.372  | 0.188 | 0.059 | 0.724   |
+
 ## Model scorers
 
 | Scorer                 | Status                                                                                               |
@@ -54,7 +85,55 @@ Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores ran
 | LLM (Claude, your key) | not run                                                                                              |
 | Jev                    | not built: Jev's docs (docs.typesafe.ai) could not be read, and its API is never written from memory |
 
-## Heuristic, fitted on T0, in detail
+## Heuristic with a model, fitted on T0, in detail
+
+### Precision and recall by threshold
+
+| Threshold | At or above | Precision | Recall |
+| --------- | ----------- | --------- | ------ |
+| 0.20      | 1662        | 55.0%     | 32.8%  |
+| 0.30      | 1661        | 55.0%     | 32.8%  |
+| 0.40      | 1537        | 57.4%     | 31.7%  |
+| 0.50      | 942         | 66.7%     | 22.5%  |
+| 0.60      | 562         | 80.4%     | 16.2%  |
+| 0.70      | 406         | 86.7%     | 12.6%  |
+| 0.80      | 320         | 93.8%     | 10.8%  |
+| 0.90      | 279         | 97.5%     | 9.8%   |
+
+### Reliability
+
+| Predicted | Candidates | Mean predicted | Observed |
+| --------- | ---------- | -------------- | -------- |
+| 0.0–0.1   | 2766       | 0.090          | 10.4%    |
+| 0.1–0.2   | 11044      | 0.117          | 14.3%    |
+| 0.2–0.3   | 1          | 0.299          | 100.0%   |
+| 0.3–0.4   | 124        | 0.367          | 25.0%    |
+| 0.4–0.5   | 595        | 0.455          | 42.7%    |
+| 0.5–0.6   | 380        | 0.539          | 46.3%    |
+| 0.6–0.7   | 156        | 0.645          | 64.1%    |
+| 0.7–0.8   | 86         | 0.746          | 60.5%    |
+| 0.8–0.9   | 41         | 0.855          | 68.3%    |
+| 0.9–1.0   | 279        | 0.944          | 97.5%    |
+
+### By repository
+
+| Repository | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC | Precision at 0.5 | Recall at 0.5 |
+| ---------- | ------ | ------------- | ------ | ----- | ----- | ------- | ---------------- | ------------- |
+| zod        | 1853   | 14.6%         | 0.179  | 0.106 | 0.034 | 0.768   | 56.6%            | 28.4%         |
+| vitest     | 10819  | 21.5%         | 0.165  | 0.142 | 0.053 | 0.731   | 75.6%            | 22.6%         |
+| flask-full | 51     | 0.0%          | 0.110  | 0.019 | 0.110 | –       | 0.0%             | –             |
+| cli-full   | 2749   | 6.8%          | 0.146  | 0.075 | 0.077 | 0.560   | 23.4%            | 13.8%         |
+
+### By signal, all repositories
+
+| Signal                       | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC |
+| ---------------------------- | ------ | ------------- | ------ | ----- | ----- | ------- |
+| co-change and shared strings | 165    | 66.1%         | 0.604  | 0.241 | 0.109 | 0.512   |
+| co-change only               | 1497   | 53.8%         | 0.591  | 0.200 | 0.068 | 0.748   |
+| shared strings only          | 1483   | 20.8%         | 0.099  | 0.174 | 0.109 | 0.605   |
+| similarity only              | 12327  | 12.7%         | 0.113  | 0.109 | 0.019 | 0.632   |
+
+## Heuristic, fitted on T0, without a model, in detail
 
 ### Precision and recall by threshold
 
@@ -103,9 +182,9 @@ Brier and ECE (10 equal bins): lower is better. ROC AUC: how well the scores ran
 
 | Repository | Files mapped | Hint edges | Nodes over the cap | Precision of drawn edges | Precision at 0.5+  | Enrich stage | Whole analysis |
 | ---------- | ------------ | ---------- | ------------------ | ------------------------ | ------------------ | ------------ | -------------- |
-| zod        | 400          | 207        | 11                 | 47.5% (202 judged)       | 57.3% (110 judged) | 277 ms       | 3.4 s          |
-| vitest     | 2259         | 901        | 46                 | 58.1% (830 judged)       | 73.7% (437 judged) | 188 ms       | 4.9 s          |
-| flask-full | 83           | 4          | 0                  | 0.0% (2 judged)          | 0.0% (2 judged)    | 29 ms        | 0.5 s          |
-| cli-full   | 742          | 346        | 7                  | 19.0% (147 judged)       | 23.6% (89 judged)  | 116 ms       | 1.5 s          |
+| zod        | 400          | 207        | 11                 | 48.0% (204 judged)       | 61.0% (105 judged) | 10254 ms     | 14.5 s         |
+| vitest     | 2259         | 901        | 46                 | 58.7% (833 judged)       | 70.0% (506 judged) | 46159 ms     | 51.9 s         |
+| flask-full | 83           | 4          | 0                  | 0.0% (2 judged)          | 0.0% (1 judged)    | 2118 ms      | 2.6 s          |
+| cli-full   | 742          | 346        | 7                  | 18.8% (149 judged)       | 22.9% (105 judged) | 22150 ms     | 23.8 s         |
 
-Enrich stage time is the run without a cache: the co-change log is read from git. With the cache, the commit sets of a HEAD are read once.
+Enrich stage time is the run without a cache: the co-change log is read from git and every file is embedded. With the cache, the commit sets of a HEAD are read once and a file is embedded once per content and model.

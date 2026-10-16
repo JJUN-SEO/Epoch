@@ -1,6 +1,6 @@
 # ADR-008: Hint scoring, defaults, and the local embedding model
 
-- **Status:** Accepted for hint scoring and the defaults (measured 2026-10-16) and for the embedding runtime and delivery. The embedding model choice is pending: the candidates' ONNX files cannot be downloaded in the build environment yet, so none has been measured.
+- **Status:** Accepted (measured 2026-10-16): hint scoring, the defaults, the embedding runtime and delivery, and the embedding model, all-MiniLM-L6-v2 (item 7).
 - **Date:** 2026-10-16
 - **Milestone:** M6
 
@@ -17,19 +17,19 @@ M6 adds hint edges: likely relations that are inferred, not proven, and that fee
 3. **Candidates.** Generated before any scoring, never all pairs:
    - **Co-change:** non-merge commits in the 365 days before HEAD's commit date, renames followed; commits touching more than 50 files are skipped (counted over every file they touched); a pair needs 3 commits together. Go files lift to their package nodes. The commit sets are cached per HEAD.
    - **Shared strings:** `FileFacts.strings` (ADR-014). Each string adds its rarity, ln(N / df), to a pair's weight; a string in more than 5 files links nothing.
-   - **Embeddings:** each file's nearest neighbors by a local model (item 7; the model is pending measurement).
+   - **Embeddings:** each file's nearest neighbors by a local model (all-MiniLM-L6-v2, item 7).
 
    These cutoffs were set before measuring and were not tuned.
 
 4. **HeuristicScorer.** A logistic of four features: the co-change ratio (commits together over the target's commits), co-change support (ln(1 + commits together)), the shared-string weight, and the embedding cosine. Its coefficients are data (`packages/scorers/src/coefficients.json`), fitted by `pnpm bench:scorers` (item 5):
 
-   | Coefficient          | Value                             |
-   | -------------------- | --------------------------------- |
-   | intercept            | -1.8488                           |
-   | co-change ratio      | 0.7894                            |
-   | co-change support    | 1.0254                            |
-   | shared-string weight | -0.0004                           |
-   | embedding cosine     | 0 (not fitted: no embeddings yet) |
+   | Coefficient          | Candidates without a cosine | Candidates with a cosine (all-MiniLM-L6-v2) |
+   | -------------------- | --------------------------- | ------------------------------------------- |
+   | intercept            | -1.8488                     | -3.1931                                     |
+   | co-change ratio      | 0.7894                      | 0.5184                                      |
+   | co-change support    | 1.0254                      | 1.3357                                      |
+   | shared-string weight | -0.0004                     | -0.0017                                     |
+   | embedding cosine     | 0 (no cosine)               | 1.5243                                      |
 
 5. **How the coefficients were fitted, and how they are judged: a temporal holdout** (`packages/bench/src/scorers.ts`, report in [docs/benchmarks/scorers.md](../benchmarks/scorers.md)). It ran on full clones of zod, vitest, Flask and cli/cli (TypeScript, Python and Go):
    - T is 180 days before HEAD and T0 is 180 days before T. At each, the last mainline commit is checked out in a shared clone and run through the real Enrich stage, so co-change features see only history up to that commit.
@@ -43,13 +43,24 @@ M6 adds hint edges: likely relations that are inferred, not proven, and that fee
    - **Runtime:** `onnxruntime-node` 1.30.0 (MIT, N-API prebuilt binaries) on the CPU, with `@huggingface/tokenizers` 0.2.0 (Apache-2.0, pure JavaScript, no network code). Not `@huggingface/transformers`, which imports onnxruntime-web unconditionally and defaults its WASM path to a CDN, a run-time request Epoch must not make. For each candidate model's tokenizer, the JavaScript token ids were checked against Hugging Face's Rust tokenizer (0.22.1) on a fixed set of code strings; the ids are a test fixture, rechecked whenever a model is present.
    - **Determinism:** texts run one at a time. Padded into a batch, the same text gets a vector that differs in the last bits (the runtime picks other kernels for other shapes), which would make a cached vector differ from a fresh one. Cosines are rounded to 1e-4.
    - **Text and neighbors:** each file's path plus its first 2,000 characters, cut to the model's token limit, pooled as the model was trained (mean or [CLS]) and normalized. Brute-force nearest neighbors (`embeddingCandidates`): each node's 10 most similar nodes at cosine 0.5 or more, a Go package as the mean of its files; both cutoffs provisional. With a model, every candidate whose nodes have vectors gets its cosine, so "no signal" is never read as "similarity 0".
-   - **Two coefficient sets:** one for candidates without a cosine (no model, or a model that failed), one for candidates with one. Until a model is measured both are the set in item 4, so the cosine changes no score and similarity-only candidates (0.136, below the floor) draw no edge.
+   - **Two coefficient sets:** one for candidates without a cosine (no model, or a model that failed), one for candidates with one, each fitted on its own view of the T0 candidates (item 4). With the second set, a candidate proposed only by similarity scores at most σ(−3.1931 + 1.5243) = 0.159 (at cosine 1), below the floor: the model alone never draws an edge. It re-ranks what co-change and shared strings propose.
    - **Cache:** vectors are cached by path, content hash and model id (`<id>@<revision>`), numbers only, never source, so a re-run embeds only changed files. The runtime starts on the first file that needs a vector; a run whose vectors are all cached never loads it.
    - **Delivery:** `models/manifest.json` pins each candidate to a Hugging Face revision and each file to its size and sha256; `scripts/fetch-model.mjs` downloads them at build time into the gitignored `models/<id>/` (CI does this before the tests and before packaging). The installer carries the manifest's default as `resources/model` (electron-builder `extraResources`, checked against the manifest by a test). The installed app never downloads a model (docs/privacy.md).
    - **Packaging:** electron-builder keeps only the build platform's and target architecture's runtime: 45 MB on Linux x64 (in the packaged app), and from the npm package's files, 44.6 MB on macOS arm64 (the binding loads `libonnxruntime.1.dylib`; the versioned file next to it is a byte-identical copy and is left out), 64 MB on Windows x64 (with the DirectML libraries the runtime ships; whether the CPU-only path can drop them is untested). The package also carries the runtime's install-script dependencies (`global-agent`, `adm-zip`), which nothing loads at run time.
    - **No Intel-Mac runtime:** `onnxruntime-node` 1.30.0 ships no `darwin/x64` binary. There the model fails to start and similarity reports `unavailable`; everything else works. Whether to ship an Intel-Mac build at all is M8's call.
    - **In the app:** the analysis host sends the first graph without similarity hints, marked `pending`, then the watcher re-analyzes with the model and sends the difference, and keeps the model for later changes. `EPOCH_EMBEDDING_MODEL=off` turns the model off; a packaged app takes nothing else from that variable. In the CLI, `--embedding-model <dir>` (or `EPOCH_EMBEDDING_MODEL`) names a model folder; without it, similarity is off.
-   - **Model: pending.** Candidates: all-MiniLM-L6-v2 (Apache-2.0, 90.4 MB ONNX), bge-small-en-v1.5 (MIT, 133.1 MB) and jina-embeddings-v2-small-en (Apache-2.0, 129.8 MB), to be compared on CPU time per file and holdout precision with `pnpm bench:scorers --embedding-model models/<id>`, which fits and reports both coefficient sets. The ONNX files redirect to a Hugging Face CDN host the build environment does not reach yet, so none has been measured. The manifest's default (all-MiniLM-L6-v2, the smallest) is provisional until then; the measurements, the choice, the refitted coefficients and the cutoffs will be recorded here.
+   - **Model: all-MiniLM-L6-v2** (Apache-2.0, 90.4 MB ONNX, 384 dimensions, 256 tokens). The three candidates ran through `pnpm bench:scorers --embedding-model models/<id>` one after another on the same 4-core VM; each report fits and evaluates both coefficient sets ([all-MiniLM-L6-v2](../benchmarks/scorers.md), refitted as the shipped report; [bge-small-en-v1.5](../benchmarks/scorers-bge-small-en-v1.5.md); [jina-embeddings-v2-small-en](../benchmarks/scorers-jina-embeddings-v2-small-en.md)):
+
+     | Model                       | License, ONNX file   | CPU time per file | Enrich stage without a cache (zod / vitest / cli/cli) | Candidate recall at T (zod / vitest / cli/cli) | ROC AUC, every candidate | ROC AUC, the pairs proposed without a model | Drawn edges at 0.5+, precision (zod / vitest / cli/cli) |
+     | --------------------------- | -------------------- | ----------------- | ----------------------------------------------------- | ---------------------------------------------- | ------------------------ | ------------------------------------------- | ------------------------------------------------------- |
+     | all-MiniLM-L6-v2            | Apache-2.0, 90.4 MB  | 21.6 ms           | 10.3 / 46.2 / 22.2 s                                  | 43.6% / 17.2% / 38.6%                          | 0.707                    | 0.763                                       | 61.0% / 70.0% / 22.9%                                   |
+     | bge-small-en-v1.5           | MIT, 133.1 MB        | 72.1 ms           | 36.7 / 136.2 / 77.8 s                                 | 43.6% / 18.0% / 48.1%                          | 0.724                    | 0.767                                       | 58.6% / 72.5% / 24.1%                                   |
+     | jina-embeddings-v2-small-en | Apache-2.0, 129.8 MB | 95.9 ms           | 58.0 / 152.2 / 117.1 s                                | 40.5% / 18.0% / 45.8%                          | 0.723                    | 0.766                                       | 57.3% / 74.1% / 23.9%                                   |
+     | no model                    |                      |                   |                                                       | 27.4% / 7.3% / 20.9%                           |                          | 0.724                                       |                                                         |
+
+     Why the smallest: the quality differences are within 0.02 of AUC and a few points of precision, in both directions, and the drawn edges are the same in number (207, 901, 4 and 346 on the four repositories) because similarity-only candidates never pass the floor. bge-small finds more future co-change on cli/cli (48.1% vs 38.6% candidate recall), but those extra candidates are similarity-only and draw nothing. MiniLM is 3.3 to 4.4 times faster per file: on vitest's 2,259 files the first analysis spends 46 s embedding in the background instead of 136 to 152 s. Its 256-token limit cuts a file's start shorter than the others' 512 and 8,192 tokens; the measurements include that. (MiniLM's timings are from the shipped report, run on its own on the same idle host; in the run just before bge and jina it measured 22.5 ms per file.)
+
+   - **Quantized files, not measured.** The pinned revision also carries 23.0 MB int8 files, one per CPU family (arm64, avx2, avx512, avx512-vnni). Using them means a different model file per installer architecture, each with its own quality run; M8 weighs that against installer size. Until then the installer carries the 90.4 MB fp32 file, the same on every platform.
 
 8. **Opt-in model scorers, for the CLI and benchmarks in M6** (`--scorer local | llm`; the app's key UI, consent dialog and offline mode are M7):
    - **ModelScorer** scores only generated candidates, at most `--max-pairs` (default 200), the heuristic's likeliest first. For each pair it sends the start of each file (up to 6,000 characters, up to three files per Go package) with the pair's co-change counts and shared strings, and asks for a probability, a relation category and the names linking the two files. Every cited name is checked against the files' parse-tree facts (export names, imported names, key-like strings); unverified names are dropped and counted, never shown. Probabilities are clamped to at most 0.99. Its edges are `semantic` hints with provenance `model`.
@@ -63,7 +74,9 @@ M6 adds hint edges: likely relations that are inferred, not proven, and that fee
 
 ## Measured (docs/benchmarks/scorers.md, at T, all four repositories)
 
-3,145 judged candidates; 38.9% were positive.
+### Without a model
+
+The candidates co-change and shared strings propose: what the app scores where the model is unavailable. 3,145 judged candidates; 38.9% were positive.
 
 | Scorer                                                | Brier | ECE   | ROC AUC |
 | ----------------------------------------------------- | ----- | ----- | ------- |
@@ -81,14 +94,29 @@ At the 0.5 threshold, precision is 68.2% and recall 48.8% (874 candidates at or 
 | cli/cli    | 23.1%                           | 0.441          |
 | Flask      | 0.0% (26 judged, none positive) | not computable |
 
+### With the model (all-MiniLM-L6-v2)
+
+Every candidate, each with its cosine: 15,472 judged, 12,327 of them proposed by similarity alone; 18.0% were positive.
+
+| Scorer                                                      | Brier | ECE   | ROC AUC |
+| ----------------------------------------------------------- | ----- | ----- | ------- |
+| Heuristic with a model, fitted on T0                        | 0.126 | 0.027 | 0.707   |
+| Heuristic without a model (similarity-only candidates at 0) | 0.139 | 0.113 | 0.659   |
+| Cosine alone                                                | 0.464 | 0.566 | 0.501   |
+| Co-change ratio alone                                       | 0.149 | 0.141 | 0.638   |
+| Constant (T0 positive rate)                                 | 0.148 | 0.015 | 0.500   |
+
+On the 3,145 candidates proposed without a model, the cosine raises ROC AUC from 0.724 to 0.763, at slightly worse calibration (ECE 0.080 vs 0.059, Brier 0.190 vs 0.188). Per repository, ROC AUC with the model is 0.768 (zod), 0.731 (vitest) and 0.560 (cli/cli); Flask had 51 judged candidates, none positive. The drawn edges (floor 0.2, at most 8 per node) were right at 0.5 or above 61.0% (zod), 70.0% (vitest) and 22.9% (cli/cli) of the time.
+
 The Local, Jev and LLM scorers were not run: the Local and LLM scorers need an Ollama server or the maintainer's key (`pnpm bench:scorers ... --scorer llm --consent-send --max-spend <USD> --price-in <USD> --price-out <USD>` adds their rows), and Jev is a stub (item 8).
 
 ## What the numbers say
 
 - **Fitting matters.** The provisional coefficients ranked worse and were badly calibrated (ECE 0.322). The fitted heuristic ranks as well as the raw co-change ratio (AUC 0.724 vs 0.727), and unlike the ratio it is calibrated (ECE 0.059 vs 0.195). Its Brier score beats the constant baseline (0.188 vs 0.240).
-- **Shared strings add nothing as weighted.** The fitted string weight is about 0. Strings-only candidates therefore all score 0.136, below the floor, and draw no edge. Their positive rate at T was 20.8%, against 38.9% pooled. When a pair also co-changes, its positive rate was higher (66.1% vs 53.8% for co-change alone), which the rarity weight does not capture. A different string feature must be chosen on the training split in the next round (with embeddings), not on these test numbers. The generator stays: it is cheap, and its evidence still shows on co-change hints.
-- **Repositories differ a lot.** On cli/cli, past co-change did not predict the next six months (AUC 0.441, precision of drawn edges 19.0%). Flask changed too little in the window to judge (26 candidates, none positive). Likely mode therefore stays opt-in, and the slider lets users raise the bar.
-- **The generators miss most future co-change.** At T they had proposed 7.3% (vitest) to 27.4% (zod) of the directed pairs that later changed together; Flask's 100% is 2 of 2. Many of those pairs changed together once in a medium-sized commit. Some are what a semantic signal is meant to add.
+- **Shared strings add nothing as weighted.** The fitted string weight is about 0. Strings-only candidates therefore all score 0.136, below the floor, and draw no edge. Their positive rate at T was 20.8%, against 38.9% pooled. When a pair also co-changes, its positive rate was higher (66.1% vs 53.8% for co-change alone), which the rarity weight does not capture. The refit with the model gives the same answer (−0.0017). A different string feature must be chosen on the training split, not on these test numbers. The generator stays: it is cheap, and its evidence still shows on co-change hints.
+- **Repositories differ a lot.** On cli/cli, past co-change did not predict the next six months (AUC 0.441 without the model, 0.560 with it; precision of drawn edges 18.8%). Flask changed too little in the window to judge (26 candidates, none positive). Likely mode therefore stays opt-in, and the slider lets users raise the bar.
+- **The generators miss most future co-change.** At T they had proposed 7.3% (vitest) to 27.4% (zod) of the directed pairs that later changed together; Flask's 100% is 2 of 2. Many of those pairs changed together once in a medium-sized commit. With the model the generators proposed 17.2% (vitest) to 43.6% (zod).
+- **The model re-ranks; it adds no edges yet.** Similarity alone does not rank (cosine alone: AUC 0.501), and similarity-only candidates were positive 12.7% of the time against 18.0% pooled, so fitted, they all score below the floor. What the cosine adds is order among the pairs co-change and shared strings propose (AUC 0.724 to 0.763). The candidate recall it adds therefore reaches no graph today; a better semantic feature, or a model scorer judging those candidates (item 8), is how it could.
 
 ## Limits
 
@@ -108,4 +136,4 @@ The Local, Jev and LLM scorers were not run: the Local and LLM scorers need an O
 
 - Hints are calibrated on these repositories and labeled as likely, never as facts. The UI shows their evidence. The status bar says what they rest on.
 - Refitting is a script run: `pnpm bench:scorers <repos> --write-coefficients packages/scorers/src/coefficients.json`, then this ADR is updated with the new numbers.
-- The embedding model choice is amended into item 7 once the candidates can be downloaded and measured. Until then the cosine coefficient is 0: a bundled model reports its similarity pairs, but they change no score and draw no edge.
+- The cosine coefficient belongs to all-MiniLM-L6-v2: another model's cosines sit on another scale, so changing the model means refitting (`pnpm bench:scorers <repos> --embedding-model models/<id> --write-coefficients packages/scorers/src/coefficients.json`) and updating this ADR.

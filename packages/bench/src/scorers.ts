@@ -234,6 +234,105 @@ function scorerTable(
   );
 }
 
+/** One scorer on one view of the candidates: thresholds, reliability, per repository, per signal. */
+function detailSection(
+  title: string,
+  runs: readonly RepoRun[],
+  view: (r: RepoRun) => readonly Labeled[],
+  p: (c: CandidatePair) => number,
+): string[] {
+  const pooled = runs.flatMap(view);
+  const m = metrics(pooled, p);
+  const signals = [...new Set(pooled.map((l) => signalOf(l.candidate)))].sort();
+  const row = (name: string, x: ReturnType<typeof metrics>) => [
+    name,
+    String(x.n),
+    pct(x.prevalence),
+    num(x.meanP),
+    num(x.brier),
+    num(x.ece),
+    num(x.auc),
+  ];
+  return [
+    `## ${title}, in detail`,
+    "",
+    "### Precision and recall by threshold",
+    "",
+    table(
+      ["Threshold", "At or above", "Precision", "Recall"],
+      m.pr.map((x) => [
+        num(x.threshold, 2),
+        String(x.predicted),
+        pctOrDash(x.precision),
+        pctOrDash(x.recall),
+      ]),
+    ),
+    "",
+    "### Reliability",
+    "",
+    table(
+      ["Predicted", "Candidates", "Mean predicted", "Observed"],
+      m.bins
+        .filter((b) => b.n > 0)
+        .map((b) => [
+          `${num(b.lo, 1)}–${num(b.hi, 1)}`,
+          String(b.n),
+          num(b.meanP),
+          pct(b.rate),
+        ]),
+    ),
+    "",
+    "### By repository",
+    "",
+    table(
+      [
+        "Repository",
+        "Judged",
+        "Positive rate",
+        "Mean p",
+        "Brier",
+        "ECE",
+        "ROC AUC",
+        "Precision at 0.5",
+        "Recall at 0.5",
+      ],
+      runs.map((r) => {
+        const x = metrics(view(r), p);
+        const at = x.pr.find((t) => t.threshold === 0.5);
+        return [
+          ...row(r.name, x),
+          pctOrDash(at?.precision ?? Number.NaN),
+          pctOrDash(at?.recall ?? Number.NaN),
+        ];
+      }),
+    ),
+    "",
+    "### By signal, all repositories",
+    "",
+    table(
+      [
+        "Signal",
+        "Judged",
+        "Positive rate",
+        "Mean p",
+        "Brier",
+        "ECE",
+        "ROC AUC",
+      ],
+      signals.map((sig) =>
+        row(
+          sig,
+          metrics(
+            pooled.filter((l) => signalOf(l.candidate) === sig),
+            p,
+          ),
+        ),
+      ),
+    ),
+    "",
+  ];
+}
+
 const signalOf = (c: CandidatePair): string =>
   c.signals.cochange && c.signals.strings
     ? "co-change and shared strings"
@@ -421,11 +520,16 @@ async function main(): Promise<void> {
       return x && x.targetCommits > 0 ? x.together / x.targetCommits : 0;
     },
   };
+  const fittedWithout: Scorer = {
+    name: "Heuristic, fitted on T0",
+    p: (c) => fittedScorer.probability(c.signals),
+  };
+  const fittedWith: Scorer = {
+    name: "Heuristic with a model, fitted on T0",
+    p: (c) => fittedScorer.probability(c.signals),
+  };
   const withoutScorers: Scorer[] = [
-    {
-      name: "Heuristic, fitted on T0",
-      p: (c) => fittedScorer.probability(c.signals),
-    },
+    fittedWithout,
     {
       name: "Heuristic, shipped coefficients",
       p: (c) => shipped.probability(c.signals),
@@ -434,10 +538,7 @@ async function main(): Promise<void> {
     { name: "Constant (T0 positive rate)", p: () => trainRateWithout },
   ];
   const withScorers: Scorer[] = [
-    {
-      name: "Heuristic with a model, fitted on T0",
-      p: (c) => fittedScorer.probability(c.signals),
-    },
+    fittedWith,
     {
       name: "Heuristic with a model, shipped coefficients",
       p: (c) => shipped.probability(c.signals),
@@ -456,11 +557,6 @@ async function main(): Promise<void> {
     cochangeAlone,
     { name: "Constant (T0 positive rate)", p: () => trainRateAll },
   ];
-  // The scorer the app runs: with a model when this run had one.
-  const primary = embedder ? withScorers[0] : withoutScorers[0];
-  const pooled = runs.flatMap((r) =>
-    embedder ? r.test.labeled : r.test.labeledWithoutModel,
-  );
   const pooledWithout = runs.flatMap((r) => r.test.labeledWithoutModel);
   const card = modelDir ? modelCard(path.resolve(modelDir)) : undefined;
 
@@ -649,103 +745,28 @@ async function main(): Promise<void> {
     "",
     ...modelSection(runs, model, fittedScorer),
     "",
-    `## ${primary?.name ?? ""}, in detail`,
-    "",
-    "### Precision and recall by threshold",
-    "",
   );
-  const fittedPooled = metrics(pooled, primary?.p ?? (() => 0));
+  // The app's scorer first; with a model, the no-model view too, which is
+  // what the app runs where the model is unavailable.
+  if (embedder) {
+    lines.push(
+      ...detailSection(
+        fittedWith.name,
+        runs,
+        (r) => r.test.labeled,
+        fittedWith.p,
+      ),
+    );
+  }
   lines.push(
-    table(
-      ["Threshold", "At or above", "Precision", "Recall"],
-      fittedPooled.pr.map((p) => [
-        num(p.threshold, 2),
-        String(p.predicted),
-        pctOrDash(p.precision),
-        pctOrDash(p.recall),
-      ]),
+    ...detailSection(
+      embedder ? `${fittedWithout.name}, without a model` : fittedWithout.name,
+      runs,
+      (r) => r.test.labeledWithoutModel,
+      fittedWithout.p,
     ),
-    "",
-    "### Reliability",
-    "",
-    table(
-      ["Predicted", "Candidates", "Mean predicted", "Observed"],
-      fittedPooled.bins
-        .filter((b) => b.n > 0)
-        .map((b) => [
-          `${num(b.lo, 1)}–${num(b.hi, 1)}`,
-          String(b.n),
-          num(b.meanP),
-          pct(b.rate),
-        ]),
-    ),
-    "",
-    "### By repository",
-    "",
-    table(
-      [
-        "Repository",
-        "Judged",
-        "Positive rate",
-        "Mean p",
-        "Brier",
-        "ECE",
-        "ROC AUC",
-        "Precision at 0.5",
-        "Recall at 0.5",
-      ],
-      runs.map((r) => {
-        const m = metrics(
-          embedder ? r.test.labeled : r.test.labeledWithoutModel,
-          primary?.p ?? (() => 0),
-        );
-        const at = m.pr.find((p) => p.threshold === 0.5);
-        return [
-          r.name,
-          String(m.n),
-          pct(m.prevalence),
-          num(m.meanP),
-          num(m.brier),
-          num(m.ece),
-          num(m.auc),
-          pctOrDash(at?.precision ?? Number.NaN),
-          pctOrDash(at?.recall ?? Number.NaN),
-        ];
-      }),
-    ),
-    "",
-    "### By signal, all repositories",
-    "",
   );
-  const signals = [...new Set(pooled.map((l) => signalOf(l.candidate)))].sort();
   lines.push(
-    table(
-      [
-        "Signal",
-        "Judged",
-        "Positive rate",
-        "Mean p",
-        "Brier",
-        "ECE",
-        "ROC AUC",
-      ],
-      signals.map((sig) => {
-        const m = metrics(
-          pooled.filter((l) => signalOf(l.candidate) === sig),
-          primary?.p ?? (() => 0),
-        );
-        return [
-          sig,
-          String(m.n),
-          pct(m.prevalence),
-          num(m.meanP),
-          num(m.brier),
-          num(m.ece),
-          num(m.auc),
-        ];
-      }),
-    ),
-    "",
     `## Hint edges at T with the fitted coefficients (floor ${String(HINT_DEFAULTS.floor)}, at most ${String(HINT_DEFAULTS.perNode)} per node)`,
     "",
   );
