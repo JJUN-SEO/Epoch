@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./heuristic": {
+      "types": "./dist/heuristic.d.ts",
+      "default": "./dist/heuristic.js"
     }
   },
   "scripts": {
@@ -25,6 +29,8 @@
     "vitest": "catalog:"
   },
   "dependencies": {
-    "@epoch-dev/core": "workspace:*"
+    "@anthropic-ai/sdk": "0.129.0",
+    "@epoch-dev/core": "workspace:*",
+    "zod": "catalog:"
   }
 }

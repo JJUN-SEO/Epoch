@@ -8,7 +8,8 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 // Network guard. CLAUDE.md "Privacy and data flow": every network call goes
-// through a single network wrapper, and there is none before M7. This is a
+// through a single network wrapper, packages/scorers/src/net.ts (M6: opt-in
+// model scorers; M7 makes it app-wide), the one file exempt below. This is a
 // backstop, not a proof: it cannot see dynamic import(), require(), computed
 // property access or other packages that open sockets. M7's zero-network test
 // is the real enforcement. Type-only imports are allowed: they are erased.
@@ -106,6 +107,15 @@ export default defineConfig(
           })),
         ),
       ],
+    },
+  },
+  {
+    // The single network wrapper: an origin allowlist and an offline switch
+    // in front of fetch.
+    files: ["packages/scorers/src/net.ts"],
+    rules: {
+      "no-restricted-globals": "off",
+      "no-restricted-properties": "off",
     },
   },
   {
