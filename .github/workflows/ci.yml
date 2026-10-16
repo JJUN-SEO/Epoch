@@ -67,6 +67,17 @@ jobs:
 
       - run: pnpm test
 
+      # The zero-network test runs in pnpm test on every OS (the built CLI
+      # under scripts/no-network.mjs). On Linux the same analysis also runs
+      # in a network namespace, where the kernel itself has no way out.
+      - name: Zero network in a network namespace
+        if: runner.os == 'Linux'
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          MODEL="models/$(node -p "require('./models/manifest.json').default")"
+          unshare -rn node packages/cli/dist/bin.js analyze fixtures/typescript/monorepo --embedding-model "$MODEL" > /dev/null
+          unshare -rn node packages/cli/dist/bin.js findings fixtures/typescript/monorepo --embedding-model "$MODEL" > /dev/null
+
       - name: Telemetry stays off without the workflow env
         env:
           TURBO_TELEMETRY_DISABLED: ""

@@ -31,12 +31,18 @@ export interface Tripwire {
   readonly passthrough: typeof fetch;
 }
 
-export function installTripwire(): Tripwire {
+export interface TripwireOptions {
+  /** Called with each attempt as it happens (the zero-network test logs them). */
+  readonly onAttempt?: (name: string) => void;
+}
+
+export function installTripwire(opts: TripwireOptions = {}): Tripwire {
   const passthrough = globalThis.fetch;
   const seen: string[] = [];
   const restores: (() => void)[] = [];
   const refuse = (name: string) => {
     seen.push(name);
+    opts.onAttempt?.(name);
     return new NetworkBlockedError(
       `network is off in this process: refused ${name}`,
     );

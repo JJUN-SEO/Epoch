@@ -121,11 +121,13 @@ export default defineConfig(
   },
   {
     // The tripwire replaces the network functions of a process that must
-    // never use the network, so it names them; and its test makes real
-    // attempts that the tripwire must refuse.
+    // never use the network, so it names them; its test and the
+    // zero-network test's canary make real attempts it must refuse.
     files: [
       "packages/scorers/src/tripwire.ts",
       "packages/scorers/src/tripwire.test.ts",
+      "scripts/no-network.mjs",
+      "scripts/no-network-canary.mjs",
     ],
     rules: {
       "no-restricted-imports": "off",
