@@ -4,6 +4,7 @@ import {
   ModelScorer,
   resolveModel,
   runSummary,
+  type ScorerNetwork,
   type ScorerValues,
 } from "@epoch-dev/scorers";
 
@@ -25,8 +26,9 @@ export function chooseScorer(
   target: string,
   stderr: { write(chunk: string): unknown },
   env: NodeJS.ProcessEnv = process.env,
+  network: ScorerNetwork = {},
 ): ChosenScorer {
-  const model = resolveModel(values, env);
+  const model = resolveModel(values, env, network);
   if (!model) return { summary: () => undefined };
   const root = toPosix(path.resolve(target));
   const reader = new FsReader(root);

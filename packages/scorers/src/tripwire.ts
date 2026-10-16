@@ -24,9 +24,15 @@ export interface Tripwire {
   attempts(): readonly string[];
   /** Puts the original functions back. */
   uninstall(): void;
+  /**
+   * The fetch from before the tripwire, for the process's one door out: a
+   * Net (createNet), which enforces its own allowlist and offline mode.
+   */
+  readonly passthrough: typeof fetch;
 }
 
 export function installTripwire(): Tripwire {
+  const passthrough = globalThis.fetch;
   const seen: string[] = [];
   const restores: (() => void)[] = [];
   const refuse = (name: string) => {
@@ -78,6 +84,7 @@ export function installTripwire(): Tripwire {
   // Named imports of built-in modules see the replacements too.
   syncBuiltinESMExports();
   return {
+    passthrough,
     attempts: () => [...seen],
     uninstall: () => {
       for (const restore of restores.reverse()) restore();

@@ -60,11 +60,20 @@ export interface ResolvedModel {
   readonly consent: boolean;
 }
 
+/** Where a scorer's requests may go: offline mode, and the fetch underneath (the CLI's, from before its tripwire). */
+export interface ScorerNetwork {
+  readonly offline?: boolean;
+  readonly fetch?: typeof fetch;
+}
+
 /** The model backend the options ask for, or undefined for the heuristic. Throws ScorerUsageError on bad options. */
 export function resolveModel(
   values: ScorerValues,
   env: NodeJS.ProcessEnv = process.env,
+  network: ScorerNetwork = {},
 ): ResolvedModel | undefined {
+  const offline = network.offline === true;
+  const fetchOpt = network.fetch ? { fetch: network.fetch } : {};
   const kind = values.scorer;
   if (kind === "heuristic") {
     if (
@@ -104,11 +113,22 @@ export function resolveModel(
     return {
       backend: ollamaBackend({
         model: values.model,
-        net: createNet({ offline: false, allow: [OLLAMA_ORIGIN] }),
+        // A model on this machine keeps working offline: nothing leaves it.
+        net: createNet({
+          offline,
+          allow: [OLLAMA_ORIGIN],
+          offlineAllow: [OLLAMA_ORIGIN],
+          ...fetchOpt,
+        }),
       }),
       maxPairs,
       consent: values["consent-send"],
     };
+  }
+  if (offline) {
+    throw new ScorerUsageError(
+      `--offline: --scorer llm would send to ${ANTHROPIC_ORIGIN}; drop --offline, or use --scorer local (a model on this machine)`,
+    );
   }
   const apiKey = env.ANTHROPIC_API_KEY;
   if (apiKey === undefined || apiKey === "") {
@@ -132,7 +152,7 @@ export function resolveModel(
     backend: anthropicBackend({
       apiKey,
       model: values.model ?? DEFAULT_LLM_MODEL,
-      net: createNet({ offline: false, allow: [ANTHROPIC_ORIGIN] }),
+      net: createNet({ offline, allow: [ANTHROPIC_ORIGIN], ...fetchOpt }),
     }),
     spend: new SpendCap(maxSpend, {
       inputPerMTok: priceIn,

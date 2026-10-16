@@ -8,6 +8,7 @@ import {
   GIT_HARDENING,
   GitError,
   changedSince,
+  defaultRunner,
   readHeadCommit,
 } from "./git.js";
 import { FsReader } from "./reader.js";
@@ -139,5 +140,23 @@ describe("changedSince (--since)", () => {
     expect(() => changedSince(dir, "--output=/tmp/x")).toThrow(GitError);
     expect(spy).not.toHaveBeenCalled();
     spy.mockRestore();
+  });
+});
+
+describe("defaultRunner", () => {
+  it("does not hand keys in Epoch's environment to git", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-git-env-"));
+    dirs.push(dir);
+    const saved = process.env.ANTHROPIC_API_KEY;
+    process.env.ANTHROPIC_API_KEY = "sk-must-not-reach-git";
+    try {
+      // A shell alias that prints git's own environment.
+      const env = defaultRunner(["-c", "alias.showenv=!env", "showenv"], dir);
+      expect(env).toContain("GIT_TERMINAL_PROMPT=0");
+      expect(env).not.toContain("sk-must-not-reach-git");
+    } finally {
+      if (saved === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = saved;
+    }
   });
 });

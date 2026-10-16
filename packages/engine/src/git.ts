@@ -1,4 +1,5 @@
 import childProcess from "node:child_process";
+import { withoutSecrets } from "@epoch-dev/core";
 import type { FsReader } from "./reader.js";
 
 const OBJECT_ID = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
@@ -80,8 +81,9 @@ export const defaultRunner: GitRunner = (args, cwd) => {
       stdio: ["ignore", "pipe", "pipe"],
       maxBuffer: 256 * 1024 * 1024,
       timeout: 60_000,
+      // No keys from Epoch's own environment (core's withoutSecrets).
       env: {
-        ...process.env,
+        ...withoutSecrets(process.env),
         GIT_OPTIONAL_LOCKS: "0",
         GIT_TERMINAL_PROMPT: "0",
       },

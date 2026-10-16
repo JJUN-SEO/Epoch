@@ -27,6 +27,8 @@ import {
   SCORER_ARGS,
   ScorerUsageError,
   type ScorerValues,
+  installTripwire,
+  type ScorerNetwork,
 } from "@epoch-dev/scorers";
 import { formatFindings } from "./findings.js";
 import { chooseScorer } from "./scorer.js";
@@ -38,6 +40,11 @@ export interface CliIo {
   readonly stderr: { write(chunk: string): unknown; isTTY?: boolean };
 }
 
+/** The io of one run, and where its scorer's requests may go (--offline). */
+interface RunIo extends CliIo {
+  readonly network: ScorerNetwork;
+}
+
 export const EXIT_OK = 0;
 export const EXIT_ERROR = 1;
 /** `epoch findings --fail-on`: findings at or above the level remain. */
@@ -46,6 +53,7 @@ export const EXIT_FINDINGS = 2;
 const MIB = 1024 * 1024;
 
 export const USAGE = `Usage:
+  epoch [--offline] <command> ...
   epoch analyze <path> [--json] [--since <commit>] [--coverage <file>]
                        [hint options]
   epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>]
@@ -62,6 +70,8 @@ Commands:
   cache prune      Evict least-recently-used entries down to --max-size
 
 Options:
+  --offline          Turn the network off for this run; a model on this
+                     machine (--scorer local) still works
   --json             Print the canonical graph as JSON on stdout
   --since <commit>   Also re-read files changed between <commit> and HEAD
   --coverage <file>  Use this lcov or Cobertura report (default: look for
@@ -196,7 +206,7 @@ function hintsOf(
     "embedding-model"?: string | undefined;
   },
   target: string,
-  io: CliIo,
+  io: RunIo,
 ): {
   options: Pick<AnalyzeOptions, "hints">;
   summary: () => string | undefined;
@@ -229,7 +239,13 @@ function hintsOf(
     };
   }
   const embedder = embedderOf(values["embedding-model"]);
-  const chosen = chooseScorer(values, target, io.stderr);
+  const chosen = chooseScorer(
+    values,
+    target,
+    io.stderr,
+    process.env,
+    io.network,
+  );
   return {
     options: {
       hints: {
@@ -281,7 +297,7 @@ async function analyzeWithCache(
 
 async function analyzeCommand(
   args: readonly string[],
-  io: CliIo,
+  io: RunIo,
 ): Promise<number> {
   const { values, positionals } = parseArgs({
     args: [...args],
@@ -333,7 +349,7 @@ function level(
 
 async function findingsCommand(
   args: readonly string[],
-  io: CliIo,
+  io: RunIo,
 ): Promise<number> {
   const { values, positionals } = parseArgs({
     args: [...args],
@@ -468,14 +484,23 @@ function cacheCommand(args: readonly string[], io: CliIo): number {
  * with --json, stdout holds nothing but the graph.
  */
 export async function run(argv: readonly string[], io: CliIo): Promise<number> {
-  const [command, ...rest] = argv;
+  // --offline goes before or after the command. It turns the network off in
+  // this process (the tripwire), and keeps only a model on this machine,
+  // through the fetch from before the tripwire.
+  const offline = argv.includes("--offline");
+  const [command, ...rest] = argv.filter((a) => a !== "--offline");
+  const wire = offline ? installTripwire() : undefined;
+  const network: ScorerNetwork = wire
+    ? { offline, fetch: wire.passthrough }
+    : {};
+  const runIo: RunIo = { ...io, network };
   try {
     if (command === "-h" || command === "--help" || command === "help") {
       io.stdout.write(USAGE);
       return EXIT_OK;
     }
-    if (command === "analyze") return await analyzeCommand(rest, io);
-    if (command === "findings") return await findingsCommand(rest, io);
+    if (command === "analyze") return await analyzeCommand(rest, runIo);
+    if (command === "findings") return await findingsCommand(rest, runIo);
     if (command === "cache") return cacheCommand(rest, io);
     throw new UsageError(
       command === undefined ? "missing command" : `unknown command: ${command}`,
@@ -490,5 +515,7 @@ export async function run(argv: readonly string[], io: CliIo): Promise<number> {
     io.stderr.write(`epoch: ${message}\n`);
     if (isUsageError(err)) io.stderr.write(`\n${USAGE}`);
     return EXIT_ERROR;
+  } finally {
+    wire?.uninstall();
   }
 }

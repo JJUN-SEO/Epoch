@@ -176,6 +176,43 @@ describe("epoch analyze (human summary)", () => {
   });
 });
 
+describe("epoch --offline", () => {
+  it.each([
+    [["--offline", "analyze", monorepo, "--json"]],
+    [["analyze", monorepo, "--json", "--offline"]],
+  ])(
+    "analyzes with %j, network off in the process, then puts it back",
+    async (argv) => {
+      const net = await import("node:net");
+      const connect = net.connect;
+      const r = await cli(...argv);
+      expect(r.code).toBe(EXIT_OK);
+      expect(() => Graph.parse(JSON.parse(r.stdout))).not.toThrow();
+      // The tripwire is gone after the run.
+      expect(net.connect).toBe(connect);
+    },
+  );
+
+  it("refuses a remote scorer before anything is read or sent", async () => {
+    const r = await cli(
+      "--offline",
+      "analyze",
+      monorepo,
+      "--scorer",
+      "llm",
+      "--max-spend",
+      "1",
+      "--price-in",
+      "1",
+      "--price-out",
+      "5",
+    );
+    expect(r.code).toBe(EXIT_ERROR);
+    expect(r.stderr).toContain("--offline");
+    expect(r.stderr).toContain("api.anthropic.com");
+  });
+});
+
 describe("epoch errors", () => {
   it.each([
     [[], "missing command"],

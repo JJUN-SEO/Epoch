@@ -88,6 +88,8 @@ describe("installTripwire", () => {
     const connect = net.connect;
     wire = installTripwire();
     expect(globalThis.fetch).not.toBe(before);
+    // The one door out still has the real fetch underneath.
+    expect(wire.passthrough).toBe(before);
     wire.uninstall();
     wire = undefined;
     expect(globalThis.fetch).toBe(before);
