@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CandidatePair } from "@epoch-dev/core";
 import { ANTHROPIC_ORIGIN, anthropicBackend } from "./anthropic.js";
 import { SpendCap } from "./cost.js";
@@ -280,6 +280,67 @@ describe("anthropicBackend (the SDK against a fake fetch)", () => {
     await expect(badKey.judge({ system: "s", user: "u" })).rejects.toThrow(
       BackendFatal,
     );
+  });
+
+  it("takes nothing from the environment: no other credential, header, host or request log", async () => {
+    // The SDK reads these when it is not told otherwise. A bearer token or
+    // extra headers would go out with the user's key, another host would
+    // receive it, and debug logging prints request bodies (source code).
+    const env = {
+      ANTHROPIC_AUTH_TOKEN: "env-token",
+      ANTHROPIC_CUSTOM_HEADERS: "X-Injected: yes",
+      ANTHROPIC_BASE_URL: "https://elsewhere.example",
+      ANTHROPIC_LOG: "debug",
+    };
+    const saved = Object.fromEntries(
+      Object.keys(env).map((k) => [k, process.env[k]]),
+    );
+    Object.assign(process.env, env);
+    const logged: unknown[] = [];
+    const spies = (["log", "info", "debug", "warn", "error"] as const).map(
+      (level) =>
+        vi.spyOn(console, level).mockImplementation((...args: unknown[]) => {
+          logged.push(args);
+        }),
+    );
+    try {
+      const seen: { url: string; headers: Headers }[] = [];
+      const backend = anthropicBackend({
+        apiKey: "test-key",
+        model: "claude-haiku-5-5",
+        net: createNet({
+          offline: false,
+          allow: [ANTHROPIC_ORIGIN],
+          fetch: (input, init) => {
+            seen.push({
+              url:
+                input instanceof Request
+                  ? input.url
+                  : input instanceof URL
+                    ? input.href
+                    : input,
+              headers: new Headers(init?.headers),
+            });
+            return Promise.resolve(message("end_turn"));
+          },
+        }),
+      });
+      await backend.judge({ system: "s", user: "u" });
+      expect(seen).toHaveLength(1);
+      expect(seen[0]?.url).toBe(`${ANTHROPIC_ORIGIN}/v1/messages`);
+      expect(seen[0]?.headers.get("x-api-key")).toBe("test-key");
+      expect(seen[0]?.headers.get("authorization")).toBeNull();
+      expect(seen[0]?.headers.get("x-injected")).toBeNull();
+      expect(logged).toEqual([]);
+      // The environment is left as it was.
+      expect(process.env.ANTHROPIC_CUSTOM_HEADERS).toBe("X-Injected: yes");
+    } finally {
+      for (const spy of spies) spy.mockRestore();
+      for (const [k, v] of Object.entries(saved)) {
+        if (v === undefined) Reflect.deleteProperty(process.env, k);
+        else process.env[k] = v;
+      }
+    }
   });
 
   it("sends nothing when offline", async () => {

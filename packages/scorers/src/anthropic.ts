@@ -13,8 +13,9 @@ import { NetworkBlockedError, type Net } from "./net.js";
  * (@anthropic-ai/sdk 0.129.0), with structured outputs
  * (`messages.parse` + `output_config.format`) and low effort for a short
  * judgment. The user's own key goes only to api.anthropic.com: the base URL
- * is fixed (not read from ANTHROPIC_BASE_URL), and every request goes
- * through Epoch's network module, the SDK's `fetch`. The default model is
+ * is fixed (not read from ANTHROPIC_BASE_URL), nothing else is taken from
+ * the environment (anthropicClient), and every request goes through Epoch's
+ * network module, the SDK's `fetch`. The default model is
  * the current small Claude model (CLAUDE.md: "a small cheap Claude model");
  * --model picks another.
  */
@@ -26,18 +27,53 @@ const blocked = (err: unknown): boolean =>
   err instanceof NetworkBlockedError ||
   (err instanceof Error && err.cause instanceof NetworkBlockedError);
 
+/** Silences the SDK's logger; its debug level would print request bodies. */
+const silent = {
+  debug: () => undefined,
+  info: () => undefined,
+  warn: () => undefined,
+  error: () => undefined,
+};
+
+/**
+ * An SDK client that takes nothing from the environment (SDK 0.129.0,
+ * client.js): only the given key (`authToken: null`, or it would also send
+ * ANTHROPIC_AUTH_TOKEN as a bearer token), the fixed host, no logging
+ * (ANTHROPIC_LOG=debug would print request bodies, which hold source code),
+ * and none of ANTHROPIC_CUSTOM_HEADERS, which the constructor always reads:
+ * it is set aside while the client is made (synchronously) and put back.
+ */
+export function anthropicClient(opts: {
+  readonly apiKey: string;
+  readonly net: Net;
+  readonly maxRetries?: number;
+  readonly timeoutMs?: number;
+}): Anthropic {
+  const headers = process.env.ANTHROPIC_CUSTOM_HEADERS;
+  Reflect.deleteProperty(process.env, "ANTHROPIC_CUSTOM_HEADERS");
+  try {
+    return new Anthropic({
+      apiKey: opts.apiKey,
+      authToken: null,
+      baseURL: ANTHROPIC_ORIGIN,
+      fetch: opts.net.fetch,
+      maxRetries: opts.maxRetries ?? 2,
+      ...(opts.timeoutMs === undefined ? {} : { timeout: opts.timeoutMs }),
+      logLevel: "off",
+      logger: silent,
+    });
+  } finally {
+    if (headers !== undefined) process.env.ANTHROPIC_CUSTOM_HEADERS = headers;
+  }
+}
+
 export function anthropicBackend(opts: {
   readonly apiKey: string;
   readonly model: string;
   readonly net: Net;
   readonly maxOutputTokens?: number;
 }): ModelBackend {
-  const client = new Anthropic({
-    apiKey: opts.apiKey,
-    baseURL: ANTHROPIC_ORIGIN,
-    fetch: opts.net.fetch,
-    maxRetries: 2,
-  });
+  const client = anthropicClient({ apiKey: opts.apiKey, net: opts.net });
   const maxOutputTokens = opts.maxOutputTokens ?? 2048;
   return {
     id: `llm:${opts.model}`,
