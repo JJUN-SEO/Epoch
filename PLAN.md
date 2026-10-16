@@ -279,7 +279,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 
 **Pitfalls:** pickaxe/blame cost on large histories (scope to files containing the flag; measure); mass-reformat commits make everything look recently touched (honor the blame ignore file); monorepo packages with several manifests; files used only by non-code (Dockerfile, templates, CI scripts) will look unreachable (the caveat text says so); renamed or moved files losing history.
 
-**Gate:** I review `docs/benchmarks/findings.md` and the review sheet results.
+**Gate:** I review `docs/benchmarks/findings.md` and the review sheet results. (Passed 2026-10-16: I accepted Claude's review and the tuned rubric; see ADR-007.)
 
 ---
 
