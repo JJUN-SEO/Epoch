@@ -85,12 +85,32 @@ export interface GitHistoryProvider {
   lastTouchedFile(file: string): Promise<Date | null>;
 }
 
-/** A candidate relation produced before scoring; never all pairs (M6). */
+/** What the generators found for a pair (ADR-008). Absent signals were not found. */
+export interface HintSignals {
+  /** Commits in the window (after the size cutoff) that changed both files, and each file. */
+  readonly cochange?: {
+    readonly together: number;
+    readonly sourceCommits: number;
+    readonly targetCommits: number;
+  };
+  /** Rare key-like strings both files use (rarest first, at most 10) and their summed rarity. */
+  readonly strings?: {
+    readonly shared: readonly string[];
+    readonly weight: number;
+  };
+  /** Cosine similarity of the two files' embeddings. */
+  readonly embedding?: { readonly cosine: number };
+}
+
+/**
+ * A candidate relation produced before scoring; never all pairs (M6).
+ * Directed: `source` likely changes when `target` changes, so a score is a
+ * probability of that, and blast radius's reverse walk reads it as is.
+ */
 export interface CandidatePair {
   readonly source: string;
   readonly target: string;
-  /** Which generators proposed it, e.g. "cochange", "embedding". */
-  readonly signals: readonly string[];
+  readonly signals: HintSignals;
 }
 
 export interface ScoredRelation {

@@ -130,6 +130,13 @@ describe("blastRadius", () => {
     ).toThrow("threshold");
   });
 
+  it("reads a hint a>b as 'a changes when b changes': a is in b's likely radius, not the reverse", () => {
+    const g = graph("a>b shared-string@0.6");
+    const likely = { ...certain, mode: "likely" as const, hintThreshold: 0.5 };
+    expect(affected(blastRadius(g, "b", likely))).toEqual(["a@1"]);
+    expect(affected(blastRadius(g, "a", likely))).toEqual([]);
+  });
+
   it("groups the affected nodes by directory, language and kind", () => {
     const g = graph(
       "src/a.ts>lib/z.ts",

@@ -13,6 +13,7 @@ export * from "./languages.js";
 export * from "./risk.js";
 export * from "./glob.js";
 export * from "./strings.js";
+export * from "./hints/index.js";
 export * from "./findings.js";
 export * from "./graph/reachability.js";
 export * from "./graph/blast-radius.js";
