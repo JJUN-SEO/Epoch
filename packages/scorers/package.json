@@ -13,6 +13,10 @@
     "./heuristic": {
       "types": "./dist/heuristic.d.ts",
       "default": "./dist/heuristic.js"
+    },
+    "./tripwire": {
+      "types": "./dist/tripwire.d.ts",
+      "default": "./dist/tripwire.js"
     }
   },
   "scripts": {

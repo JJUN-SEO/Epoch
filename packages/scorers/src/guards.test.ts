@@ -43,6 +43,82 @@ describe("createNet", () => {
     expect(called).toBe(0);
     expect(net.sent()).toEqual([]);
   });
+
+  it("reads offline mode at each request, so turning it on takes effect at once", async () => {
+    let offline = false;
+    const net = createNet({
+      offline: () => offline,
+      allow: ["https://api.anthropic.com"],
+      fetch: ok,
+    });
+    await net.fetch("https://api.anthropic.com/v1/messages");
+    offline = true;
+    await expect(
+      net.fetch("https://api.anthropic.com/v1/messages"),
+    ).rejects.toThrow("offline");
+    expect(net.sent()).toEqual(["https://api.anthropic.com/v1/messages"]);
+  });
+
+  it("lets offline mode keep a model on this machine, and only one on this machine", async () => {
+    const net = createNet({
+      offline: true,
+      allow: ["http://127.0.0.1:11434", "https://api.anthropic.com"],
+      offlineAllow: ["http://127.0.0.1:11434"],
+      fetch: ok,
+    });
+    await net.fetch("http://127.0.0.1:11434/api/chat");
+    await expect(
+      net.fetch("https://api.anthropic.com/v1/messages"),
+    ).rejects.toThrow("offline");
+    expect(() =>
+      createNet({
+        offline: true,
+        allow: ["https://api.anthropic.com"],
+        offlineAllow: ["https://api.anthropic.com"],
+        fetch: ok,
+      }),
+    ).toThrow("not on this machine");
+  });
+
+  it("aborts the requests in flight on demand", async () => {
+    let signal: AbortSignal | undefined;
+    const net = createNet({
+      offline: false,
+      allow: ["https://api.anthropic.com"],
+      fetch: (_input, init) => {
+        signal = init?.signal ?? undefined;
+        return new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+        });
+      },
+    });
+    const pending = net.fetch("https://api.anthropic.com/v1/messages");
+    expect(signal?.aborted).toBe(false);
+    net.abortInFlight();
+    await expect(pending).rejects.toThrow("aborted");
+    expect(signal?.aborted).toBe(true);
+  });
+
+  it("keeps the caller's own abort signal working", async () => {
+    const controller = new AbortController();
+    const net = createNet({
+      offline: false,
+      allow: ["https://api.anthropic.com"],
+      fetch: (_input, init) =>
+        new Promise((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("caller", "AbortError"));
+          });
+        }),
+    });
+    const pending = net.fetch("https://api.anthropic.com/v1/messages", {
+      signal: controller.signal,
+    });
+    controller.abort();
+    await expect(pending).rejects.toThrow("caller");
+  });
 });
 
 describe("isSecretPath", () => {

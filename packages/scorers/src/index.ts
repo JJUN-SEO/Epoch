@@ -2,6 +2,7 @@ export * from "./heuristic.js";
 export * from "./model.js";
 export * from "./cost.js";
 export * from "./net.js";
+export * from "./tripwire.js";
 export * from "./secrets.js";
 export * from "./ollama.js";
 export * from "./anthropic.js";

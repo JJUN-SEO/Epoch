@@ -120,6 +120,20 @@ export default defineConfig(
     },
   },
   {
+    // The tripwire replaces the network functions of a process that must
+    // never use the network, so it names them; and its test makes real
+    // attempts that the tripwire must refuse.
+    files: [
+      "packages/scorers/src/tripwire.ts",
+      "packages/scorers/src/tripwire.test.ts",
+    ],
+    rules: {
+      "no-restricted-imports": "off",
+      "no-restricted-globals": "off",
+      "no-restricted-properties": "off",
+    },
+  },
+  {
     // The renderer shows strings from untrusted repositories (file names,
     // flag names, evidence): render them as text, never as HTML (CLAUDE.md
     // "Electron security"). It also never imports Node or Electron modules.
