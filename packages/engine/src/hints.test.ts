@@ -79,9 +79,22 @@ describe("the Enrich stage", () => {
     // Bulk: above the size cutoff, like the initial commit.
     touch(dir, ["src/a.ts", "src/b.ts", "src/c.ts", "src/core.ts"], 10);
 
+    let seen: readonly string[] = [];
     const { graph, meta } = await analyze(dir, {
-      hints: { cochange: { maxFiles: 3 } },
+      hints: {
+        cochange: { maxFiles: 3 },
+        onCandidates: ({ candidates }) => {
+          seen = candidates.map((c) => `${c.source}>${c.target}`);
+        },
+      },
     });
+    // Every candidate, the fact-covered one too, before scoring.
+    expect(seen).toEqual([
+      "src/a.ts>src/b.ts",
+      "src/a.ts>src/core.ts",
+      "src/b.ts>src/a.ts",
+      "src/core.ts>src/a.ts",
+    ]);
     // a imports core: the hint a>core adds nothing; core>a (core changes
     // when a does) is a new relation.
     expect(hints(graph)).toEqual([

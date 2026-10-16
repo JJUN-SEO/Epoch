@@ -2,10 +2,10 @@
  * @epoch-dev/engine
  *
  * Runs the analysis pipeline: Discover, Parse, Extract (in-process or in a
- * worker pool), Resolve, Graph and Score, with the SQLite CacheStore, git
- * churn, coverage reports and the file watcher; the history provider, config
- * loader and dismissals store arrive in M5. Side effects live here
- * (CLAUDE.md, "Repo layout").
+ * worker pool), Resolve, Graph, Enrich, Score and Findings, with the SQLite
+ * CacheStore, git churn and co-change, coverage reports, the history
+ * provider, the config loader, the dismissals store and the file watcher.
+ * Side effects live here (CLAUDE.md, "Repo layout").
  */
 export * from "./analyze.js";
 export * from "./config.js";
@@ -19,6 +19,8 @@ export * from "./cache/index.js";
 export * from "./git.js";
 export * from "./changes.js";
 export * from "./churn.js";
+export * from "./cochange.js";
+export * from "./hints.js";
 export * from "./coverage.js";
 export * from "./score.js";
 export * from "./watch.js";

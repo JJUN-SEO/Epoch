@@ -1,7 +1,7 @@
 /*
- * Hint defaults (ADR-008). Provisional until `pnpm bench:scorers` measures
- * them; the threshold is the UI's default for likely mode and the finding
- * cap's line.
+ * Hint defaults (ADR-008): set before the first `pnpm bench:scorers` run and
+ * kept as they were; docs/benchmarks/scorers.md measures them. The threshold
+ * is the UI's default for likely mode and the strong-hint finding cap's line.
  */
 export const HINT_DEFAULTS = {
   /** Scores below this make no hint edge. */

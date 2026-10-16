@@ -38,6 +38,14 @@ export interface HintOptions {
   readonly strings?: false | { readonly maxFiles?: number };
   readonly floor?: number;
   readonly perNode?: number;
+  /**
+   * Called with every merged candidate before scoring, and the file-to-node
+   * map they use (benchmarks: bench:scorers labels them with later history).
+   */
+  readonly onCandidates?: (info: {
+    readonly candidates: readonly CandidatePair[];
+    readonly nodeOf: ReadonlyMap<string, string>;
+  }) => void;
   /** The scorer whose edges go into the graph; the heuristic by default. */
   readonly scorer?: {
     readonly id: string;
@@ -128,6 +136,7 @@ export async function enrich(
   }
 
   const merged = mergeCandidates(...candidates);
+  opts.onCandidates?.({ candidates: merged, nodeOf: input.nodeOf });
   const scorer = opts.scorer ?? {
     id: "heuristic",
     scorer: new HeuristicScorer(),

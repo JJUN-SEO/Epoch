@@ -27,6 +27,7 @@
     "@epoch-dev/adapter-typescript": "workspace:*",
     "@epoch-dev/core": "workspace:*",
     "@epoch-dev/engine": "workspace:*",
+    "@epoch-dev/scorers": "workspace:*",
     "dependency-cruiser": "18.5.0",
     "typescript": "catalog:"
   }

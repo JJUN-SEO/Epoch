@@ -219,6 +219,9 @@ importers:
       '@epoch-dev/engine':
         specifier: workspace:*
         version: link:../engine
+      '@epoch-dev/scorers':
+        specifier: workspace:*
+        version: link:../scorers
       dependency-cruiser:
         specifier: 18.5.0
         version: 18.5.0

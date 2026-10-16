@@ -290,13 +290,13 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** RelationScorer, Edge traversal policy, Blast radius, Confidence rubric (hint cap).
 
 **Tasks**
-- [ ] **Co-change hints** from commit file-sets: skip merge commits and very large commits (configurable cutoff); compute support and conditional confidence P(B|A); minimum-support threshold; evidence like "changed together in 42 of 51 commits".
-- [ ] **Shared-string hints:** extract literals that look like event names, routes, topics, and config keys; inverted index weighted by rarity so common strings don't link everything.
+- [x] **Co-change hints** from commit file-sets: skip merge commits and very large commits (configurable cutoff); compute support and conditional confidence P(B|A); minimum-support threshold; evidence like "changed together in 42 of 51 commits".
+- [x] **Shared-string hints:** extract literals that look like event names, routes, topics, and config keys; inverted index weighted by rarity so common strings don't link everything.
 - [ ] **Local embeddings** via ONNX/transformers.js for candidate generation (nearest neighbors, never all-pairs), cached by content hash. ADR-008: model choice (size, quality, license, CPU speed, measured) and the default hint threshold for "likely" mode.
 - [ ] **`RelationScorer` implementations:** `HeuristicScorer` (baseline, offline default), `LocalScorer`, `JevScorer`, `LlmScorer`. For Jev read its current docs (docs.typesafe.ai); it needs the user's own key. Without access, keep the stub and mark results "not run".
-- [ ] **Finding caps from hints:** in the `findings` rubric, a candidate with a hint edge to a reachable file at or above the default threshold is capped at Medium and lists the hint in caveats.
-- [ ] **Evaluation `pnpm bench:scorers`:** temporal holdout. Use history up to time T to propose hint edges, then check whether the linked files co-change after T. Precision/recall at thresholds and calibration (reliability diagram, ECE) per scorer, method and limits documented in `docs/benchmarks/scorers.md`.
-- [ ] **UI:** hint-edge toggle, confidence slider, evidence on hover; blast radius "likely" mode uses the slider.
+- [x] **Finding caps from hints:** in the `findings` rubric, a candidate with a hint edge to a reachable file at or above the default threshold is capped at Medium and lists the hint in caveats.
+- [x] **Evaluation `pnpm bench:scorers`:** temporal holdout. Use history up to time T to propose hint edges, then check whether the linked files co-change after T. Precision/recall at thresholds and calibration (reliability diagram, ECE) per scorer, method and limits documented in `docs/benchmarks/scorers.md`.
+- [x] **UI:** hint-edge toggle, confidence slider, evidence on hover; blast radius "likely" mode uses the slider.
 
 **Acceptance:** the harness produces a report; `HeuristicScorer` is the baseline for all others; no hint edge is emitted without evidence; scorers never change fact edges or findings except through the documented cap (test both); the hint-cap fixture passes.
 
