@@ -250,9 +250,16 @@ export function planSummary(
     const children: { subject: string; kind: "file" | "folder" }[] = [];
     for (const id of files.sort(compareCodeUnits)) {
       const kind = src.graph.nodes.find((n) => n.id === id)?.kind;
-      if (kind === "file" && "reason" in readSendable(src, id)) {
-        excluded.push(id);
-        continue;
+      if (kind === "file") {
+        // A secret is left out and listed; a file with nothing to send
+        // (empty, like many __init__.py, or unreadable) never gets a summary
+        // to wait for.
+        const read = readSendable(src, id);
+        if ("reason" in read) {
+          if (read.reason === "secret") excluded.push(id);
+          continue;
+        }
+        if (read.text.trim() === "") continue;
       }
       children.push({ subject: id, kind: "file" });
     }

@@ -33,6 +33,8 @@ const FILES: Record<string, string> = {
   "src/server.ts":
     'import { readConfig } from "./config";\nexport function startServer() {\n  const config = readConfig();\n  return config.port;\n}\n',
   "src/secrets.ts": 'export const vault = "named like a secret";\n',
+  // Nothing to summarize, like an empty Python __init__.py.
+  "src/blank.ts": "\n",
   "src/key.ts":
     "export const pem = `-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBg\n-----END PRIVATE KEY-----`;\n",
   "go.mod": "module example.com/m\n\ngo 1.22\n",
@@ -228,6 +230,12 @@ describe("planSummary and storeSummary", () => {
     // Secret files are not children it waits for, and never in the prompt.
     expect(plan.prompt.user).not.toContain("src/secrets.ts");
     expect(plan.excluded).toEqual(["src/key.ts", "src/secrets.ts"]);
+    // Nor is a file with nothing to summarize, which never gets a summary.
+    expect(planSummary(src, store, "src/blank.ts", HAIKU)).toMatchObject({
+      ok: false,
+      reason: "empty",
+    });
+    expect(plan.prompt.user).not.toContain("src/blank.ts");
     summarize("dir:src", "The server and its settings.");
     expect(ok(planSummary(src, store, "dir:src", HAIKU)).status.state).toBe(
       "fresh",
