@@ -1,6 +1,6 @@
 # ADR-017: JevScorer, TypeSafe AI's Jev over its HTTP API
 
-- **Status:** Accepted (built 2026-10-17; measured: see "Measured" below)
+- **Status:** Accepted (built and measured 2026-10-17)
 - **Date:** 2026-10-17
 - **Milestone:** M6 (ADR-008 item 8 left Jev a stub because its docs could not be read)
 
@@ -56,7 +56,35 @@ The legal documents it links (typesafe.ai/legal/data-processing, /privacy-policy
 
 ## Measured
 
-Filled from `pnpm bench:scorers ... --scorer jev` (docs/benchmarks/scorers.md); see the next section.
+`pnpm bench:scorers <zod> <vitest> <flask> <cli> --embedding-model models/all-minilm-l6-v2 --scorer jev --consent-send --max-pairs 1000 --max-spend 0.9 --price-in 0.042 --price-out 0`, on 2026-10-17, at the pinned commits of [docs/benchmarks/scorers.md](../benchmarks/scorers.md) (ADR-008's temporal holdout, unchanged: every heuristic number in the report is the same as before). Jev scored each repository's 1,000 T candidates the heuristic ranks likeliest; 1,508 of those 4,000 pairs could be judged (their target changed in the next 180 days), 50.1% of them positive. Every response named `jev-1.13.0`.
+
+| On the same 1,508 pairs | Brier | ECE   | ROC AUC |
+| ----------------------- | ----- | ----- | ------- |
+| Jev (`jev-1.13.0`)      | 0.196 | 0.121 | 0.800   |
+| Heuristic, fitted on T0 | 0.171 | 0.059 | 0.826   |
+
+| Threshold | Jev: at or above, precision, recall | Heuristic: at or above, precision, recall |
+| --------- | ----------------------------------- | ----------------------------------------- |
+| 0.5       | 519, 79.0%, 54.3%                   | 942, 66.7%, 83.2%                         |
+| 0.6       | 286, 93.4%, 35.4%                   | 562, 80.4%, 59.9%                         |
+| 0.7       | 61, 98.4%, 7.9%                     | 406, 86.7%, 46.6%                         |
+| 0.8       | 0                                   | 320, 93.8%, 39.7%                         |
+
+| Repository | Judged (positive) | Jev AUC | Heuristic AUC | Jev Brier | Heuristic Brier |
+| ---------- | ----------------- | ------- | ------------- | --------- | --------------- |
+| zod        | 365 (40.5%)       | 0.616   | 0.682         | 0.230     | 0.229           |
+| vitest     | 756 (74.1%)       | 0.744   | 0.823         | 0.220     | 0.145           |
+| Flask      | 40 (0.0%)         | –       | –             | 0.112     | 0.022           |
+| cli/cli    | 347 (13.5%)       | 0.865   | 0.659         | 0.116     | 0.186           |
+
+**Cost and speed.** 4,000 requests, all answered (54 further candidates were skipped because a file looks like a secret). 13,510,662 input and 375,442 output tokens, about 3,400 input tokens per pair; $0.5674 at the documented \$0.042 per million input tokens, computed from the usage each response reported (TypeSafe's bill is the authority). 126 ms per request on average, sequentially, with no 429 or 529 that exhausted the retries. A 5-pair smoke run on Flask before it cost $0.0005. The Enrich stage times in that report's last table include these requests (about 126 s per repository at T), so they are not comparable with the no-model timings in ADR-008.
+
+**What the numbers say.**
+
+- **Jev does not beat the baseline overall.** On the pairs it scored, it ranks slightly worse than the fitted heuristic (AUC 0.800 vs 0.826) and is less calibrated (ECE 0.121 vs 0.059). CLAUDE.md makes the heuristic the baseline every scorer must beat, so the heuristic stays the default.
+- **It is cautious at the top.** No pair scored 0.8 or more; at 0.6 its precision is higher than the heuristic's (93.4% vs 80.4%) at much lower recall (35.4% vs 59.9%). Its probabilities are compressed toward the middle on these pairs.
+- **It helps where history misleads.** On cli/cli, where past co-change predicts the future poorly (ADR-008), Jev ranks much better (AUC 0.865 vs 0.659) and has the lower Brier score. On zod and vitest it ranks worse. Combining Jev's probability with the heuristic's features, fitted on T0, is the obvious next experiment; it is not done here.
+- **Limits.** One window per repository, four repositories, and a non-random sample: the heuristic's top-ranked pairs, which favors the heuristic on its own ranking. Flask had no positive pair to judge. One model version, one phrasing of the question; the jaggedness page says wording matters.
 
 ## Consequences
 

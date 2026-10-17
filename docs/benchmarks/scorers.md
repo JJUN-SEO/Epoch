@@ -14,7 +14,7 @@ The heuristic has two coefficient sets: one for the candidates the app proposes 
 
 | Model                                                                                         | License    | ONNX file | Dimensions | Token limit | Pooling | Files embedded | CPU time per file |
 | --------------------------------------------------------------------------------------------- | ---------- | --------- | ---------- | ----------- | ------- | -------------- | ----------------- |
-| all-minilm-l6-v2@1110a243fdf4 (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) | apache-2.0 | 90.4 MB   | 384        | 256         | mean    | 6572           | 21.6 ms           |
+| all-minilm-l6-v2@1110a243fdf4 (https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2) | apache-2.0 | 90.4 MB   | 384        | 256         | mean    | 6572           | 18.0 ms           |
 
 Each file's text is its path and its first 2000 characters, run one at a time on the CPU (onnxruntime-node). Neighbors: the 10 nearest per file at cosine 0.5 or more.
 
@@ -79,11 +79,44 @@ Co-change and shared-string candidates only: whether the cosine improves the sco
 
 ## Model scorers
 
-| Scorer                 | Status                                                                                               |
-| ---------------------- | ---------------------------------------------------------------------------------------------------- |
-| Local model (Ollama)   | not run                                                                                              |
-| LLM (Claude, your key) | not run                                                                                              |
-| Jev                    | not built: Jev's docs (docs.typesafe.ai) could not be read, and its API is never written from memory |
+| Scorer                      | Status      |
+| --------------------------- | ----------- |
+| Local model (Ollama)        | not run     |
+| LLM (Claude, your key)      | not run     |
+| Jev (TypeSafe AI, your key) | run (below) |
+
+### jev:jev-1.13.0 on the pairs it scored
+
+| Scorer                        | Judged | Positive rate | Brier | ECE   | ROC AUC |
+| ----------------------------- | ------ | ------------- | ----- | ----- | ------- |
+| jev:jev-1.13.0                | 1508   | 50.1%         | 0.196 | 0.121 | 0.800   |
+| Heuristic, fitted, same pairs | 1508   | 50.1%         | 0.171 | 0.059 | 0.826   |
+
+Precision and recall by threshold, on the same pairs:
+
+| Threshold | jev:jev-1.13.0: at or above | Precision | Recall | Heuristic, fitted: at or above | Precision | Recall |
+| --------- | --------------------------- | --------- | ------ | ------------------------------ | --------- | ------ |
+| 0.20      | 1373                        | 54.8%     | 99.7%  | 1201                           | 60.2%     | 95.8%  |
+| 0.30      | 1190                        | 61.0%     | 96.2%  | 1200                           | 60.2%     | 95.6%  |
+| 0.40      | 847                         | 67.1%     | 75.2%  | 1130                           | 62.3%     | 93.2%  |
+| 0.50      | 519                         | 79.0%     | 54.3%  | 942                            | 66.7%     | 83.2%  |
+| 0.60      | 286                         | 93.4%     | 35.4%  | 562                            | 80.4%     | 59.9%  |
+| 0.70      | 61                          | 98.4%     | 7.9%   | 406                            | 86.7%     | 46.6%  |
+| 0.80      | 0                           | –         | 0.0%   | 320                            | 93.8%     | 39.7%  |
+| 0.90      | 0                           | –         | 0.0%   | 279                            | 97.5%     | 36.0%  |
+
+By repository:
+
+| Repository | Judged | Positive rate | jev:jev-1.13.0: ROC AUC | Heuristic: ROC AUC | jev:jev-1.13.0: Brier | Heuristic: Brier |
+| ---------- | ------ | ------------- | ----------------------- | ------------------ | --------------------- | ---------------- |
+| zod        | 365    | 40.5%         | 0.616                   | 0.682              | 0.230                 | 0.229            |
+| vitest     | 756    | 74.1%         | 0.744                   | 0.823              | 0.220                 | 0.145            |
+| flask-full | 40     | 0.0%          | –                       | –                  | 0.112                 | 0.022            |
+| cli-full   | 347    | 13.5%         | 0.865                   | 0.659              | 0.116                 | 0.186            |
+
+Answered by: jev-1.13.0 (the model id each response named).
+
+It scored at most 1000 pairs per repository, the heuristic's likeliest first, so these pairs are not a random sample. jev:jev-1.13.0 scorer: 4000 pairs scored of 4000 sent; 54 skipped (files that look like secrets); 48514 over --max-pairs; 126 ms per request on average; 13510662 input and 375442 output tokens; $0.5674 of your $0.90 cap at your prices.
 
 ## Heuristic with a model, fitted on T0, in detail
 
@@ -182,9 +215,9 @@ Co-change and shared-string candidates only: whether the cosine improves the sco
 
 | Repository | Files mapped | Hint edges | Nodes over the cap | Precision of drawn edges | Precision at 0.5+  | Enrich stage | Whole analysis |
 | ---------- | ------------ | ---------- | ------------------ | ------------------------ | ------------------ | ------------ | -------------- |
-| zod        | 400          | 207        | 11                 | 48.0% (204 judged)       | 61.0% (105 judged) | 10254 ms     | 14.5 s         |
-| vitest     | 2259         | 901        | 46                 | 58.7% (833 judged)       | 70.0% (506 judged) | 46159 ms     | 51.9 s         |
-| flask-full | 83           | 4          | 0                  | 0.0% (2 judged)          | 0.0% (1 judged)    | 2118 ms      | 2.6 s          |
-| cli-full   | 742          | 346        | 7                  | 18.8% (149 judged)       | 22.9% (105 judged) | 22150 ms     | 23.8 s         |
+| zod        | 400          | 207        | 11                 | 48.0% (204 judged)       | 61.0% (105 judged) | 134623 ms    | 138.4 s        |
+| vitest     | 2259         | 901        | 46                 | 58.7% (833 judged)       | 70.0% (506 judged) | 185617 ms    | 191.2 s        |
+| flask-full | 83           | 4          | 0                  | 0.0% (2 judged)          | 0.0% (1 judged)    | 127021 ms    | 127.4 s        |
+| cli-full   | 742          | 346        | 7                  | 18.8% (149 judged)       | 22.9% (105 judged) | 144793 ms    | 146.0 s        |
 
 Enrich stage time is the run without a cache: the co-change log is read from git and every file is embedded. With the cache, the commit sets of a HEAD are read once and a file is embedded once per content and model.

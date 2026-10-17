@@ -108,7 +108,7 @@ Every candidate, each with its cosine: 15,472 judged, 12,327 of them proposed by
 
 On the 3,145 candidates proposed without a model, the cosine raises ROC AUC from 0.724 to 0.763, at slightly worse calibration (ECE 0.080 vs 0.059, Brier 0.190 vs 0.188). Per repository, ROC AUC with the model is 0.768 (zod), 0.731 (vitest) and 0.560 (cli/cli); Flask had 51 judged candidates, none positive. The drawn edges (floor 0.2, at most 8 per node) were right at 0.5 or above 61.0% (zod), 70.0% (vitest) and 22.9% (cli/cli) of the time.
 
-The Local, Jev and LLM scorers were not run: the Local and LLM scorers need an Ollama server or the maintainer's key (`pnpm bench:scorers ... --scorer llm --consent-send --max-spend <USD> --price-in <USD> --price-out <USD>` adds their rows), and Jev is a stub (item 8).
+The Local and LLM scorers were not run: they need an Ollama server or the maintainer's Anthropic key (`pnpm bench:scorers ... --scorer llm --consent-send --max-spend <USD> --price-in <USD> --price-out <USD>` adds their rows). Jev was run on 2026-10-17 (ADR-017): on the 1,508 judged pairs among the heuristic's top 1,000 per repository, ROC AUC 0.800 against the fitted heuristic's 0.826 on the same pairs, Brier 0.196 against 0.171, ECE 0.121 against 0.059.
 
 ## What the numbers say
 
