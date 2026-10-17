@@ -21,7 +21,7 @@ Every API detail below comes from these pages. Nothing was taken from search sni
 - JavaScript SDK: https://docs.typesafe.ai/sdk/javascript.md
 - Index: https://docs.typesafe.ai/llms.txt
 
-The legal documents it links (typesafe.ai/legal/data-processing, /privacy-policy) are on typesafe.ai, which the build environment cannot reach, so they were not read.
+- Legal documents (read 2026-10-17): Data Processing Addendum, https://typesafe.ai/legal/data-processing (last updated 2026-04-24); Privacy Policy, https://typesafe.ai/legal/privacy-policy (last updated 2025-11-19); Master Customer Agreement, https://typesafe.ai/legal/mca (last updated 2026-09-23). Subprocessors are listed at https://trust.typesafe.ai/subprocessors, which was not read.
 
 ## What the docs say
 
@@ -30,7 +30,10 @@ The legal documents it links (typesafe.ai/legal/data-processing, /privacy-policy
 - **Request rules.** At most 32 MiB, UTF-8 JSON without a BOM, at most 64 nesting levels, finite numbers only. Context: 64k tokens per request and 32k per question, by default.
 - **Errors.** 400 (a broken rule; `max_tokens_exceeded` if over the context), 401 (missing or invalid key), 413, 415, 422 (validation), 429 (rate limit), 529 (overloaded). On 429 and 529, retry with exponential backoff; the SDKs follow `retry-after` when sent. Rate limits are per organization, in tokens and requests per second.
 - **Models and price.** `jev-1.14.0` (from 2026-10-14) and `jev-1.13.0`, both \$0.042 per million input tokens; "Output tokens are free." `jev-latest` points to `jev-1.13.0` and `jev-preview` to `jev-1.14.0`; aliases move, so the docs advise sending a versioned id once thresholds are tuned against it.
-- **Data handling.** "Jev is not trained on customer requests or responses." Zero data retention is offered to enterprise customers only; retention otherwise is governed by the Data Processing Agreement (not read, see above).
+- **Data handling.** "Jev is not trained on customer requests or responses" (models.md). The legal documents agree and say more:
+  - **Training:** the Privacy Policy says TypeSafe "will not train or fine tune any artificial intelligence or machine learning models on your prompts or other Input"; the MCA (section 4.1) says it will not put Customer Data in a training dataset "without Customer's prior consent".
+  - **Retention:** no fixed period. The DPA keeps personal data "for as long as necessary taking into account the purpose of the Processing" and the Privacy Policy "for as long as reasonably necessary to provide you with the Services". Zero data retention is offered to enterprise customers only.
+  - **Other use:** the MCA (section 4.1(c)) grants TypeSafe a perpetual right to use Customer Data, which includes the Input Epoch sends (file excerpts), to derive telemetry, monitor for fraud and abuse, and comply with law. Input goes to no third party other than TypeSafe's service providers (Privacy Policy).
 - **Known weaknesses.** Literal reading, numbers and counting, indirection, large state full of irrelevant detail, adversarial content in the state, Choice option order (it leans to the first option). Jev does not generate text.
 
 ## Decision
@@ -52,7 +55,7 @@ The legal documents it links (typesafe.ai/legal/data-processing, /privacy-policy
 
 7. **The key.** Read only from the environment, from `JEV_API_KEY` or the variable `--key-env` names (never from argv), or from the OS keychain through `epoch auth set jev` (ADR-009; the environment wins). It goes in the `Authorization` header to `https://api.typesafe.ai` and nowhere else. The desktop app does not offer Jev: it has no relation-scorer feature (ADR-016), so Settings → Keys still says Jev is not available there.
 
-8. **Privacy row.** CLAUDE.md's data-flow table already lists "Jev scorer: code snippets and context sent to TypeSafe AI, opt-in"; docs/privacy.md and the README now say it is built (CLI and benchmarks), what is sent, and what the docs say about training and retention.
+8. **Privacy row.** CLAUDE.md's data-flow table already lists "Jev scorer: code snippets and context sent to TypeSafe AI, opt-in"; docs/privacy.md and the README now say it is built (CLI and benchmarks), what is sent, and what TypeSafe's terms say about training and retention: no training on it, but no fixed retention period outside enterprise zero data retention.
 
 ## Measured
 
