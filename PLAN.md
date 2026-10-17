@@ -67,6 +67,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-014 | M6 | `FileFacts.strings`: key-like literals (event names, routes, topics, config keys) for shared-string hints; a CLAUDE.md contract change |
 | ADR-015 | M6.5 | Ordinal risk tiers replace the weighted risk score (`riskScore` removed, `dependents` and `risk` added); a CLAUDE.md contract change, evaluated by `pnpm bench:risk` |
 | ADR-016 | M7 | Model features in the app: model calls in main only, a network-free host, one egress, offline mode with a local-model exception, native consent, single-use approvals, spend holds, content-addressed summaries, `safeStorage` keys; a CLAUDE.md contract change |
+| ADR-017 | M6 | JevScorer: TypeSafe's HTTP API through the network module (no SDK), a pair as a Noul plus a Choice, pinned `jev-1.13.0`, user's prices, fixed error codes; measured by `pnpm bench:scorers --scorer jev` |
 
 ## Questions to ask me
 
