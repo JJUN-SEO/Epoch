@@ -11,6 +11,7 @@ import {
   type WebContents,
 } from "electron";
 import type { ProjectInfo } from "@epoch-dev/core";
+import { installTripwire } from "@epoch-dev/scorers/tripwire";
 import { EVENTS } from "../shared/channels";
 import { hardenSession, hardenWebContents, openExternally } from "./harden";
 import { HostClient } from "./host-client";
@@ -32,6 +33,14 @@ import { SpendLedger } from "./spend-ledger";
 import { SummaryService, type SenderLike } from "./summary-service";
 import { createProjectWindow } from "./window";
 import { isReachable, loadWindowState, saveWindowState } from "./window-state";
+
+// Main sends only through its egress, an Electron session (ADR-016): Node's
+// own sockets, DNS and fetch are never used here, so any attempt is refused.
+installTripwire({
+  onAttempt: (name) => {
+    console.error(`[epoch] main tried to use the network (${name}); refused`);
+  },
+});
 
 const REPOSITORY_URL = "https://github.com/JJUN-SEO/under-construction-";
 

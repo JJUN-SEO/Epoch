@@ -147,12 +147,15 @@ export default defineConfig(
   {
     // The tripwire replaces the network functions of a process that must
     // never use the network, so it names them; its test and the
-    // zero-network test's canary make real attempts it must refuse.
+    // zero-network test's canary make real attempts it must refuse. The
+    // offline e2e test runs a stand-in local model on loopback, in the test
+    // process, not the app.
     files: [
       "packages/scorers/src/tripwire.ts",
       "packages/scorers/src/tripwire.test.ts",
       "scripts/no-network.mjs",
       "scripts/no-network-canary.mjs",
+      "packages/app/e2e/offline.spec.ts",
     ],
     rules: {
       "no-restricted-imports": "off",
