@@ -529,8 +529,8 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                 </p>
               )}
               <p className="text-muted text-xs">
-                Derived data, always safe to delete: it is rebuilt from your
-                files. Summaries cost money to make again.
+                Derived data that Epoch rebuilds from your files. Summaries cost
+                money to make again.
               </p>
               <div className="flex justify-end gap-1.5">
                 {confirmClear ? (
