@@ -28,7 +28,13 @@ Worst case priced at $0.100 per million input tokens and $0.500 per million outp
 
 ## Measured
 
-**Not measured.** No run with `--send` has been made: it needs an Anthropic key in an environment variable (`ANTHROPIC_API_KEY`, or the one `--key-env` names), prices from Anthropic's pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.
+Sent to https://api.anthropic.com, model `claude-haiku-5-5`, one request at a time. Tokens and dollars are what the API reported, priced at $0.100 per million input tokens and $0.500 per million output tokens (Claude Haiku 5.5 for prompts up to 100,000 tokens, https://platform.claude.com/docs/en/about-claude/pricing, read 2026-10-17). Cap: $1.00.
+
+| Run                                         | Requests | Stored | Not stored (refusal, cut off, emptied) | Input tokens | Output tokens | Cost    | Time in requests | Stopped early |
+| ------------------------------------------- | -------- | ------ | -------------------------------------- | ------------ | ------------- | ------- | ---------------- | ------------- |
+| Full run                                    | 108      | 108    | 0                                      | 269203       | 16255         | $0.035  | 144.5 s          | no            |
+| Incremental run, whole project              | 102      | 102    | 0                                      | 269860       | 15408         | $0.035  | 136.9 s          | no            |
+| Incremental run, new and changed files only | 7        | 7      | 0                                      | 56897        | 1250          | $0.0063 | 11.1 s           | –             |
 
 ## Limits
 
