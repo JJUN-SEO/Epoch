@@ -335,12 +335,12 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Privacy and data flow, Bring your own keys, Local cache (summaries, early cutoff).
 
 **Tasks**
-- [ ] `SecretStore` implementations: Electron `safeStorage` for the app (check encryption availability; on Linux check the selected backend and warn if weak), OS keychain or env vars for the CLI (ADR-009; must be a maintained library). Settings → Keys UI; the renderer only learns "configured or not".
-- [ ] LLM provider interface (Anthropic first). Token usage from the API's reported usage. Pricing is user-configurable data with no prices hardcoded from memory.
-- [ ] **Cost guardrails:** estimate before bulk jobs, confirmation above a threshold, spend cap (`--max-spend` and settings), running cost display.
-- [ ] **Consent flow:** first use of any remote model feature shows exactly what will be sent; secret-pattern files are never sent even with consent.
-- [ ] **Lazy summaries:** prompt grounded in file source plus neighbor summaries; cached; hierarchical (directory summaries from child summaries); invalidated through the early-cutoff mechanism. Text LLM or local model, never Jev.
-- [ ] **Offline mode:** setting and `--offline`. Enforce through the single network wrapper (main and analysis host) and at the Electron session level; disable update checks.
+- [x] `SecretStore` implementations: Electron `safeStorage` for the app (check encryption availability; on Linux check the selected backend and warn if weak), OS keychain or env vars for the CLI (ADR-009; must be a maintained library). Settings → Keys UI; the renderer only learns "configured or not". (App: async `safeStorage`, ciphertext in Epoch's data dir; Linux `basic_text` warns and keeps the key for the session unless told otherwise. CLI: `epoch auth` with `@napi-rs/keyring`, env first.)
+- [x] LLM provider interface (Anthropic first). Token usage from the API's reported usage. Pricing is user-configurable data with no prices hardcoded from memory. (`TextModel` for Anthropic and Ollama; prices entered per model in Settings or on the command line.)
+- [x] **Cost guardrails:** estimate before bulk jobs, confirmation above a threshold, spend cap (`--max-spend` and settings), running cost display. (Each request reserves its worst case before it is sent; a monthly cap, a session budget and an ask-first amount; raises confirmed in main's dialog; spend in the status bar.)
+- [x] **Consent flow:** first use of any remote model feature shows exactly what will be sent; secret-pattern files are never sent even with consent. (Per project, in main's own dialog; single-use approvals bound to the window and project, asked again when the plan grew.)
+- [x] **Lazy summaries:** prompt grounded in file source plus neighbor summaries; cached; hierarchical (directory summaries from child summaries); invalidated through the early-cutoff mechanism. Text LLM or local model, never Jev. (Content-addressed, with the summaries each one used recorded by hash: a summary regenerated to the same text leaves its dependents fresh. Made on open under the auto rules; folders are confirmed jobs. `pnpm bench:summaries` compares a full and an incremental run; real token counts await a run with a key, `docs/benchmarks/summaries.md`.)
+- [x] **Offline mode:** setting and `--offline`. Enforce through the single network wrapper (main and analysis host) and at the Electron session level; disable update checks. (A local model the user chose keeps working, loopback only; ADR-016 and the CLAUDE.md clause.)
 
 **Acceptance**
 - Zero-network test: a full analysis with outbound network blocked makes no requests (CI step).

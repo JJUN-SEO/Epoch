@@ -28,7 +28,8 @@
     "bench:findings": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/findings.js",
     "bench:findings:score": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/findings-score.js",
     "bench:scorers": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/scorers.js",
-    "bench:risk": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/risk.js"
+    "bench:risk": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/risk.js",
+    "bench:summaries": "node scripts/turbo.mjs run build --filter=@epoch-dev/bench... --output-logs=errors-only && node packages/bench/dist/summaries.js"
   },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
