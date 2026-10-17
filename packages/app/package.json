@@ -27,6 +27,7 @@
   "devDependencies": {
     "@epoch-dev/core": "workspace:*",
     "@epoch-dev/engine": "workspace:*",
+    "@epoch-dev/scorers": "workspace:*",
     "@epoch-dev/ui": "workspace:*",
     "@playwright/test": "1.63.0",
     "@tailwindcss/vite": "catalog:",

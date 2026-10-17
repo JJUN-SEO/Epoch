@@ -2,6 +2,7 @@ import path from "node:path";
 import { performance } from "node:perf_hooks";
 import {
   diffGraphs,
+  folderJob,
   isEmptyDelta,
   type AnalysisInfo,
   type Graph,
@@ -11,20 +12,28 @@ import {
   ChurnMemo,
   FsReader,
   ParsePool,
+  SummaryStore,
   analyze,
   localEmbedder,
   openCache,
+  planSummary,
+  storeSummary,
+  toPosix,
   watchProject,
   type AnalyzeOptions,
   type AnalyzeResult,
   type ProjectWatcher,
+  type SummaryModelId,
+  type SummaryPlan,
 } from "@epoch-dev/engine";
 import type { Embedder } from "@epoch-dev/core";
+import { installTripwire } from "@epoch-dev/scorers/tripwire";
 import {
   HostRequest,
   MAX_PREVIEW_LINES,
   MAX_PREVIEW_LINE_CHARS,
   type HostEvent,
+  type SummaryPlanMessage,
 } from "../shared/host-protocol";
 
 /*
@@ -35,6 +44,12 @@ import {
  * it watches the folder and sends main the difference each time the graph
  * changes.
  *
+ * The host never uses the network: main alone sends anything, through its
+ * one egress (ADR-016). A tripwire refuses every socket, DNS lookup and
+ * fetch here, and reports each attempt to main. For summaries the host
+ * reads the files and builds the prompt; main sends it and hands the answer
+ * back, which the host sanitizes and stores.
+ *
  * With the bundled embedding model (main passes its folder), the first graph
  * is sent without similarity hints, marked pending; the watcher then
  * re-analyzes with the model and sends the difference, and keeps the model
@@ -43,6 +58,11 @@ import {
  */
 
 const port = process.parentPort;
+installTripwire({
+  onAttempt: (name) => {
+    send({ type: "network-attempt", name });
+  },
+});
 const cache = openCache();
 // The bundled worker sits next to this file (electron.vite.config.ts).
 const pool = new ParsePool({
@@ -52,6 +72,17 @@ const churnMemo = new ChurnMemo();
 const embedder = embedderFrom(process.argv);
 let queue = Promise.resolve();
 let watcher: ProjectWatcher | undefined;
+/** The open project's latest analysis, which summaries read. */
+let current: AnalyzeResult | undefined;
+/**
+ * Plans whose answers may come back, by key: the source lines a stored
+ * answer must not repeat stay here, never in main.
+ */
+const plans = new Map<
+  string,
+  { readonly plan: SummaryPlan & { ok: true }; readonly model: SummaryModelId }
+>();
+const MAX_PLANS = 64;
 
 /** Larger files are not previewed: reading them would only stall the host. */
 const MAX_PREVIEW_FILE_BYTES = 8 * 1024 * 1024;
@@ -138,11 +169,112 @@ function preview(request: Extract<HostRequest, { type: "preview" }>): void {
   });
 }
 
+/** The open project, if `root` (from main) names it. */
+function project(root: string): AnalyzeResult | undefined {
+  return current?.root === toPosix(path.resolve(root)) ? current : undefined;
+}
+
+function summaryPlan(
+  request: Extract<HostRequest, { type: "summary-plan" }>,
+): void {
+  const open = project(request.root);
+  if (!open) {
+    send({
+      type: "summary-plan",
+      id: request.id,
+      plan: { ok: false, subject: request.subject, reason: "no-project" },
+    });
+    return;
+  }
+  const reader = new FsReader(open.root);
+  const plan = planSummary(
+    {
+      root: open.root,
+      graph: open.graph,
+      packages: open.packages,
+      readText: (rel) => reader.readFile(`${open.root}/${rel}`),
+    },
+    new SummaryStore(cache, open.root),
+    request.subject,
+    request.model,
+  );
+  let message: SummaryPlanMessage;
+  if (plan.ok) {
+    plans.delete(plan.key);
+    plans.set(plan.key, { plan, model: request.model });
+    for (const key of plans.keys()) {
+      if (plans.size <= MAX_PLANS) break;
+      plans.delete(key);
+    }
+    message = {
+      ok: true,
+      subject: plan.subject,
+      kind: plan.kind,
+      key: plan.key,
+      status: plan.status,
+      used: plan.used.length,
+      truncated: plan.truncated,
+      excluded: [...plan.excluded],
+      ...(request.withPrompt ? { prompt: plan.prompt } : {}),
+    };
+  } else {
+    message = {
+      ok: false,
+      subject: plan.subject,
+      reason: plan.reason,
+      ...(plan.missing ? { missing: [...plan.missing] } : {}),
+    };
+  }
+  send({ type: "summary-plan", id: request.id, plan: message });
+}
+
+function summaryStore(
+  request: Extract<HostRequest, { type: "summary-store" }>,
+): void {
+  const open = project(request.root);
+  const pending = plans.get(request.key);
+  if (!open || !pending) {
+    send({
+      type: "error",
+      id: request.id,
+      message: "That summary request is no longer current.",
+    });
+    return;
+  }
+  plans.delete(request.key);
+  const { text, inputTokens, outputTokens, costUsd } = request.answer;
+  const summary = storeSummary(
+    new SummaryStore(cache, open.root),
+    pending.plan,
+    pending.model,
+    { text, usage: { inputTokens, outputTokens }, costUsd },
+    new Date(),
+  );
+  send({
+    type: "summary-stored",
+    id: request.id,
+    ...(summary ? { summary } : {}),
+  });
+}
+
+function summaryJob(
+  request: Extract<HostRequest, { type: "summary-job" }>,
+): void {
+  const open = project(request.root);
+  send({
+    type: "summary-job",
+    id: request.id,
+    subjects: open ? folderJob(open.graph, request.dir) : [],
+  });
+}
+
 async function run(
   request: Extract<HostRequest, { type: "analyze" }>,
 ): Promise<void> {
   await watcher?.close();
   watcher = undefined;
+  current = undefined;
+  plans.clear();
   let lastStage: Progress["stage"] | undefined;
   let lastSent = 0;
   const onProgress = (progress: Progress) => {
@@ -169,6 +301,7 @@ async function run(
     });
     return;
   }
+  current = result;
   const first = infoOf(result);
   const firstInfo: AnalysisInfo = embedder
     ? {
@@ -190,6 +323,7 @@ async function run(
   watcher = await watchProject(result, {
     analyze: options,
     onUpdate: (next) => {
+      current = next;
       const delta = diffGraphs(graph, next.graph);
       const nextInfo = infoOf(next);
       if (isEmptyDelta(delta) && JSON.stringify(nextInfo) === info) return;
@@ -213,8 +347,11 @@ port.on("message", ({ data }) => {
   const parsed = HostRequest.safeParse(data);
   if (!parsed.success) return;
   const request = parsed.data;
-  // A preview is a small read: it never waits behind an analysis.
+  // Previews and summaries are small reads: they never wait behind an analysis.
   if (request.type === "preview") preview(request);
+  else if (request.type === "summary-plan") summaryPlan(request);
+  else if (request.type === "summary-store") summaryStore(request);
+  else if (request.type === "summary-job") summaryJob(request);
   else queue = queue.then(() => run(request));
 });
 

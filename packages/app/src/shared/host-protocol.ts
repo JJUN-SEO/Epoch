@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AnalysisMeta } from "@epoch-dev/core";
+import { AnalysisMeta, StoredSummary } from "@epoch-dev/core";
 
 /*
  * Messages between main and the analysis host (a utilityProcess). Both sides
@@ -48,6 +48,73 @@ export const RepoRelativePath = z
     "must be a repo-relative path",
   );
 
+/**
+ * What a summary is about: a file (repo-relative), a Go package node
+ * ("pkg:<import path>", looked up in the graph, never read as a path), or a
+ * folder ("dir:<repo-relative path>", "dir:" for the project root).
+ */
+export const SummarySubject = z
+  .string()
+  .min(1)
+  .max(4096)
+  .refine((s) => {
+    if (s.startsWith("dir:")) {
+      const dir = s.slice(4);
+      return dir === "" || RepoRelativePath.safeParse(dir).success;
+    }
+    if (s.startsWith("pkg:")) return /^[^\0\\]+$/.test(s.slice(4));
+    return RepoRelativePath.safeParse(s).success;
+  }, "must be a file, pkg: or dir: subject");
+
+export const SummaryModelMessage = z.strictObject({
+  provider: z.enum(["anthropic", "local"]),
+  model: z.string().regex(/^[A-Za-z0-9._:/-]{1,200}$/),
+});
+
+/** A model's answer as main received it; the host sanitizes it before storing. */
+const MAX_ANSWER_CHARS = 64 * 1024;
+
+export const SummaryStatusMessage = z.discriminatedUnion("state", [
+  z.strictObject({ state: z.literal("missing") }),
+  z.strictObject({ state: z.literal("fresh"), summary: StoredSummary }),
+  z.strictObject({
+    state: z.literal("stale"),
+    why: z.enum(["file", "dependencies"]),
+    previous: StoredSummary,
+  }),
+]);
+
+/** A summary plan as the host reports it (engine planSummary), without its forbidden lines. */
+export const SummaryPlanMessage = z.discriminatedUnion("ok", [
+  z.strictObject({
+    ok: z.literal(true),
+    subject: SummarySubject,
+    kind: z.enum(["file", "package", "dir"]),
+    key: z.string().regex(/^[0-9a-f]{64}$/),
+    status: SummaryStatusMessage,
+    /** Summaries given as input. */
+    used: z.number().int().nonnegative(),
+    truncated: z.boolean(),
+    excluded: z.array(z.string()).max(10_000),
+    /** Only when asked for: the text to send, source included. Main never stores or forwards it. */
+    prompt: z.strictObject({ system: z.string(), user: z.string() }).optional(),
+  }),
+  z.strictObject({
+    ok: z.literal(false),
+    subject: SummarySubject,
+    reason: z.enum([
+      "not-in-graph",
+      "secret",
+      "unreadable",
+      "empty",
+      "children-missing",
+      "no-project",
+    ]),
+    missing: z.array(z.string()).max(10_000).optional(),
+  }),
+]);
+export type SummaryPlanMessage = z.infer<typeof SummaryPlanMessage>;
+
 export const CodePreviewMessage = z.strictObject({
   file: z.string(),
   startLine: z.number().int().positive(),
@@ -78,6 +145,35 @@ export const HostRequest = z.discriminatedUnion("type", [
     file: RepoRelativePath,
     startLine: z.number().int().positive(),
     endLine: z.number().int().positive(),
+  }),
+  /** What summarizing a subject would send, and whether it is already stored. Sends nothing. */
+  z.object({
+    type: z.literal("summary-plan"),
+    id: z.number().int().nonnegative(),
+    root: z.string().min(1),
+    subject: SummarySubject,
+    model: SummaryModelMessage,
+    withPrompt: z.boolean(),
+  }),
+  /** A model's answer to a plan the host made, to sanitize and store. */
+  z.object({
+    type: z.literal("summary-store"),
+    id: z.number().int().nonnegative(),
+    root: z.string().min(1),
+    key: z.string().regex(/^[0-9a-f]{64}$/),
+    answer: z.strictObject({
+      text: z.string().max(MAX_ANSWER_CHARS),
+      inputTokens: z.number().int().nonnegative(),
+      outputTokens: z.number().int().nonnegative(),
+      costUsd: z.number().nonnegative(),
+    }),
+  }),
+  /** The subjects of a folder summary job, bottom-up (core folderJob). */
+  z.object({
+    type: z.literal("summary-job"),
+    id: z.number().int().nonnegative(),
+    root: z.string().min(1),
+    dir: z.union([z.literal(""), RepoRelativePath]),
   }),
 ]);
 export type HostRequest = z.infer<typeof HostRequest>;
@@ -113,6 +209,27 @@ export const HostEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("watch-status"),
     status: WatchStatusMessage,
+  }),
+  z.object({
+    type: z.literal("summary-plan"),
+    id: z.number().int().nonnegative(),
+    plan: SummaryPlanMessage,
+  }),
+  z.object({
+    type: z.literal("summary-stored"),
+    id: z.number().int().nonnegative(),
+    /** Undefined when nothing was left of the answer after sanitizing. */
+    summary: StoredSummary.optional(),
+  }),
+  z.object({
+    type: z.literal("summary-job"),
+    id: z.number().int().nonnegative(),
+    subjects: z.array(SummarySubject).max(100_000),
+  }),
+  /** The host's tripwire refused a network attempt (it must never use the network). */
+  z.object({
+    type: z.literal("network-attempt"),
+    name: z.string().max(200),
   }),
 ]);
 export type HostEvent = z.infer<typeof HostEvent>;
