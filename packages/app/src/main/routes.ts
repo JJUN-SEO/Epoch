@@ -1,13 +1,14 @@
 import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { z } from "zod";
-import { Confidence, FindingKind } from "@epoch-dev/core";
+import { Confidence, FindingKind, SettingsPatch } from "@epoch-dev/core";
 import { DismissalId, DismissalNote } from "@epoch-dev/engine/dismissals";
 import { CHANNELS } from "../shared/channels";
 import { MAX_PREVIEW_LINES, RepoRelativePath } from "../shared/host-protocol";
 import type { Register } from "./ipc";
 import type { ProjectSession } from "./project";
 import type { Projects } from "./projects";
+import type { SettingsStore } from "./settings-store";
 
 /** An absolute path as the renderer may send it. Granting is checked separately. */
 const FolderPath = z
@@ -35,12 +36,22 @@ const PreviewArgs = z
 /** A position in the window, in CSS pixels. */
 const WindowCoordinate = z.number().int().min(0).max(100_000);
 
+/** The settings and the native dialog that confirms spending more. */
+export interface SettingsRoutes {
+  readonly store: SettingsStore;
+  readonly confirmRaises: (
+    win: BrowserWindow,
+    raises: readonly string[],
+  ) => Promise<boolean>;
+}
+
 /** Registers every IPC channel main answers, each with its payload schema. */
 export function registerRoutes(
   handle: Register,
   projects: Projects,
   sessionFor: (win: BrowserWindow) => ProjectSession,
   popupAppMenu: (win: BrowserWindow, x: number, y: number) => void,
+  settings: SettingsRoutes,
 ): void {
   handle(CHANNELS.openProject, {
     args: z.tuple([FolderPath]),
@@ -90,6 +101,17 @@ export function registerRoutes(
     args: PreviewArgs,
     handle: (win, file, start, end) =>
       sessionFor(win).preview(file, start, end),
+  });
+  handle(CHANNELS.getSettings, {
+    args: z.tuple([]),
+    handle: () => Promise.resolve(settings.store.get()),
+  });
+  handle(CHANNELS.updateSettings, {
+    args: z.tuple([SettingsPatch]),
+    handle: (win, patch) =>
+      settings.store.update(patch, (raises) =>
+        settings.confirmRaises(win, raises),
+      ),
   });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),

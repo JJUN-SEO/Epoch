@@ -92,11 +92,19 @@ interface EpochApi {
   undismissFinding(id: string): Promise<void>;
   getCodePreview(file: string, startLine: number, endLine: number): Promise<CodePreview>; // read-only, inside project root
   getSettings(): Promise<Settings>;
-  updateSettings(patch: Partial<Settings>): Promise<Settings>;
+  updateSettings(patch: SettingsPatch): Promise<Settings>;    // any field of any section; raising spend limits is confirmed natively (ADR-016)
   setKey(provider: string, value: string): Promise<void>;      // one-way: value is never readable back
-  getKeyStatus(provider: string): Promise<{ configured: boolean }>;
+  removeKey(provider: string): Promise<void>;
+  getKeyStatus(provider: string): Promise<{ configured: boolean; storage?: "encrypted" | "session" | "weak" }>;
+  getSummary(subject: string, opts?: { auto?: boolean }): Promise<SummaryState>;   // file, pkg: or dir:<path>; spends only under the auto rules (ADR-016)
+  generateSummary(planId: string): Promise<SummaryState>;      // spends exactly an approved, single-use plan
+  cancelSummaries(): Promise<void>;
+  onSummaryProgress(cb: (p: SummaryProgress) => void): Unsubscribe;
+  getSpend(): Promise<SpendStatus>;
 }
 ```
+
+`SummaryState` is `ready` (text, an optional stale marker, how it was made), `needs-approval` (a single-use plan id with what would be sent and its worst-case cost), `unavailable` or `failed` (fixed reason codes, never provider text), each with the last summary when there is one. The types are in `core` (`interfaces/api.ts`); the static demo serves precomputed summaries read-only.
 
 Pipeline (each stage is a pure function of its inputs unless noted):
 
@@ -422,7 +430,7 @@ With no keys configured and update checks disabled, Epoch makes no network reque
 
 Rules:
 - All remote model features are **off by default**. On first use, show exactly what will be sent and require explicit consent.
-- **Offline mode** (app setting and `epoch --offline`) hard-blocks all outbound network, including update checks. Enforce it in main and the analysis host through a single network wrapper, and at the Electron session level. An automated test runs a full analysis with the network blocked and asserts zero outbound requests.
+- **Offline mode** (app setting and `epoch --offline`) hard-blocks all outbound network, including update checks. A local model on this machine that the user chose (loopback only) keeps working. Enforce it in main and the analysis host through a single network wrapper, and at the Electron session level. An automated test runs a full analysis with the network blocked and asserts zero outbound requests.
 - Respect `.gitignore` and `.epochignore`. Never send files matching secret patterns (`.env*`, keys, credentials) to any remote model, even if the user opts in.
 - No telemetry. No crash reporting that includes paths or code.
 - Sharing is explicit: Export writes a static HTML/JSON file locally that the user can share themselves.

@@ -22,6 +22,10 @@ export const CHANNELS = {
   getCodePreview: "epoch:get-code-preview",
   /** Pops up the application menu (Windows, Linux: the title bar has no menu bar). */
   showAppMenu: "epoch:show-app-menu",
+  /** The app's settings; no payload. */
+  getSettings: "epoch:get-settings",
+  /** payload: a SettingsPatch; raising spend limits asks in a native dialog. */
+  updateSettings: "epoch:update-settings",
 } as const;
 
 /** Main-to-renderer events. */
@@ -37,6 +41,8 @@ export const EVENTS = {
   projectOpened: "epoch:project-opened",
   /** A command chosen in the native menu; payload: one of MENU_COMMANDS. */
   menuCommand: "epoch:menu-command",
+  /** The settings changed (in any window); payload: Settings. */
+  settingsChanged: "epoch:settings-changed",
 } as const;
 
 /**

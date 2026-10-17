@@ -96,21 +96,64 @@ test("the bridge exposes only its named functions", async () => {
       "getCodePreview",
       "getFindings",
       "getGraph",
+      "getSettings",
       "onAnalysisInfo",
       "onGraphDelta",
       "onMenuCommand",
       "onProgress",
       "onProjectOpened",
+      "onSettingsChanged",
       "onWatchStatus",
       "openDroppedFolder",
       "openProject",
       "recentProjects",
       "showAppMenu",
       "undismissFinding",
+      "updateSettings",
     ],
     ipcRenderer: "undefined",
     electron: "undefined",
   });
+});
+
+test("settings round-trip, and spending more asks in main's own dialog", async () => {
+  // Main's message box answers "Cancel" and records what it was asked.
+  await epoch.app.evaluate(({ dialog }) => {
+    const asked: string[] = [];
+    (globalThis as { asked?: string[] }).asked = asked;
+    dialog.showMessageBox = (...args: unknown[]) => {
+      const options = args.at(-1) as { detail?: string };
+      asked.push(options.detail ?? "");
+      return Promise.resolve({ response: 0, checkboxChecked: false });
+    };
+  });
+  const result = await epoch.page.evaluate(async () => {
+    const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
+    const before = await window.epoch.getSettings();
+    const changed = await window.epoch.updateSettings({ offline: true });
+    const refused = await window.epoch
+      .updateSettings({ spend: { monthlyCapUsd: 5 } })
+      .then(() => "saved", reason);
+    const invalid = await window.epoch
+      .updateSettings({ telemetry: true } as never)
+      .then(() => "saved", reason);
+    const after = await window.epoch.getSettings();
+    await window.epoch.updateSettings({ offline: false });
+    return {
+      before: before.offline,
+      changed: changed.offline,
+      refused,
+      invalid,
+      cap: after.spend.monthlyCapUsd ?? null,
+    };
+  });
+  const asked = await epoch.app.evaluate(
+    () => (globalThis as { asked?: string[] }).asked,
+  );
+  expect(result).toMatchObject({ before: false, changed: true, cap: null });
+  expect(result.refused).toContain("not confirmed");
+  expect(result.invalid).toContain("invalid payload");
+  expect(asked).toEqual(["monthly cap none → $5.00"]);
 });
 
 test("a folder chosen in the dialog is analyzed in the host, with progress", async () => {

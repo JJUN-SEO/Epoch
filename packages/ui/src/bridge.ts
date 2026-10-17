@@ -7,6 +7,8 @@ import type {
   GraphDelta,
   Progress,
   ProjectInfo,
+  Settings,
+  SettingsPatch,
   Unsubscribe,
   WatchStatus,
 } from "@epoch-dev/core";
@@ -54,4 +56,9 @@ export interface DesktopBridge {
   showAppMenu(x: number, y: number): Promise<void>;
   /** A command chosen in the native menu, such as "view.graph". */
   onMenuCommand(cb: (id: string) => void): Unsubscribe;
+  getSettings(): Promise<Settings>;
+  /** Raising what Epoch may spend asks in a native dialog; refused, it rejects. */
+  updateSettings(patch: SettingsPatch): Promise<Settings>;
+  /** The settings changed, in this window or another. */
+  onSettingsChanged(cb: (settings: Settings) => void): Unsubscribe;
 }

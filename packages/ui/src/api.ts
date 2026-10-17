@@ -6,6 +6,7 @@ import {
   type EpochApi,
   type Graph,
   type ProjectInfo,
+  type Settings,
   type WatchStatus,
 } from "@epoch-dev/core";
 import type { DesktopBridge } from "./bridge";
@@ -29,17 +30,23 @@ export interface Shell {
   /** What the latest analysis used (git history, coverage); null before it ends. */
   getAnalysisInfo(): Promise<AnalysisInfo | null>;
   onAnalysisInfo(cb: (info: AnalysisInfo) => void): () => void;
+  /** The settings changed, in this window or another. */
+  onSettingsChanged(cb: (settings: Settings) => void): () => void;
 }
 
 const unavailable = (what: string) => (): Promise<never> =>
   Promise.reject(new Error(`${what}.`));
 
-/** EpochApi methods that later milestones implement. */
+/** EpochApi methods that later M7 steps implement. */
 const later = {
-  getSettings: unavailable("Settings arrive in M7"),
-  updateSettings: unavailable("Settings arrive in M7"),
-  setKey: unavailable("Keys arrive in M7"),
-  getKeyStatus: unavailable("Keys arrive in M7"),
+  setKey: unavailable("Keys arrive later in M7"),
+  removeKey: unavailable("Keys arrive later in M7"),
+  getKeyStatus: unavailable("Keys arrive later in M7"),
+  getSummary: unavailable("Summaries arrive later in M7"),
+  generateSummary: unavailable("Summaries arrive later in M7"),
+  cancelSummaries: unavailable("Summaries arrive later in M7"),
+  onSummaryProgress: () => () => undefined,
+  getSpend: unavailable("Spend arrives later in M7"),
 };
 
 /** The desktop app's EpochApi over the preload bridge (CLAUDE.md "Architecture"). */
@@ -73,6 +80,8 @@ export function createIpcApi(bridge: DesktopBridge): {
       undismissFinding: (id) => bridge.undismissFinding(id),
       getCodePreview: (file, start, end) =>
         bridge.getCodePreview(file, start, end),
+      getSettings: () => bridge.getSettings(),
+      updateSettings: (patch) => bridge.updateSettings(patch),
       ...later,
     },
     shell: {
@@ -87,6 +96,7 @@ export function createIpcApi(bridge: DesktopBridge): {
       onWatchStatus: (cb) => bridge.onWatchStatus(cb),
       getAnalysisInfo: () => bridge.getAnalysisInfo(),
       onAnalysisInfo: (cb) => bridge.onAnalysisInfo(cb),
+      onSettingsChanged: (cb) => bridge.onSettingsChanged(cb),
     },
   };
 }
@@ -111,6 +121,12 @@ export function createStaticApi(project: ProjectInfo, graph: Graph): EpochApi {
     getSettings: unavailable("The demo has no settings"),
     updateSettings: unavailable("The demo has no settings"),
     setKey: unavailable("The demo has no model features"),
+    removeKey: unavailable("The demo has no model features"),
     getKeyStatus: unavailable("The demo has no model features"),
+    getSummary: unavailable("The demo has no model features"),
+    generateSummary: unavailable("The demo has no model features"),
+    cancelSummaries: () => Promise.resolve(),
+    onSummaryProgress: () => () => undefined,
+    getSpend: unavailable("The demo has no model features"),
   };
 }

@@ -11,6 +11,7 @@ import type {
   Graph,
   Progress,
   ProjectInfo,
+  Settings,
 } from "@epoch-dev/core";
 import type { DesktopBridge } from "@epoch-dev/ui/bridge";
 import { CHANNELS, EVENTS } from "../shared/channels";
@@ -90,6 +91,9 @@ const bridge: DesktopBridge = {
     };
   },
   showAppMenu: (x, y) => invoke<undefined>(CHANNELS.showAppMenu, x, y),
+  getSettings: () => invoke<Settings>(CHANNELS.getSettings),
+  updateSettings: (patch) => invoke<Settings>(CHANNELS.updateSettings, patch),
+  onSettingsChanged: (cb) => on(EVENTS.settingsChanged, cb),
   onMenuCommand: (cb) => {
     const listener = (_event: IpcRendererEvent, id: string) => {
       cb(id);

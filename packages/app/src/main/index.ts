@@ -2,6 +2,7 @@ import path from "node:path";
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
   screen,
@@ -22,6 +23,7 @@ import { registerAppScheme, serveUi } from "./protocol";
 import { RecentProjects } from "./recent";
 import { GrantedRoots } from "./roots";
 import { registerRoutes } from "./routes";
+import { SettingsStore } from "./settings-store";
 import { createProjectWindow } from "./window";
 import { isReachable, loadWindowState, saveWindowState } from "./window-state";
 
@@ -127,6 +129,14 @@ async function start(): Promise<void> {
     path.join(userData, "recent-projects.json"),
   );
   for (const folder of recent.projects) roots.grantStored(folder);
+  const settings = new SettingsStore(path.join(userData, "settings.json"));
+  for (const warning of settings.warnings)
+    console.error(`[epoch] settings: ${warning}`);
+  settings.onChange((next) => {
+    for (const win of BrowserWindow.getAllWindows())
+      if (!win.isDestroyed())
+        win.webContents.send(EVENTS.settingsChanged, next);
+  });
 
   /** Tells a window's UI about a project opened from the menu. */
   const announce = (win: BrowserWindow, project: ProjectInfo | null) => {
@@ -184,9 +194,29 @@ async function start(): Promise<void> {
         : undefined,
     devOrigin,
   );
-  registerRoutes(handle, projects, sessionFor, (win, x, y) => {
-    Menu.getApplicationMenu()?.popup({ window: win, x, y });
-  });
+  registerRoutes(
+    handle,
+    projects,
+    sessionFor,
+    (win, x, y) => {
+      Menu.getApplicationMenu()?.popup({ window: win, x, y });
+    },
+    {
+      store: settings,
+      // Main's own dialog, so the renderer alone cannot raise a limit.
+      confirmRaises: async (win, raises) => {
+        const { response } = await dialog.showMessageBox(win, {
+          type: "question",
+          buttons: ["Cancel", "Allow"],
+          defaultId: 0,
+          cancelId: 0,
+          message: "Let Epoch spend more on model features?",
+          detail: raises.join("\n"),
+        });
+        return response === 1;
+      },
+    },
+  );
 
   await openWindow(stateFile);
   app.on("activate", () => {

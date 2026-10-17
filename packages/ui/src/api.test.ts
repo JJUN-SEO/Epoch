@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import type { Graph, GraphDelta, ProjectInfo } from "@epoch-dev/core";
+import {
+  DEFAULT_SETTINGS,
+  type Graph,
+  type GraphDelta,
+  type ProjectInfo,
+} from "@epoch-dev/core";
 import { createIpcApi, createStaticApi } from "./api";
 import type { DesktopBridge } from "./bridge";
 import { edge, graph as testGraph, node } from "./graph/test-graph";
@@ -9,6 +14,9 @@ const graph: Graph = testGraph(["a.ts", "b.ts"], [edge("a.ts", "b.ts")]);
 
 const openProject = vi.fn(() => Promise.resolve(project));
 const showAppMenu = vi.fn(() => Promise.resolve());
+const updateSettings = vi.fn(() =>
+  Promise.resolve({ ...DEFAULT_SETTINGS, offline: true }),
+);
 const getFindings = vi.fn(() => Promise.resolve([]));
 const dismissFinding = vi.fn(() => Promise.resolve());
 const getCodePreview = vi.fn(() =>
@@ -39,6 +47,9 @@ function fakeBridge() {
     onProjectOpened: vi.fn(() => () => undefined),
     showAppMenu: showAppMenu,
     onMenuCommand: vi.fn(() => () => undefined),
+    getSettings: vi.fn(() => Promise.resolve(DEFAULT_SETTINGS)),
+    updateSettings,
+    onSettingsChanged: vi.fn(() => () => undefined),
   };
   return {
     bridge,
@@ -93,9 +104,19 @@ describe("createIpcApi", () => {
     expect(getCodePreview).toHaveBeenCalledWith("a.ts", 1, 1);
   });
 
-  it("rejects methods of later milestones, naming the milestone", async () => {
+  it("reads and changes settings through the bridge", async () => {
+    const { bridge } = fakeBridge();
+    const { api } = createIpcApi(bridge);
+    await expect(api.getSettings()).resolves.toEqual(DEFAULT_SETTINGS);
+    await expect(api.updateSettings({ offline: true })).resolves.toMatchObject({
+      offline: true,
+    });
+    expect(updateSettings).toHaveBeenCalledWith({ offline: true });
+  });
+
+  it("rejects methods of later steps, naming the milestone", async () => {
     const { api } = createIpcApi(fakeBridge().bridge);
-    await expect(api.getSettings()).rejects.toThrow("M7");
+    await expect(api.getSummary("a.ts")).rejects.toThrow("M7");
   });
 });
 
