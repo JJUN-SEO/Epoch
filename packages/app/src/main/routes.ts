@@ -4,12 +4,17 @@ import { z } from "zod";
 import { Confidence, FindingKind, SettingsPatch } from "@epoch-dev/core";
 import { DismissalId, DismissalNote } from "@epoch-dev/engine/dismissals";
 import { CHANNELS } from "../shared/channels";
-import { MAX_PREVIEW_LINES, RepoRelativePath } from "../shared/host-protocol";
+import {
+  MAX_PREVIEW_LINES,
+  RepoRelativePath,
+  SummarySubject,
+} from "../shared/host-protocol";
 import type { Register } from "./ipc";
 import type { ProjectSession } from "./project";
 import type { KeyStore } from "./key-store";
 import type { Projects } from "./projects";
 import type { SettingsStore } from "./settings-store";
+import type { SummaryContext, SummaryService } from "./summary-service";
 
 /** An absolute path as the renderer may send it. Granting is checked separately. */
 const FolderPath = z
@@ -66,6 +71,9 @@ export interface SettingsRoutes {
   readonly chooseWeakStorage: (
     win: BrowserWindow,
   ) => Promise<"store" | "session" | undefined>;
+  readonly summaries: SummaryService;
+  /** The window's open project as a summary context; undefined when none is open. */
+  readonly summaryContext: (win: BrowserWindow) => SummaryContext | undefined;
 }
 
 /** Registers every IPC channel main answers, each with its payload schema. */
@@ -157,6 +165,47 @@ export function registerRoutes(
   handle(CHANNELS.getKeyStatus, {
     args: z.tuple([Provider]),
     handle: (_win, provider) => settings.keys.status(provider),
+  });
+  handle(CHANNELS.getSummary, {
+    args: z.tuple([
+      SummarySubject,
+      z.strictObject({ auto: z.boolean().exactOptional() }).optional(),
+    ]),
+    handle: (win, subject, opts?: { auto?: boolean }) => {
+      const ctx = settings.summaryContext(win);
+      if (!ctx)
+        return Promise.resolve({
+          state: "unavailable",
+          subject,
+          reason: "no-project",
+        });
+      return settings.summaries.get(ctx, subject, opts ?? {});
+    },
+  });
+  handle(CHANNELS.generateSummary, {
+    args: z.tuple([z.uuid()]),
+    handle: (win, planId) => {
+      const ctx = settings.summaryContext(win);
+      if (!ctx)
+        return Promise.resolve({
+          state: "failed",
+          subject: "",
+          reason: "expired",
+        });
+      return settings.summaries.generate(ctx, planId);
+    },
+  });
+  handle(CHANNELS.cancelSummaries, {
+    args: z.tuple([]),
+    handle: async (win) => {
+      const ctx = settings.summaryContext(win);
+      if (ctx) await settings.summaries.cancel(ctx);
+      return undefined;
+    },
+  });
+  handle(CHANNELS.getSpend, {
+    args: z.tuple([]),
+    handle: () => Promise.resolve(settings.summaries.spend()),
   });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),

@@ -10,6 +10,8 @@ import type {
   Finding,
   Graph,
   KeyStatus,
+  SpendStatus,
+  SummaryState,
   Progress,
   ProjectInfo,
   Settings,
@@ -100,6 +102,15 @@ const bridge: DesktopBridge = {
   removeKey: (provider) => invoke<undefined>(CHANNELS.removeKey, provider),
   getKeyStatus: (provider) =>
     invoke<KeyStatus>(CHANNELS.getKeyStatus, provider),
+  getSummary: (subject, opts) =>
+    opts === undefined
+      ? invoke<SummaryState>(CHANNELS.getSummary, subject)
+      : invoke<SummaryState>(CHANNELS.getSummary, subject, opts),
+  generateSummary: (planId) =>
+    invoke<SummaryState>(CHANNELS.generateSummary, planId),
+  cancelSummaries: () => invoke<undefined>(CHANNELS.cancelSummaries),
+  onSummaryProgress: (cb) => on(EVENTS.summaryProgress, cb),
+  getSpend: () => invoke<SpendStatus>(CHANNELS.getSpend),
   onMenuCommand: (cb) => {
     const listener = (_event: IpcRendererEvent, id: string) => {
       cb(id);

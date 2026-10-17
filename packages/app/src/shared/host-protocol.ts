@@ -96,6 +96,10 @@ export const SummaryPlanMessage = z.discriminatedUnion("ok", [
     used: z.number().int().nonnegative(),
     truncated: z.boolean(),
     excluded: z.array(z.string()).max(10_000),
+    /** Files whose content the prompt holds (a folder's holds none). */
+    sends: z.array(z.string()).max(10_000),
+    /** The prompt's size in tokens, estimated (scorers estimateTokens). */
+    inputTokens: z.number().int().nonnegative(),
     /** Only when asked for: the text to send, source included. Main never stores or forwards it. */
     prompt: z.strictObject({ system: z.string(), user: z.string() }).optional(),
   }),
@@ -114,6 +118,18 @@ export const SummaryPlanMessage = z.discriminatedUnion("ok", [
   }),
 ]);
 export type SummaryPlanMessage = z.infer<typeof SummaryPlanMessage>;
+
+/** One subject of a folder job, as planned before it starts. */
+export const SummaryJobItem = z.strictObject({
+  subject: SummarySubject,
+  /** fresh: nothing to do; todo: to summarize; skip: never (a secret, empty, unreadable). */
+  state: z.enum(["fresh", "todo", "skip"]),
+  /** Estimated; for a folder whose children are not summarized yet, its worst case. */
+  inputTokens: z.number().int().nonnegative(),
+  sends: z.array(z.string()).max(10_000),
+  excluded: z.array(z.string()).max(10_000),
+});
+export type SummaryJobItem = z.infer<typeof SummaryJobItem>;
 
 export const CodePreviewMessage = z.strictObject({
   file: z.string(),
@@ -174,6 +190,7 @@ export const HostRequest = z.discriminatedUnion("type", [
     id: z.number().int().nonnegative(),
     root: z.string().min(1),
     dir: z.union([z.literal(""), RepoRelativePath]),
+    model: SummaryModelMessage,
   }),
 ]);
 export type HostRequest = z.infer<typeof HostRequest>;
@@ -224,7 +241,7 @@ export const HostEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("summary-job"),
     id: z.number().int().nonnegative(),
-    subjects: z.array(SummarySubject).max(100_000),
+    items: z.array(SummaryJobItem).max(100_000),
   }),
   /** The host's tripwire refused a network attempt (it must never use the network). */
   z.object({

@@ -29,6 +29,10 @@
     "./origins": {
       "types": "./dist/origins.d.ts",
       "default": "./dist/origins.js"
+    },
+    "./cost": {
+      "types": "./dist/cost.d.ts",
+      "default": "./dist/cost.js"
     }
   },
   "scripts": {

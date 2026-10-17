@@ -37,15 +37,6 @@ export interface Shell {
 const unavailable = (what: string) => (): Promise<never> =>
   Promise.reject(new Error(`${what}.`));
 
-/** EpochApi methods that later M7 steps implement. */
-const later = {
-  getSummary: unavailable("Summaries arrive later in M7"),
-  generateSummary: unavailable("Summaries arrive later in M7"),
-  cancelSummaries: unavailable("Summaries arrive later in M7"),
-  onSummaryProgress: () => () => undefined,
-  getSpend: unavailable("Spend arrives later in M7"),
-};
-
 /** The desktop app's EpochApi over the preload bridge (CLAUDE.md "Architecture"). */
 export function createIpcApi(bridge: DesktopBridge): {
   api: EpochApi;
@@ -82,7 +73,11 @@ export function createIpcApi(bridge: DesktopBridge): {
       setKey: (provider, value) => bridge.setKey(provider, value),
       removeKey: (provider) => bridge.removeKey(provider),
       getKeyStatus: (provider) => bridge.getKeyStatus(provider),
-      ...later,
+      getSummary: (subject, opts) => bridge.getSummary(subject, opts),
+      generateSummary: (planId) => bridge.generateSummary(planId),
+      cancelSummaries: () => bridge.cancelSummaries(),
+      onSummaryProgress: (cb) => bridge.onSummaryProgress(cb),
+      getSpend: () => bridge.getSpend(),
     },
     shell: {
       chooseProject: () => bridge.chooseProject(),

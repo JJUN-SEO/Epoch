@@ -10,6 +10,9 @@ import type {
   ProjectInfo,
   Settings,
   SettingsPatch,
+  SpendStatus,
+  SummaryProgress,
+  SummaryState,
   Unsubscribe,
   WatchStatus,
 } from "@epoch-dev/core";
@@ -66,4 +69,9 @@ export interface DesktopBridge {
   setKey(provider: string, value: string): Promise<void>;
   removeKey(provider: string): Promise<void>;
   getKeyStatus(provider: string): Promise<KeyStatus>;
+  getSummary(subject: string, opts?: { auto?: boolean }): Promise<SummaryState>;
+  generateSummary(planId: string): Promise<SummaryState>;
+  cancelSummaries(): Promise<void>;
+  onSummaryProgress(cb: (p: SummaryProgress) => void): Unsubscribe;
+  getSpend(): Promise<SpendStatus>;
 }

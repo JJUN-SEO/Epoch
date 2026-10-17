@@ -153,6 +153,8 @@ export type SummaryPlan =
       readonly subject: string;
       readonly reason: SummaryUnavailable;
       readonly missing?: readonly string[];
+      /** A folder waiting for children: how many it has (for a worst-case estimate). */
+      readonly children?: number;
     };
 
 const DIR = "dir:";
@@ -184,11 +186,13 @@ export function planSummary(
   const unavailable = (
     reason: SummaryUnavailable,
     missing?: readonly string[],
+    children?: number,
   ): SummaryPlan => ({
     ok: false,
     subject,
     reason,
     ...(missing ? { missing } : {}),
+    ...(children === undefined ? {} : { children }),
   });
   const finish = (
     kind: "file" | "package" | "dir",
@@ -256,7 +260,8 @@ export function planSummary(
       children.push({ subject: `${DIR}${d}`, kind: "folder" });
     const refs = children.map((c) => ({ c, ref: store.ref(c.subject) }));
     const missing = refs.filter((r) => !r.ref).map((r) => r.c.subject);
-    if (missing.length > 0) return unavailable("children-missing", missing);
+    if (missing.length > 0)
+      return unavailable("children-missing", missing, children.length);
     const used = refs.flatMap((r) => (r.ref ? [r.ref] : []));
     const prompt = folderPrompt({
       path: dir,

@@ -14,6 +14,13 @@ const graph: Graph = testGraph(["a.ts", "b.ts"], [edge("a.ts", "b.ts")]);
 
 const openProject = vi.fn(() => Promise.resolve(project));
 const showAppMenu = vi.fn(() => Promise.resolve());
+const getSummary = vi.fn(() =>
+  Promise.resolve({
+    state: "unavailable" as const,
+    subject: "a.ts",
+    reason: "disabled" as const,
+  }),
+);
 const updateSettings = vi.fn(() =>
   Promise.resolve({ ...DEFAULT_SETTINGS, offline: true }),
 );
@@ -53,6 +60,25 @@ function fakeBridge() {
     setKey: vi.fn(() => Promise.resolve()),
     removeKey: vi.fn(() => Promise.resolve()),
     getKeyStatus: vi.fn(() => Promise.resolve({ configured: false })),
+    getSummary,
+    generateSummary: vi.fn(() =>
+      Promise.resolve({
+        state: "failed" as const,
+        subject: "",
+        reason: "expired" as const,
+      }),
+    ),
+    cancelSummaries: vi.fn(() => Promise.resolve()),
+    onSummaryProgress: vi.fn(() => () => undefined),
+    getSpend: vi.fn(() =>
+      Promise.resolve({
+        month: "2026-10",
+        monthUsd: 0,
+        sessionUsd: 0,
+        sessionBudgetUsd: 1,
+        heldUsd: 0,
+      }),
+    ),
   };
   return {
     bridge,
@@ -117,9 +143,12 @@ describe("createIpcApi", () => {
     expect(updateSettings).toHaveBeenCalledWith({ offline: true });
   });
 
-  it("rejects methods of later steps, naming the milestone", async () => {
+  it("asks main for summaries", async () => {
     const { api } = createIpcApi(fakeBridge().bridge);
-    await expect(api.getSummary("a.ts")).rejects.toThrow("M7");
+    await expect(api.getSummary("a.ts", { auto: true })).resolves.toMatchObject(
+      { state: "unavailable" },
+    );
+    expect(getSummary).toHaveBeenCalledWith("a.ts", { auto: true });
   });
 });
 

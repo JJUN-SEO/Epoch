@@ -25,7 +25,10 @@ import { registerAppScheme, serveUi } from "./protocol";
 import { RecentProjects } from "./recent";
 import { GrantedRoots } from "./roots";
 import { registerRoutes } from "./routes";
+import { ConsentStore } from "./consent-store";
 import { SettingsStore } from "./settings-store";
+import { SpendLedger } from "./spend-ledger";
+import { SummaryService, type SenderLike } from "./summary-service";
 import { createProjectWindow } from "./window";
 import { isReachable, loadWindowState, saveWindowState } from "./window-state";
 
@@ -139,6 +142,50 @@ async function start(): Promise<void> {
     safeStorage,
     process.platform,
   );
+  let sender: Promise<SenderLike> | undefined;
+  const summaries = new SummaryService({
+    settings: () => settings.get(),
+    keys,
+    ledger: new SpendLedger(path.join(userData, "spend.json")),
+    consent: new ConsentStore(path.join(userData, "consent.json")),
+    // Main's own dialog, so the renderer alone can never approve a send.
+    askConsent: async (ctx, plan) => {
+      const win = BrowserWindow.getAllWindows().find(
+        (w) => w.webContents.id === ctx.windowId,
+      );
+      if (!win) return false;
+      const listed = plan.sends.slice(0, 12).join("\n");
+      const more = Math.max(0, plan.sends.length - 12) + plan.sendsMore;
+      const { response } = await dialog.showMessageBox(win, {
+        type: "question",
+        buttons: ["Cancel", "Send"],
+        defaultId: 0,
+        cancelId: 0,
+        message: `Send code from ${path.basename(ctx.root)} to Anthropic?`,
+        detail: [
+          `To write summaries, Epoch will send the content of these files to ${plan.destination} with your key (model ${plan.model}):`,
+          listed + (more > 0 ? `\n…and ${String(more)} more` : ""),
+          plan.excluded.length > 0
+            ? `Never sent (they look like secrets): ${plan.excluded.join(", ")}`
+            : "",
+          `At most $${plan.estimate.worstCaseUsd.toFixed(4)} at your prices. This applies to this project only; summaries can be turned off in Settings.`,
+        ]
+          .filter((l) => l !== "")
+          .join("\n\n"),
+      });
+      return response === 1;
+    },
+    // The model client, in a lazy chunk, loaded when a summary is first sent.
+    sender: () =>
+      (sender ??= import("./sender").then((m) =>
+        m.createSender(() => settings.get().offline),
+      )),
+  });
+  let previous = settings.get();
+  settings.onChange((next) => {
+    summaries.settingsChanged(previous, next);
+    previous = next;
+  });
   settings.onChange((next) => {
     for (const win of BrowserWindow.getAllWindows())
       if (!win.isDestroyed())
@@ -238,6 +285,21 @@ async function start(): Promise<void> {
           : response === 1
             ? "store"
             : undefined;
+      },
+      summaries,
+      summaryContext: (win) => {
+        const target = sessions.get(win.webContents)?.summaryTarget();
+        if (!target) return undefined;
+        const contents = win.webContents;
+        return {
+          windowId: contents.id,
+          root: target.root,
+          host: target.host,
+          notify: (progress) => {
+            if (!contents.isDestroyed())
+              contents.send(EVENTS.summaryProgress, progress);
+          },
+        };
       },
     },
   );

@@ -13,18 +13,18 @@ import { describe, expect, it } from "vitest";
 
 const OUT = fileURLToPath(new URL("../out", import.meta.url));
 
-/** Strings only a model client or endpoint contains. */
-const NEEDLES = [
-  "api.anthropic.com",
-  "@anthropic-ai/sdk",
-  "anthropic-version",
-  "127.0.0.1:11434",
-];
+/** Strings only the Anthropic SDK contains. */
+const CLIENT = ["@anthropic-ai/sdk", "anthropic-version"];
+/** ...and the model endpoints, which no process but main may even name. */
+const ENDPOINTS = ["api.anthropic.com", "127.0.0.1:11434"];
 
-const carries = (file: string): boolean => {
-  const text = fs.readFileSync(file, "utf8");
-  return NEEDLES.some((n) => text.includes(n));
-};
+const has =
+  (needles: readonly string[]) =>
+  (file: string): boolean => {
+    const text = fs.readFileSync(file, "utf8");
+    return needles.some((n) => text.includes(n));
+  };
+const carries = has([...CLIENT, ...ENDPOINTS]);
 
 /**
  * The bundled files an entry loads: relative static imports, and with
@@ -64,10 +64,13 @@ describe("the built app", () => {
     expect(closure(entry, true).filter(carries)).toEqual([]);
   });
 
-  it("main's entry carries no model client but in lazy chunks", () => {
+  it("main loads the model client only lazily", () => {
     const entry = at("main", "index.js");
     expect(fs.existsSync(entry)).toBe(true);
-    expect(closure(entry, false).filter(carries)).toEqual([]);
+    // Main names the endpoints (consent asks about them), never the client.
+    expect(closure(entry, false).filter(has(CLIENT))).toEqual([]);
+    // The client is there, behind a dynamic import.
+    expect(closure(entry, true).some(has(CLIENT))).toBe(true);
   });
 
   it("the renderer carries no model client and names no model endpoint", () => {

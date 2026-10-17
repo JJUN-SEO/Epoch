@@ -119,6 +119,14 @@ export class ProjectSession {
     return this.host.preview(root, file, startLine, endLine);
   }
 
+  /** The open project and its host, for summaries; undefined when none is open. */
+  summaryTarget(): { root: string; host: HostClient } | undefined {
+    const root = this.current?.info.root;
+    return root === undefined || !this.host
+      ? undefined
+      : { root, host: this.host };
+  }
+
   private openRoot(): string {
     const root = this.current?.info.root;
     if (root === undefined) throw new Error("No project is open.");

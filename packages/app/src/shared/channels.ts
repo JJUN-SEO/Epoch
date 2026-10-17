@@ -32,6 +32,14 @@ export const CHANNELS = {
   removeKey: "epoch:remove-key",
   /** payload: provider; answers whether a key is set and how it is kept. */
   getKeyStatus: "epoch:get-key-status",
+  /** payload: subject, optional { auto }; answers a SummaryState. */
+  getSummary: "epoch:get-summary",
+  /** payload: a plan id from a needs-approval state. */
+  generateSummary: "epoch:generate-summary",
+  /** Stops this window's summary requests; no payload. */
+  cancelSummaries: "epoch:cancel-summaries",
+  /** What model features spent; no payload. */
+  getSpend: "epoch:get-spend",
 } as const;
 
 /** Main-to-renderer events. */
@@ -49,6 +57,8 @@ export const EVENTS = {
   menuCommand: "epoch:menu-command",
   /** The settings changed (in any window); payload: Settings. */
   settingsChanged: "epoch:settings-changed",
+  /** A summary job in this window advanced; payload: SummaryProgress. */
+  summaryProgress: "epoch:summary-progress",
 } as const;
 
 /**

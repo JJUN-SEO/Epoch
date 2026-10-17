@@ -12,6 +12,7 @@ import {
 import {
   HostEvent,
   type HostRequest,
+  type SummaryJobItem,
   type SummaryPlanMessage,
 } from "../shared/host-protocol";
 
@@ -172,17 +173,22 @@ export class HostClient {
     return event.summary;
   }
 
-  /** The subjects of a folder summary job, bottom-up. */
-  async summaryJob(root: string, dir: string): Promise<string[]> {
+  /** A folder summary job's subjects, bottom-up, each planned. */
+  async summaryJob(
+    root: string,
+    dir: string,
+    model: SummaryModel,
+  ): Promise<SummaryJobItem[]> {
     const event = await this.call((id) => ({
       type: "summary-job",
       id,
       root,
       dir,
+      model,
     }));
     if (event.type !== "summary-job")
       throw new Error("Unexpected host answer.");
-    return event.subjects;
+    return event.items;
   }
 
   dispose(): void {

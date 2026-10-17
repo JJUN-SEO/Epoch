@@ -1,6 +1,7 @@
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import {
+  MAX_SUMMARY_CHARS,
   diffGraphs,
   folderJob,
   isEmptyDelta,
@@ -27,12 +28,15 @@ import {
   type SummaryPlan,
 } from "@epoch-dev/engine";
 import type { Embedder } from "@epoch-dev/core";
+import { estimateTokens } from "@epoch-dev/scorers/cost";
+import { folderPrompt } from "@epoch-dev/scorers/summary";
 import { installTripwire } from "@epoch-dev/scorers/tripwire";
 import {
   HostRequest,
   MAX_PREVIEW_LINES,
   MAX_PREVIEW_LINE_CHARS,
   type HostEvent,
+  type SummaryJobItem,
   type SummaryPlanMessage,
 } from "../shared/host-protocol";
 
@@ -174,6 +178,45 @@ function project(root: string): AnalyzeResult | undefined {
   return current?.root === toPosix(path.resolve(root)) ? current : undefined;
 }
 
+/** Plans a summary of the open project (engine planSummary); sends nothing. */
+function plan(
+  open: AnalyzeResult,
+  subject: string,
+  model: SummaryModelId,
+): SummaryPlan {
+  const reader = new FsReader(open.root);
+  return planSummary(
+    {
+      root: open.root,
+      graph: open.graph,
+      packages: open.packages,
+      readText: (rel) => reader.readFile(`${open.root}/${rel}`),
+    },
+    new SummaryStore(cache, open.root),
+    subject,
+    model,
+  );
+}
+
+/** Files whose content a plan's prompt holds: the file, a package's members, none for a folder. */
+function sendsOf(open: AnalyzeResult, p: SummaryPlan & { ok: true }): string[] {
+  if (p.kind === "file") return [p.subject];
+  if (p.kind === "package")
+    return (open.packages.get(p.subject) ?? []).filter(
+      (m) => !p.excluded.includes(m),
+    );
+  return [];
+}
+
+/** A folder's prompt at its largest: every child summary at the length cap. */
+function folderWorstCase(dir: string, children: number): number {
+  const base = folderPrompt({ path: dir, children: [] });
+  return (
+    estimateTokens(base.system + base.user) +
+    children * estimateTokens("x".repeat(MAX_SUMMARY_CHARS + 200))
+  );
+}
+
 function summaryPlan(
   request: Extract<HostRequest, { type: "summary-plan" }>,
 ): void {
@@ -186,43 +229,34 @@ function summaryPlan(
     });
     return;
   }
-  const reader = new FsReader(open.root);
-  const plan = planSummary(
-    {
-      root: open.root,
-      graph: open.graph,
-      packages: open.packages,
-      readText: (rel) => reader.readFile(`${open.root}/${rel}`),
-    },
-    new SummaryStore(cache, open.root),
-    request.subject,
-    request.model,
-  );
+  const p = plan(open, request.subject, request.model);
   let message: SummaryPlanMessage;
-  if (plan.ok) {
-    plans.delete(plan.key);
-    plans.set(plan.key, { plan, model: request.model });
+  if (p.ok) {
+    plans.delete(p.key);
+    plans.set(p.key, { plan: p, model: request.model });
     for (const key of plans.keys()) {
       if (plans.size <= MAX_PLANS) break;
       plans.delete(key);
     }
     message = {
       ok: true,
-      subject: plan.subject,
-      kind: plan.kind,
-      key: plan.key,
-      status: plan.status,
-      used: plan.used.length,
-      truncated: plan.truncated,
-      excluded: [...plan.excluded],
-      ...(request.withPrompt ? { prompt: plan.prompt } : {}),
+      subject: p.subject,
+      kind: p.kind,
+      key: p.key,
+      status: p.status,
+      used: p.used.length,
+      truncated: p.truncated,
+      excluded: [...p.excluded],
+      sends: sendsOf(open, p),
+      inputTokens: estimateTokens(p.prompt.system + p.prompt.user),
+      ...(request.withPrompt ? { prompt: p.prompt } : {}),
     };
   } else {
     message = {
       ok: false,
-      subject: plan.subject,
-      reason: plan.reason,
-      ...(plan.missing ? { missing: [...plan.missing] } : {}),
+      subject: p.subject,
+      reason: p.reason,
+      ...(p.missing ? { missing: [...p.missing] } : {}),
     };
   }
   send({ type: "summary-plan", id: request.id, plan: message });
@@ -261,11 +295,40 @@ function summaryJob(
   request: Extract<HostRequest, { type: "summary-job" }>,
 ): void {
   const open = project(request.root);
-  send({
-    type: "summary-job",
-    id: request.id,
-    subjects: open ? folderJob(open.graph, request.dir) : [],
-  });
+  const items: SummaryJobItem[] = [];
+  for (const subject of open ? folderJob(open.graph, request.dir) : []) {
+    if (!open) break;
+    const p = plan(open, subject, request.model);
+    if (p.ok) {
+      const fresh = p.status.state === "fresh";
+      items.push({
+        subject,
+        state: fresh ? "fresh" : "todo",
+        inputTokens: fresh
+          ? 0
+          : estimateTokens(p.prompt.system + p.prompt.user),
+        sends: fresh ? [] : sendsOf(open, p),
+        excluded: [...p.excluded],
+      });
+    } else if (p.reason === "children-missing") {
+      items.push({
+        subject,
+        state: "todo",
+        inputTokens: folderWorstCase(subject.slice(4), p.children ?? 0),
+        sends: [],
+        excluded: [],
+      });
+    } else {
+      items.push({
+        subject,
+        state: "skip",
+        inputTokens: 0,
+        sends: [],
+        excluded: [],
+      });
+    }
+  }
+  send({ type: "summary-job", id: request.id, items });
 }
 
 async function run(

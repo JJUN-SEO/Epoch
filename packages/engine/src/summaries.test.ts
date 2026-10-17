@@ -216,6 +216,7 @@ describe("planSummary and storeSummary", () => {
       "src/config.ts",
       "src/server.ts",
     ]);
+    expect(!early.ok && early.children).toBe(2);
     summarize("src/config.ts", "Holds the port.");
     summarize("src/server.ts", "Starts the server.");
     const plan = ok(planSummary(src, store, "dir:src", HAIKU));
