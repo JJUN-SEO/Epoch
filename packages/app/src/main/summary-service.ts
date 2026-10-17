@@ -156,6 +156,7 @@ const FAILURE_CODES = new Set<string>([
   "unreachable",
   "server",
   "bad-request",
+  "key-needs-workspace",
   "no-model",
 ]);
 

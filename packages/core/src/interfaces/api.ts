@@ -203,6 +203,7 @@ export type SummaryFailureReason =
   | "unreachable"
   | "server"
   | "bad-request"
+  | "key-needs-workspace"
   | "no-model"
   | "refusal"
   | "cut-off"

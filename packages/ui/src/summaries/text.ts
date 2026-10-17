@@ -33,6 +33,8 @@ export const FAILED_TEXT: Readonly<Record<SummaryFailureReason, string>> = {
   unreachable: "Couldn't reach the provider.",
   server: "The provider had an error.",
   "bad-request": "The provider rejected the request.",
+  "key-needs-workspace":
+    "This key isn't in a workspace. Create one inside a workspace in the Claude Console, then save it in Settings.",
   "no-model": "That model isn't available.",
   refusal: "The model declined to summarize this.",
   "cut-off": "The answer was cut off; nothing was kept.",

@@ -59,6 +59,7 @@ export type TextModelErrorCode =
   | "auth"
   | "rate-limited"
   | "bad-request"
+  | "key-needs-workspace"
   | "no-model"
   | "server"
   | "unreachable"
@@ -71,6 +72,8 @@ const MESSAGES: Record<TextModelErrorCode, string> = {
   auth: "the provider refused the key",
   "rate-limited": "rate limited by the provider",
   "bad-request": "the provider rejected the request",
+  "key-needs-workspace":
+    "the key belongs to no workspace: create one inside a workspace in the Claude Console",
   "no-model": "the model is not available",
   server: "the provider had an error",
   unreachable: "could not reach the provider",
@@ -111,7 +114,12 @@ function anthropicCode(err: unknown): TextModelErrorCode {
     return "auth";
   if (err instanceof Anthropic.RateLimitError) return "rate-limited";
   if (err instanceof Anthropic.NotFoundError) return "no-model";
-  if (err instanceof Anthropic.BadRequestError) return "bad-request";
+  if (err instanceof Anthropic.BadRequestError)
+    // A key outside any workspace: the API asks for the
+    // anthropic-workspace-id header. Matched here; the text is never shown.
+    return /anthropic-workspace-id|not scoped to a workspace/i.test(err.message)
+      ? "key-needs-workspace"
+      : "bad-request";
   if (err instanceof Anthropic.APIConnectionError) return "unreachable";
   return "server";
 }

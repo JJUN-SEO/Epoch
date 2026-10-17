@@ -159,6 +159,30 @@ describe("anthropicTextModel", () => {
     },
   );
 
+  it("names a key that belongs to no workspace, which Anthropic refuses with a 400", async () => {
+    // The API's answer, as a maintainer's key received it on 2026-10-17.
+    const { model } = anthropic(() =>
+      json(
+        {
+          type: "error",
+          error: {
+            type: "invalid_request_error",
+            message:
+              "This API key is not scoped to a workspace, so this request must include the anthropic-workspace-id header with the ID of the workspace to use. Add the header, or use an API key that is scoped to a workspace.",
+          },
+        },
+        400,
+      ),
+    );
+    const err = await model
+      .generate({ system: "", user: "u", maxOutputTokens: 10 })
+      .catch((e: unknown) => e);
+    expect((err as TextModelError).code).toBe("key-needs-workspace");
+    expect((err as Error).message).toBe(
+      "the key belongs to no workspace: create one inside a workspace in the Claude Console",
+    );
+  });
+
   it("sends nothing offline", async () => {
     const { model, seen } = anthropic(() => message("end_turn"), true);
     const err = await model

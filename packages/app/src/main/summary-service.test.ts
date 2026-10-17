@@ -540,6 +540,10 @@ describe("SummaryService", () => {
     for (const [answer, reason] of [
       [() => Promise.reject(coded("auth", "secret detail")), "auth"],
       [
+        () => Promise.reject(coded("key-needs-workspace", "secret detail")),
+        "key-needs-workspace",
+      ],
+      [
         () =>
           Promise.resolve({
             text: "No.",
