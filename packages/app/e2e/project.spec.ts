@@ -96,6 +96,7 @@ test("the bridge exposes only its named functions", async () => {
       "getCodePreview",
       "getFindings",
       "getGraph",
+      "getKeyStatus",
       "getSettings",
       "onAnalysisInfo",
       "onGraphDelta",
@@ -107,6 +108,8 @@ test("the bridge exposes only its named functions", async () => {
       "openDroppedFolder",
       "openProject",
       "recentProjects",
+      "removeKey",
+      "setKey",
       "showAppMenu",
       "undismissFinding",
       "updateSettings",
@@ -154,6 +157,63 @@ test("settings round-trip, and spending more asks in main's own dialog", async (
   expect(result.refused).toContain("not confirmed");
   expect(result.invalid).toContain("invalid payload");
   expect(asked).toEqual(["monthly cap none → $5.00"]);
+});
+
+const SENTINEL = "sk-e2e-SENTINEL-6f1d2c";
+
+test("keys report status only, and a bad key is refused without being repeated", async () => {
+  const result = await epoch.page.evaluate(async (k) => {
+    const reason = (e: unknown) => (e instanceof Error ? e.message : String(e));
+    const bridge = window.epoch as unknown as Record<
+      string,
+      (...a: unknown[]) => Promise<unknown>
+    >;
+    const status = await window.epoch.getKeyStatus("anthropic");
+    const tries = await Promise.all(
+      [
+        ["setKey", "anthropic", `${k} has spaces`],
+        ["setKey", k, k],
+        ["setKey", "anthropic", k.repeat(40)],
+        ["setKey", "anthropic", { key: k }],
+        ["getKeyStatus", k],
+        ["removeKey", k],
+      ].map(([name, ...args]) =>
+        (
+          bridge[name as string]?.(...args) ??
+          Promise.reject(new Error("no such function"))
+        ).then(() => "accepted", reason),
+      ),
+    );
+    return { status, tries };
+  }, SENTINEL);
+  expect(result.status).toEqual({ configured: false });
+  for (const t of result.tries) {
+    expect(t).toContain("invalid payload");
+    expect(t).not.toContain("SENTINEL");
+  }
+});
+
+test("a key is sent once and only its status comes back", async () => {
+  test.skip(
+    process.platform === "darwin",
+    "the macOS keychain may ask for access on a CI runner",
+  );
+  // Linux without a keyring asks how to keep it: "This session only".
+  await epoch.app.evaluate(({ dialog }) => {
+    dialog.showMessageBox = () =>
+      Promise.resolve({ response: 0, checkboxChecked: false });
+  });
+  const result = await epoch.page.evaluate(async (k) => {
+    await window.epoch.setKey("anthropic", k);
+    const set = await window.epoch.getKeyStatus("anthropic");
+    await window.epoch.removeKey("anthropic");
+    const removed = await window.epoch.getKeyStatus("anthropic");
+    return { set, removed };
+  }, SENTINEL);
+  expect(result.set.configured).toBe(true);
+  expect(["encrypted", "session", "weak"]).toContain(result.set.storage);
+  expect(JSON.stringify(result)).not.toContain("SENTINEL");
+  expect(result.removed).toEqual({ configured: false });
 });
 
 test("a folder chosen in the dialog is analyzed in the host, with progress", async () => {

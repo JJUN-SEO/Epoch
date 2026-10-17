@@ -39,9 +39,6 @@ const unavailable = (what: string) => (): Promise<never> =>
 
 /** EpochApi methods that later M7 steps implement. */
 const later = {
-  setKey: unavailable("Keys arrive later in M7"),
-  removeKey: unavailable("Keys arrive later in M7"),
-  getKeyStatus: unavailable("Keys arrive later in M7"),
   getSummary: unavailable("Summaries arrive later in M7"),
   generateSummary: unavailable("Summaries arrive later in M7"),
   cancelSummaries: unavailable("Summaries arrive later in M7"),
@@ -82,6 +79,9 @@ export function createIpcApi(bridge: DesktopBridge): {
         bridge.getCodePreview(file, start, end),
       getSettings: () => bridge.getSettings(),
       updateSettings: (patch) => bridge.updateSettings(patch),
+      setKey: (provider, value) => bridge.setKey(provider, value),
+      removeKey: (provider) => bridge.removeKey(provider),
+      getKeyStatus: (provider) => bridge.getKeyStatus(provider),
       ...later,
     },
     shell: {

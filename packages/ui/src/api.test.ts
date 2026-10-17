@@ -50,6 +50,9 @@ function fakeBridge() {
     getSettings: vi.fn(() => Promise.resolve(DEFAULT_SETTINGS)),
     updateSettings,
     onSettingsChanged: vi.fn(() => () => undefined),
+    setKey: vi.fn(() => Promise.resolve()),
+    removeKey: vi.fn(() => Promise.resolve()),
+    getKeyStatus: vi.fn(() => Promise.resolve({ configured: false })),
   };
   return {
     bridge,

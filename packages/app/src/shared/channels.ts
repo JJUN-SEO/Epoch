@@ -26,6 +26,12 @@ export const CHANNELS = {
   getSettings: "epoch:get-settings",
   /** payload: a SettingsPatch; raising spend limits asks in a native dialog. */
   updateSettings: "epoch:update-settings",
+  /** payload: provider, key. One-way: no channel returns a key. */
+  setKey: "epoch:set-key",
+  /** payload: provider. */
+  removeKey: "epoch:remove-key",
+  /** payload: provider; answers whether a key is set and how it is kept. */
+  getKeyStatus: "epoch:get-key-status",
 } as const;
 
 /** Main-to-renderer events. */

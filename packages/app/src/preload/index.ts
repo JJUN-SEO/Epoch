@@ -9,6 +9,7 @@ import type {
   CodePreview,
   Finding,
   Graph,
+  KeyStatus,
   Progress,
   ProjectInfo,
   Settings,
@@ -94,6 +95,11 @@ const bridge: DesktopBridge = {
   getSettings: () => invoke<Settings>(CHANNELS.getSettings),
   updateSettings: (patch) => invoke<Settings>(CHANNELS.updateSettings, patch),
   onSettingsChanged: (cb) => on(EVENTS.settingsChanged, cb),
+  setKey: (provider, value) =>
+    invoke<undefined>(CHANNELS.setKey, provider, value),
+  removeKey: (provider) => invoke<undefined>(CHANNELS.removeKey, provider),
+  getKeyStatus: (provider) =>
+    invoke<KeyStatus>(CHANNELS.getKeyStatus, provider),
   onMenuCommand: (cb) => {
     const listener = (_event: IpcRendererEvent, id: string) => {
       cb(id);

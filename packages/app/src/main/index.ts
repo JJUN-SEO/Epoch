@@ -5,6 +5,7 @@ import {
   dialog,
   ipcMain,
   Menu,
+  safeStorage,
   screen,
   session,
   type WebContents,
@@ -14,6 +15,7 @@ import { EVENTS } from "../shared/channels";
 import { hardenSession, hardenWebContents, openExternally } from "./harden";
 import { HostClient } from "./host-client";
 import { createRouter } from "./ipc";
+import { KeyStore } from "./key-store";
 import { buildMenu } from "./menu";
 import { embeddingModelDir, hostModelArgs } from "./model";
 import { APP_ENTRY_URL, devServerOrigin } from "./policy";
@@ -132,6 +134,11 @@ async function start(): Promise<void> {
   const settings = new SettingsStore(path.join(userData, "settings.json"));
   for (const warning of settings.warnings)
     console.error(`[epoch] settings: ${warning}`);
+  const keys = new KeyStore(
+    path.join(userData, "keys.json"),
+    safeStorage,
+    process.platform,
+  );
   settings.onChange((next) => {
     for (const win of BrowserWindow.getAllWindows())
       if (!win.isDestroyed())
@@ -214,6 +221,23 @@ async function start(): Promise<void> {
           detail: raises.join("\n"),
         });
         return response === 1;
+      },
+      keys,
+      chooseWeakStorage: async (win) => {
+        const { response } = await dialog.showMessageBox(win, {
+          type: "warning",
+          buttons: ["This session only", "Store anyway (weak)", "Cancel"],
+          defaultId: 0,
+          cancelId: 2,
+          message: "This system has no keyring to protect your key.",
+          detail:
+            "Epoch can keep the key until it quits, or store it with weak protection that other programs running as you could read.",
+        });
+        return response === 0
+          ? "session"
+          : response === 1
+            ? "store"
+            : undefined;
       },
     },
   );

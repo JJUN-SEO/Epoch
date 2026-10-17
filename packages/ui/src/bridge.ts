@@ -5,6 +5,7 @@ import type {
   FindingFilter,
   Graph,
   GraphDelta,
+  KeyStatus,
   Progress,
   ProjectInfo,
   Settings,
@@ -61,4 +62,8 @@ export interface DesktopBridge {
   updateSettings(patch: SettingsPatch): Promise<Settings>;
   /** The settings changed, in this window or another. */
   onSettingsChanged(cb: (settings: Settings) => void): Unsubscribe;
+  /** Sends a key once to main; it is never readable back. */
+  setKey(provider: string, value: string): Promise<void>;
+  removeKey(provider: string): Promise<void>;
+  getKeyStatus(provider: string): Promise<KeyStatus>;
 }

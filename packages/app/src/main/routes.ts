@@ -7,6 +7,7 @@ import { CHANNELS } from "../shared/channels";
 import { MAX_PREVIEW_LINES, RepoRelativePath } from "../shared/host-protocol";
 import type { Register } from "./ipc";
 import type { ProjectSession } from "./project";
+import type { KeyStore } from "./key-store";
 import type { Projects } from "./projects";
 import type { SettingsStore } from "./settings-store";
 
@@ -33,16 +34,38 @@ const PreviewArgs = z
     `a range of 1 to ${String(MAX_PREVIEW_LINES)} lines`,
   );
 
+/** A model provider whose key the user can set (Jev is not built yet). */
+const Provider = z.enum(["anthropic"], { error: "unknown provider" });
+
+/**
+ * A key as the renderer may send it. Rejected without repeating it: the
+ * error names the rule, never the value.
+ */
+const KeyValue = z
+  .string({ error: "not a valid key" })
+  .min(1, { error: "not a valid key" })
+  .max(512, { error: "not a valid key" })
+  // eslint-disable-next-line no-control-regex -- control characters are what this rejects
+  .regex(/^[^\s\u0000-\u001f\u007f]+$/, { error: "not a valid key" });
+
 /** A position in the window, in CSS pixels. */
 const WindowCoordinate = z.number().int().min(0).max(100_000);
 
-/** The settings and the native dialog that confirms spending more. */
+/** The settings, the keys, and main's native dialogs for both. */
 export interface SettingsRoutes {
   readonly store: SettingsStore;
   readonly confirmRaises: (
     win: BrowserWindow,
     raises: readonly string[],
   ) => Promise<boolean>;
+  readonly keys: KeyStore;
+  /**
+   * Linux without a keyring: keep the key for this session, store it with
+   * weak protection, or cancel (undefined).
+   */
+  readonly chooseWeakStorage: (
+    win: BrowserWindow,
+  ) => Promise<"store" | "session" | undefined>;
 }
 
 /** Registers every IPC channel main answers, each with its payload schema. */
@@ -112,6 +135,28 @@ export function registerRoutes(
       settings.store.update(patch, (raises) =>
         settings.confirmRaises(win, raises),
       ),
+  });
+  handle(CHANNELS.setKey, {
+    args: z.tuple([Provider, KeyValue]),
+    handle: async (win, provider, value) => {
+      let mode: "store" | "session" | undefined = "store";
+      if ((await settings.keys.protection()) === "weak")
+        mode = await settings.chooseWeakStorage(win);
+      if (mode === undefined) throw new Error("The key was not saved.");
+      await settings.keys.set(provider, value, mode);
+      return undefined;
+    },
+  });
+  handle(CHANNELS.removeKey, {
+    args: z.tuple([Provider]),
+    handle: async (_win, provider) => {
+      await settings.keys.remove(provider);
+      return undefined;
+    },
+  });
+  handle(CHANNELS.getKeyStatus, {
+    args: z.tuple([Provider]),
+    handle: (_win, provider) => settings.keys.status(provider),
   });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),
