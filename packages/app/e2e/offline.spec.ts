@@ -120,9 +120,14 @@ async function open(folder: string, files: string): Promise<void> {
     dialog.showOpenDialog = () =>
       Promise.resolve({ canceled: false, filePaths: [f] });
   }, folder);
-  const button = epoch.page.getByRole("button", { name: "Open Project…" });
-  if (await button.isVisible()) await button.click();
-  else await epoch.page.keyboard.press("ControlOrMeta+O");
+  // File > Open Project… (its shortcut is a native menu accelerator, which
+  // keys typed into the page do not reliably reach).
+  await epoch.app.evaluate(({ Menu }) => {
+    const file = Menu.getApplicationMenu()?.items.find(
+      (i) => i.label === "File",
+    );
+    file?.submenu?.items.find((i) => i.label === "Open Project…")?.click();
+  });
   await expect(epoch.page.getByTestId("graph-stats")).toContainText(files);
 }
 

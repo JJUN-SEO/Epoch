@@ -165,10 +165,23 @@ describe(
   "discover: files git tracks are never hidden by .gitignore",
   { timeout: 60_000 },
   () => {
+    // No automatic maintenance: newer git runs it detached after a commit,
+    // and a background git still writing in .git races a test that then
+    // changes or reads it.
     const git = (cwd: string, ...args: string[]) =>
       childProcess.execFileSync(
         "git",
-        ["-c", "user.email=t@example.com", "-c", "user.name=t", ...args],
+        [
+          "-c",
+          "user.email=t@example.com",
+          "-c",
+          "user.name=t",
+          "-c",
+          "maintenance.auto=false",
+          "-c",
+          "gc.auto=0",
+          ...args,
+        ],
         {
           cwd,
           encoding: "utf8",
@@ -224,12 +237,13 @@ describe(
     });
 
     it("walks a build-output directory name only when git tracks files inside", () => {
-      const root = tree({
+      const files = {
         "internal/build/build.go": "package build",
         "dist/bundle.js": "",
         "coverage/lcov.info": "",
         "node_modules/dep/index.js": "",
-      });
+      };
+      const root = tree(files);
       git(root, "init", "-q");
       git(root, "add", "internal/build/build.go", "node_modules/dep/index.js");
       git(root, "commit", "-q", "-m", "init");
@@ -237,9 +251,9 @@ describe(
       expect(discover(root, { isSource }).files).toEqual([
         "internal/build/build.go",
       ]);
-      // Without git there is nothing to vouch for it.
-      fs.rmSync(path.join(root, ".git"), { recursive: true, force: true });
-      expect(discover(root, { isSource }).files).toEqual([]);
+      // Without git there is nothing to vouch for it (a separate tree, not
+      // a deleted .git that git might still be writing to).
+      expect(discover(tree(files), { isSource }).files).toEqual([]);
     });
 
     it("falls back to plain .gitignore rules without a readable index", () => {
