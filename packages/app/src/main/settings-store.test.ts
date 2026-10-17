@@ -42,13 +42,13 @@ describe("SettingsStore", () => {
       return Promise.resolve(false);
     };
     await expect(
-      store.update({ spend: { monthlyCapUsd: 5 } }, ask),
+      store.update({ spend: { monthlyCapUsd: 20 } }, ask),
     ).rejects.toBeInstanceOf(SettingsNotConfirmed);
-    expect(asked).toEqual([["monthly cap none → $5.00"]]);
-    expect(store.get().spend.monthlyCapUsd).toBeUndefined();
+    expect(asked).toEqual([["monthly cap $5.00 → $20.00"]]);
+    expect(store.get().spend.monthlyCapUsd).toBe(5);
     expect(fs.existsSync(f)).toBe(false);
     // Lowering never asks.
-    await store.update({ spend: { monthlyCapUsd: 5 } }, yes);
+    await store.update({ spend: { monthlyCapUsd: 20 } }, yes);
     await store.update({ spend: { monthlyCapUsd: 2 } }, no);
     expect(store.get().spend.monthlyCapUsd).toBe(2);
   });

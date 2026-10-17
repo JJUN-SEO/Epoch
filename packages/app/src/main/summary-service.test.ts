@@ -323,8 +323,8 @@ describe("SummaryService", () => {
   it.each([
     [{ summaries: { enabled: false } }, "disabled"],
     [{ offline: true }, "offline"],
-    [{ prices: { "anthropic:claude-haiku-5-5": null } }, "no-price"],
-    [{ spend: { monthlyCapUsd: null } }, "no-cap"],
+    // A model Epoch ships no price for, with none entered.
+    [{ summaries: { model: "claude-unpriced" } }, "no-price"],
     [{ summaries: { provider: "local" as const } }, "no-local-model"],
   ])(
     "is unavailable with %j: %s, keeping the last text",
@@ -429,6 +429,29 @@ describe("SummaryService", () => {
     expect(spend.heldUsd).toBe(0);
     expect(spend.monthUsd).toBeCloseTo(0.0015);
     expect(t.host.stores[0]?.costUsd).toBeCloseTo(0.0015);
+  });
+
+  it("needs nothing but a key for the default model: its price ships, the cap has a default", async () => {
+    const t = setup({
+      settings: applySettingsPatch(DEFAULT_SETTINGS, {
+        summaries: { enabled: true },
+      }),
+      consent: true,
+    });
+    t.host.plans.set("a.ts", okPlan("a.ts"));
+    t.sender.answerNext(() =>
+      Promise.resolve({
+        text: "Prose.",
+        stop: "end",
+        usage: { inputTokens: 1000, outputTokens: 100 },
+      }),
+    );
+    expect((await t.service.get(t.ctx(), "a.ts", { auto: true })).state).toBe(
+      "ready",
+    );
+    // At the shipped $0.10 / $0.50 per million tokens.
+    expect(t.host.stores[0]?.costUsd).toBeCloseTo(0.00015);
+    expect(t.service.spend().capUsd).toBe(5);
   });
 
   it("approves exactly one plan, once, in its own window", async () => {

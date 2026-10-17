@@ -157,6 +157,13 @@ export function registerRoutes(
         mode = await settings.chooseWeakStorage(win);
       if (mode === undefined) throw new Error("The key was not saved.");
       await settings.keys.set(provider, value, mode);
+      // Saving a key is the opt-in: summaries turn on with it, using the
+      // key's provider (ADR-016). The first send per project still asks.
+      if (!settings.store.get().summaries.enabled)
+        await settings.store.update(
+          { summaries: { enabled: true, provider } },
+          (raises) => settings.confirmRaises(win, raises),
+        );
       return undefined;
     },
   });

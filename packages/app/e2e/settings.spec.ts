@@ -76,25 +76,33 @@ test("Settings opens from the native menu", async () => {
 
 test("raising the monthly cap asks in main's own dialog first", async () => {
   await answerMessageBoxes(0); // Cancel
-  await settings().getByLabel("Monthly cap in dollars").fill("2");
+  // A default cap is in place from the start.
+  await expect(settings().getByLabel("Monthly cap in dollars")).toHaveValue(
+    "5",
+  );
+  await settings().getByLabel("Monthly cap in dollars").fill("12");
   await settings().getByRole("button", { name: "Save limits" }).click();
   await expect(settings().getByRole("alert")).toContainText("not confirmed");
-  expect((await asked()).join("\n")).toContain("monthly cap none → $2.00");
+  expect((await asked()).join("\n")).toContain("monthly cap $5.00 → $12.00");
   await answerMessageBoxes(1); // Allow
   await settings().getByRole("button", { name: "Save limits" }).click();
   await expect(settings().getByLabel("Spending so far")).toContainText(
-    "of $2.00",
+    "of $12.00",
   );
 });
 
-test("a price is entered by the user, confirmed like any raise", async () => {
+test("the default model's price ships; a lower one is confirmed like any raise", async () => {
+  const prices = settings().getByRole("region", { name: "Prices" });
+  await expect(
+    settings().getByLabel("Input price per million tokens"),
+  ).toHaveValue("0.1");
+  await expect(
+    settings().getByLabel("Output price per million tokens"),
+  ).toHaveValue("0.5");
+  await expect(prices).toContainText("From Anthropic's pricing page");
   await answerMessageBoxes(1);
-  await settings().getByLabel("Input price per million tokens").fill("1");
-  await settings().getByLabel("Output price per million tokens").fill("5");
-  await settings()
-    .getByRole("region", { name: "Prices" })
-    .getByRole("button", { name: "Save" })
-    .click();
+  await settings().getByLabel("Input price per million tokens").fill("0.05");
+  await prices.getByRole("button", { name: "Save" }).click();
   await expect
     .poll(() =>
       epoch.page.evaluate(() =>
@@ -102,15 +110,31 @@ test("a price is entered by the user, confirmed like any raise", async () => {
       ),
     )
     .toEqual(["anthropic:claude-haiku-5-5"]);
-  expect((await asked()).join("\n")).toContain("price set: $1.00 in");
+  expect((await asked()).join("\n")).toContain(
+    "anthropic:claude-haiku-5-5 input price $0.10 → $0.05",
+  );
+  await expect(prices).toContainText("Your prices");
+  await prices.getByRole("button", { name: "Use Epoch's" }).click();
+  await expect
+    .poll(() =>
+      epoch.page.evaluate(() =>
+        window.epoch.getSettings().then((s) => Object.keys(s.prices)),
+      ),
+    )
+    .toEqual([]);
 });
 
-test("a key goes in once: the field clears and only its status shows", async () => {
+test("a key goes in once, turns summaries on, and only its status shows", async () => {
   test.skip(
     process.platform === "darwin",
     "the macOS keychain may ask for access on a CI runner",
   );
   await answerMessageBoxes(0); // Linux without a keyring: this session only
+  const summaries = settings().getByRole("checkbox", {
+    name: "Summaries",
+    exact: true,
+  });
+  await summaries.uncheck();
   const field = settings().getByLabel("Anthropic API key");
   await field.fill(SENTINEL);
   await settings()
@@ -118,6 +142,8 @@ test("a key goes in once: the field clears and only its status shows", async () 
     .getByRole("button", { name: "Save" })
     .click();
   await expect(field).toHaveValue("");
+  // A key is all it takes: summaries turn on with it.
+  await expect(summaries).toBeChecked();
   await expect(settings().getByRole("region", { name: "Keys" })).toContainText(
     /Set until Epoch quits|Set, encrypted by your system|Set, weakly protected/,
   );

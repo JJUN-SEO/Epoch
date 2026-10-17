@@ -385,7 +385,7 @@ writeReport(
     "",
     prices
       ? `Worst case priced at ${dollars(prices.inputPerMTok)} per million input tokens and ${dollars(prices.outputPerMTok)} per million output tokens (${values["price-source"] ?? ""}).`
-      : "No prices were given, so no dollar amounts. Epoch ships no prices.",
+      : "No prices were given, so no dollar amounts.",
     "",
     "## Measured",
     "",

@@ -17,12 +17,36 @@ const ModelName = z
 
 const usd = (max: number) => z.number().min(0).max(max);
 
-/** USD per million tokens, as the user copied them from the provider's pricing page. None ship with Epoch. */
+/** USD per million tokens. */
 export const ModelPrice = z.strictObject({
   inputPerMTok: usd(1000),
   outputPerMTok: usd(1000),
 });
 export type ModelPrice = z.infer<typeof ModelPrice>;
+
+/**
+ * Prices that ship with Epoch, so a key is all a user needs: the default
+ * model's, copied from the provider's pricing page on the date below (never
+ * from memory). The user's own price for a model replaces it. Summary
+ * prompts stay far under the 100,000 tokens above which Claude Haiku 5.5
+ * costs more.
+ */
+export const SHIPPED_PRICES: Readonly<Record<string, ModelPrice>> =
+  Object.freeze({
+    [`anthropic:${DEFAULT_CLAUDE_MODEL}`]: {
+      inputPerMTok: 0.1,
+      outputPerMTok: 0.5,
+    },
+  });
+
+/** Where the shipped prices come from, and when they were read. */
+export const SHIPPED_PRICES_SOURCE = {
+  url: "https://platform.claude.com/docs/en/about-claude/pricing",
+  readOn: "2026-10-17",
+} as const;
+
+/** The monthly cap until the user sets another; a default to tune with use, not a claim. */
+export const DEFAULT_MONTHLY_CAP_USD = 5;
 
 /** "provider:model". Only paid providers have prices; a model on this machine costs nothing. */
 const PriceKey = z
@@ -48,8 +72,8 @@ const summaryFields = {
 };
 
 const spendFields = {
-  /** Required before any paid call; none until the user sets one. Resets monthly. */
-  monthlyCapUsd: usd(10_000).optional(),
+  /** What paid requests may spend in a calendar month. */
+  monthlyCapUsd: usd(10_000),
   /** What one app session may spend. */
   sessionBudgetUsd: usd(10_000),
   /** A job estimated above this asks first; auto summaries never run above it. */
@@ -75,6 +99,7 @@ const sections = {
     .object({
       ...spendFields,
       // Defaults to tune with use, like staleAfterDays; not claims.
+      monthlyCapUsd: spendFields.monthlyCapUsd.default(DEFAULT_MONTHLY_CAP_USD),
       sessionBudgetUsd: spendFields.sessionBudgetUsd.default(1),
       confirmAboveUsd: spendFields.confirmAboveUsd.default(0.05),
     })
@@ -88,7 +113,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze(Settings.parse({}));
 
 /**
  * A change from the renderer: any setting, any field of a section; null
- * removes the monthly cap or a price. Unknown keys are rejected.
+ * removes the user's price for a model. Unknown keys are rejected.
  */
 export const SettingsPatch = z.strictObject({
   offline: z.boolean().optional(),
@@ -96,13 +121,7 @@ export const SettingsPatch = z.strictObject({
   theme: sections.theme.unwrap().optional(),
   summaries: z.strictObject(summaryFields).partial().optional(),
   prices: z.record(PriceKey, ModelPrice.nullable()).optional(),
-  spend: z
-    .strictObject({
-      ...spendFields,
-      monthlyCapUsd: spendFields.monthlyCapUsd.unwrap().nullable(),
-    })
-    .partial()
-    .optional(),
+  spend: z.strictObject(spendFields).partial().optional(),
 });
 export type SettingsPatch = z.input<typeof SettingsPatch>;
 
@@ -162,11 +181,6 @@ export function applySettingsPatch(
     if (price === null) Reflect.deleteProperty(prices, key);
     else prices[key] = price;
   }
-  const { monthlyCapUsd, ...spend } = defined(p.spend);
-  const nextSpend: Record<string, unknown> = { ...current.spend, ...spend };
-  if (monthlyCapUsd === null)
-    Reflect.deleteProperty(nextSpend, "monthlyCapUsd");
-  else if (monthlyCapUsd !== undefined) nextSpend.monthlyCapUsd = monthlyCapUsd;
   return Settings.parse({
     ...current,
     ...defined({
@@ -176,26 +190,24 @@ export function applySettingsPatch(
     }),
     summaries: { ...current.summaries, ...defined(p.summaries) },
     prices,
-    spend: nextSpend,
+    spend: { ...current.spend, ...defined(p.spend) },
   });
 }
 
-const dollars = (n: number | undefined): string =>
-  n === undefined ? "none" : `$${n.toFixed(2)}`;
+const dollars = (n: number): string => `$${n.toFixed(2)}`;
 
 /**
  * The changes from `before` to `after` that let Epoch spend more: a higher
- * or first cap or budget, a higher ask-first threshold, a lower or new
- * price (a price set to zero would make every cap meaningless). Main asks
+ * cap or budget, a higher ask-first threshold, a lower or first price for a
+ * model (a price set to zero would make every cap meaningless), comparing
+ * the prices in effect, shipped or the user's. Main asks
  * in a native dialog before saving any of them, so the renderer alone can
  * never raise what Epoch may spend.
  */
 export function spendRaises(before: Settings, after: Settings): string[] {
   const out: string[] = [];
-  const cap = [before.spend.monthlyCapUsd, after.spend.monthlyCapUsd] as const;
-  if (cap[1] !== undefined && (cap[0] === undefined || cap[1] > cap[0]))
-    out.push(`monthly cap ${dollars(cap[0])} → ${dollars(cap[1])}`);
   const limits = [
+    ["monthly cap", "monthlyCapUsd"],
     ["session budget", "sessionBudgetUsd"],
     ["ask above", "confirmAboveUsd"],
   ] as const;
@@ -205,8 +217,15 @@ export function spendRaises(before: Settings, after: Settings): string[] {
         `${label} ${dollars(before.spend[key])} → ${dollars(after.spend[key])}`,
       );
   }
-  for (const [key, price] of Object.entries(after.prices)) {
-    const old = before.prices[key];
+  const keys = new Set([
+    ...Object.keys(SHIPPED_PRICES),
+    ...Object.keys(before.prices),
+    ...Object.keys(after.prices),
+  ]);
+  for (const key of [...keys].sort()) {
+    const price = after.prices[key] ?? SHIPPED_PRICES[key];
+    const old = before.prices[key] ?? SHIPPED_PRICES[key];
+    if (price === undefined) continue;
     if (old === undefined) {
       out.push(
         `${key} price set: ${dollars(price.inputPerMTok)} in, ${dollars(price.outputPerMTok)} out per million tokens`,
@@ -230,9 +249,10 @@ export function spendRaises(before: Settings, after: Settings): string[] {
 export const updateChecksAllowed = (s: Settings): boolean =>
   s.updateChecks && !s.offline;
 
-/** The user's price for a provider's model, if they entered one. */
+/** The price in effect for a provider's model: the user's, else the one Epoch ships. */
 export const priceOf = (
   s: Settings,
   provider: string,
   model: string,
-): ModelPrice | undefined => s.prices[`${provider}:${model}`];
+): ModelPrice | undefined =>
+  s.prices[`${provider}:${model}`] ?? SHIPPED_PRICES[`${provider}:${model}`];

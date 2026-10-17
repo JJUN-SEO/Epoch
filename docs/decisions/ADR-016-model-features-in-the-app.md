@@ -47,8 +47,10 @@ This ADR records how the app does it safely.
 7. **Consent** is per project (its resolved root) and provider, stored in Epoch's data directory, and given in a native dialog owned by main, so a compromised renderer cannot approve a send. The dialog states what is sent and where. A local model needs no consent, since nothing leaves the machine.
 8. **Approval tokens.** When a request needs approval, main issues a single-use `planId` bound to the window and project. `generateSummary(planId)` rebuilds the plan; if the input changed or the worst-case cost rose, it asks again.
 9. **Spend.**
-   - A monthly cap is required before any paid call, with a reset button. There is a per-session budget, and a per-job threshold above which Epoch asks first.
-   - Prices are entered by the user per `provider:model`. None ship with Epoch, and a model with no price makes paid summaries unavailable.
+   - A monthly cap ($5 by default), with a reset button. There is a per-session budget ($1), and a per-job threshold ($0.05) above which Epoch asks first. All three are defaults to tune with use, not claims.
+   - Prices: Epoch ships the default model's price, copied from Anthropic's pricing page with the date it was read (`SHIPPED_PRICES` in core; Claude Haiku 5.5, $0.10 / $0.50 per million tokens, read 2026-10-17). The user's own price for a model replaces it, and a lower price in effect, shipped or the user's, counts as a spending raise. Another model with no price makes paid summaries unavailable.
+   - Saving an Anthropic key turns summaries on (the key is the opt-in). The first send per project still asks, in main's dialog.
+   - _Changed after review (2026-10-17):_ this first required the user to enter a price and a cap before anything worked; the maintainer asked that entering a key be enough.
    - Each call reserves its worst case in a ledger (counts and USD only, no paths or content) before it is sent, and settles the actual usage after.
    - Raising what Epoch may spend asks in a native dialog (core `spendRaises`): a higher or first cap, a higher budget or threshold, or a lower or new price, since a zero price would make every cap meaningless.
 
@@ -95,7 +97,7 @@ This ADR records how the app does it safely.
 
 ## Consequences
 
-- A summary needs a key, a price, a monthly cap and consent before the first paid call. Each is a step in Settings, and the Summary section says which one is missing (`unavailable` reason codes).
+- For the default model a summary needs only a key, then one consent per project. Another model needs its price entered. The Summary section says which step is missing (`unavailable` reason codes).
 - Main gains code that holds keys and sends requests. It is covered by unit tests with fakes for the host, the egress and `safeStorage`, and by e2e that stub the provider from the test side, so the app contains no test-only code.
 - The host's network tripwire also guards against future dependencies that would phone home.
 

@@ -1,7 +1,10 @@
 import { X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
+  SHIPPED_PRICES,
+  SHIPPED_PRICES_SOURCE,
   applySettingsPatch,
+  priceOf,
   type EpochApi,
   type KeyStatus,
   type Settings,
@@ -20,8 +23,6 @@ import { bytes, keyStatusText, parseUsd, usd } from "./model";
  * lets Epoch spend more is confirmed there, in a native dialog. A key is
  * sent once and the field is cleared; only its status comes back.
  */
-
-const ANTHROPIC_PRICING = "https://www.anthropic.com/pricing";
 
 function Section(props: {
   readonly title: string;
@@ -129,7 +130,10 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
   }, [api, shell, refresh, fail]);
 
   const model = settings?.summaries.model ?? "";
-  const price = settings?.prices[`anthropic:${model}`];
+  // The price in effect: the user's own, else the one Epoch ships.
+  const price = settings ? priceOf(settings, "anthropic", model) : undefined;
+  const ownPrice = settings?.prices[`anthropic:${model}`];
+  const shippedPrice = SHIPPED_PRICES[`anthropic:${model}`];
   useEffect(() => {
     setPrices({
       input: price ? String(price.inputPerMTok) : "",
@@ -228,12 +232,13 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
     const ask = parseUsd(limits.ask);
     if (
       cap === undefined ||
+      cap === null ||
       session === undefined ||
       session === null ||
       ask === undefined ||
       ask === null
     ) {
-      setError("Enter amounts in dollars; only the monthly cap may be empty.");
+      setError("Enter each limit in dollars.");
       return;
     }
     update(
@@ -314,7 +319,7 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
             <Section title="Summaries">
               <Row
                 label="Summaries"
-                hint="Model-written summaries of files and folders. Off until you turn them on; nothing is sent before you agree, once per project."
+                hint="Model-written summaries of files and folders. They turn on when you save an Anthropic key; nothing is sent before you agree, once per project."
               >
                 <Toggle
                   hideLabel
@@ -423,10 +428,12 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
             </Section>
 
             <Section title="Prices">
-              <p className="text-muted text-xs">
-                Epoch ships no prices. Copy them for {model} from
-                Anthropic&apos;s pricing page ({ANTHROPIC_PRICING}), in dollars
-                per million tokens. Without a price, paid summaries stay off.
+              <p className="text-muted text-xs" aria-label="Price source">
+                {ownPrice
+                  ? `Your prices for ${model}, in dollars per million tokens.`
+                  : shippedPrice
+                    ? `From Anthropic's pricing page (${SHIPPED_PRICES_SOURCE.url}), read ${SHIPPED_PRICES_SOURCE.readOn}, in dollars per million tokens. Nothing to do unless the page has changed.`
+                    : `Enter ${model}'s prices from Anthropic's pricing page (${SHIPPED_PRICES_SOURCE.url}), in dollars per million tokens. Without them, paid summaries stay off.`}
               </p>
               <Row label={`${model}: input / output`}>
                 <input
@@ -450,6 +457,19 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                   }}
                 />
                 <Button onClick={savePrices}>Save</Button>
+                {ownPrice && shippedPrice && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      update(
+                        { prices: { [`anthropic:${model}`]: null } },
+                        false,
+                      );
+                    }}
+                  >
+                    Use Epoch&apos;s
+                  </Button>
+                )}
               </Row>
             </Section>
 
@@ -466,13 +486,12 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
               )}
               <Row
                 label="Monthly cap"
-                hint="Required before any paid request. Raising a limit asks you first."
+                hint="Paid requests stop here each month. Raising a limit asks you first."
               >
                 <input
                   type="text"
                   inputMode="decimal"
                   aria-label="Monthly cap in dollars"
-                  placeholder="none"
                   className={`${fieldClass} w-20`}
                   value={limits.cap}
                   onChange={(e) => {

@@ -11,6 +11,7 @@ import type {
   SummaryState,
   SummaryUnavailableReason,
 } from "@epoch-dev/core";
+import { priceOf } from "@epoch-dev/core";
 import { costOf } from "@epoch-dev/scorers/cost";
 import { ANTHROPIC_ORIGIN, OLLAMA_ORIGIN } from "@epoch-dev/scorers/origins";
 import { SUMMARY_MAX_OUTPUT_TOKENS } from "@epoch-dev/scorers/summary";
@@ -345,8 +346,7 @@ export class SummaryService {
     if (model.provider === "local") return undefined;
     if (settings.offline) return "offline";
     if (!(await this.deps.keys.status("anthropic")).configured) return "no-key";
-    if (!settings.prices[`anthropic:${model.model}`]) return "no-price";
-    if (settings.spend.monthlyCapUsd === undefined) return "no-cap";
+    if (!priceOf(settings, "anthropic", model.model)) return "no-price";
     const spend = this.deps.ledger.status(this.limits(settings));
     if (spend.monthUsd >= settings.spend.monthlyCapUsd - EPSILON)
       return "cap-reached";
@@ -368,7 +368,7 @@ export class SummaryService {
     settings: Settings,
   ): number {
     if (model.provider === "local") return 0;
-    const price = settings.prices[`anthropic:${model.model}`];
+    const price = priceOf(settings, "anthropic", model.model);
     if (!price) return Number.POSITIVE_INFINITY;
     return costOf(
       { inputTokens, outputTokens: requests * SUMMARY_MAX_OUTPUT_TOKENS },
@@ -602,7 +602,7 @@ export class SummaryService {
     } finally {
       set.delete(controller);
     }
-    const price = settings.prices[`anthropic:${a.model.model}`];
+    const price = priceOf(settings, "anthropic", a.model.model);
     const costUsd = remote && price ? costOf(result.usage, price) : 0;
     hold.settle(costUsd, result.usage);
     const failed = (reason: SummaryFailureReason): SummaryState => ({

@@ -143,7 +143,7 @@ test("settings round-trip, and spending more asks in main's own dialog", async (
     const before = await window.epoch.getSettings();
     const changed = await window.epoch.updateSettings({ offline: true });
     const refused = await window.epoch
-      .updateSettings({ spend: { monthlyCapUsd: 5 } })
+      .updateSettings({ spend: { monthlyCapUsd: 20 } })
       .then(() => "saved", reason);
     const invalid = await window.epoch
       .updateSettings({ telemetry: true } as never)
@@ -155,16 +155,17 @@ test("settings round-trip, and spending more asks in main's own dialog", async (
       changed: changed.offline,
       refused,
       invalid,
-      cap: after.spend.monthlyCapUsd ?? null,
+      cap: after.spend.monthlyCapUsd,
     };
   });
   const asked = await epoch.app.evaluate(
     () => (globalThis as { asked?: string[] }).asked,
   );
-  expect(result).toMatchObject({ before: false, changed: true, cap: null });
+  // The default cap stays: the raise was not confirmed.
+  expect(result).toMatchObject({ before: false, changed: true, cap: 5 });
   expect(result.refused).toContain("not confirmed");
   expect(result.invalid).toContain("invalid payload");
-  expect(asked).toEqual(["monthly cap none → $5.00"]);
+  expect(asked).toEqual(["monthly cap $5.00 → $20.00"]);
 });
 
 const SENTINEL = "sk-e2e-SENTINEL-6f1d2c";

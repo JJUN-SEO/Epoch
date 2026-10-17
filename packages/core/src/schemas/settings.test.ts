@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CLAUDE_MODEL,
+  DEFAULT_MONTHLY_CAP_USD,
   DEFAULT_SETTINGS,
+  SHIPPED_PRICES,
   SettingsPatch,
   applySettingsPatch,
   parseSettings,
@@ -16,7 +18,7 @@ import {
  */
 
 describe("parseSettings", () => {
-  it("gives the defaults for nothing stored: model features off, no cap", () => {
+  it("gives the defaults for nothing stored: model features off, a monthly cap", () => {
     for (const raw of [undefined, {}]) {
       const { settings, warnings } = parseSettings(raw);
       expect(settings).toEqual(DEFAULT_SETTINGS);
@@ -26,7 +28,7 @@ describe("parseSettings", () => {
     expect(DEFAULT_SETTINGS.summaries.enabled).toBe(false);
     expect(DEFAULT_SETTINGS.summaries.provider).toBe("anthropic");
     expect(DEFAULT_SETTINGS.summaries.model).toBe(DEFAULT_CLAUDE_MODEL);
-    expect(DEFAULT_SETTINGS.spend.monthlyCapUsd).toBeUndefined();
+    expect(DEFAULT_SETTINGS.spend.monthlyCapUsd).toBe(DEFAULT_MONTHLY_CAP_USD);
     expect(DEFAULT_SETTINGS.prices).toEqual({});
   });
 
@@ -82,28 +84,29 @@ describe("applySettingsPatch", () => {
   it("changes only what the patch names, inside a section too", () => {
     const next = applySettingsPatch(DEFAULT_SETTINGS, {
       summaries: { enabled: true },
-      spend: { monthlyCapUsd: 5 },
+      spend: { monthlyCapUsd: 10 },
     });
     expect(next.summaries).toEqual({
       ...DEFAULT_SETTINGS.summaries,
       enabled: true,
     });
-    expect(next.spend).toEqual({ ...DEFAULT_SETTINGS.spend, monthlyCapUsd: 5 });
+    expect(next.spend).toEqual({
+      ...DEFAULT_SETTINGS.spend,
+      monthlyCapUsd: 10,
+    });
     expect(next.offline).toBe(DEFAULT_SETTINGS.offline);
   });
 
-  it("removes a cap or a price with null", () => {
-    const withBoth = applySettingsPatch(DEFAULT_SETTINGS, {
-      spend: { monthlyCapUsd: 5 },
+  it("removes the user's price with null; the cap can be changed, not removed", () => {
+    const priced = applySettingsPatch(DEFAULT_SETTINGS, {
       prices: { "anthropic:m": { inputPerMTok: 1, outputPerMTok: 5 } },
     });
-    const next = applySettingsPatch(withBoth, {
-      spend: { monthlyCapUsd: null },
-      prices: { "anthropic:m": null },
-    });
-    expect(next.spend.monthlyCapUsd).toBeUndefined();
-    expect(next.spend).not.toHaveProperty("monthlyCapUsd");
-    expect(next.prices).toEqual({});
+    expect(
+      applySettingsPatch(priced, { prices: { "anthropic:m": null } }).prices,
+    ).toEqual({});
+    expect(
+      SettingsPatch.safeParse({ spend: { monthlyCapUsd: null } }).success,
+    ).toBe(false);
   });
 
   it("rejects unknown keys and bad values, changing nothing", () => {
@@ -139,13 +142,7 @@ describe("spendRaises", () => {
     ]);
   });
 
-  it("counts a first cap and a new price as raises, lowering and removing as not", () => {
-    expect(
-      spendRaises(
-        DEFAULT_SETTINGS,
-        applySettingsPatch(DEFAULT_SETTINGS, { spend: { monthlyCapUsd: 1 } }),
-      ),
-    ).toEqual(["monthly cap none → $1.00"]);
+  it("counts a first price and any lower price in effect as raises, lowering and removing as not", () => {
     expect(
       spendRaises(
         base,
@@ -156,8 +153,30 @@ describe("spendRaises", () => {
     ).toEqual([
       "anthropic:n price set: $1.00 in, $5.00 out per million tokens",
     ]);
+    // Below the price Epoch ships for the default model.
+    const key = `anthropic:${DEFAULT_CLAUDE_MODEL}`;
+    const cheaper = applySettingsPatch(base, {
+      prices: { [key]: { inputPerMTok: 0.05, outputPerMTok: 0.5 } },
+    });
+    expect(spendRaises(base, cheaper)).toEqual([
+      `${key} input price $0.10 → $0.05 per million tokens`,
+    ]);
+    // Removing a price above the shipped one falls back to it: a raise.
+    const dearer = applySettingsPatch(base, {
+      prices: { [key]: { inputPerMTok: 1, outputPerMTok: 5 } },
+    });
+    expect(spendRaises(base, dearer)).toEqual([]);
+    expect(
+      spendRaises(
+        dearer,
+        applySettingsPatch(dearer, { prices: { [key]: null } }),
+      ),
+    ).toEqual([
+      `${key} input price $1.00 → $0.10 per million tokens`,
+      `${key} output price $5.00 → $0.50 per million tokens`,
+    ]);
     const lower = applySettingsPatch(base, {
-      spend: { monthlyCapUsd: null, sessionBudgetUsd: 0.5 },
+      spend: { monthlyCapUsd: 2, sessionBudgetUsd: 0.5 },
       prices: { "anthropic:m": { inputPerMTok: 2, outputPerMTok: 6 } },
     });
     expect(spendRaises(base, lower)).toEqual([]);
@@ -180,7 +199,7 @@ describe("helpers", () => {
     ).toBe(false);
   });
 
-  it("finds the price of a provider's model", () => {
+  it("finds the price in effect: the user's, else the shipped one", () => {
     const s = applySettingsPatch(DEFAULT_SETTINGS, {
       prices: { "anthropic:m": { inputPerMTok: 1, outputPerMTok: 5 } },
     });
@@ -189,5 +208,13 @@ describe("helpers", () => {
       outputPerMTok: 5,
     });
     expect(priceOf(s, "anthropic", "other")).toBeUndefined();
+    // A key is all a user needs for the default model.
+    expect(
+      priceOf(DEFAULT_SETTINGS, "anthropic", DEFAULT_CLAUDE_MODEL),
+    ).toEqual(SHIPPED_PRICES[`anthropic:${DEFAULT_CLAUDE_MODEL}`]);
+    expect(SHIPPED_PRICES[`anthropic:${DEFAULT_CLAUDE_MODEL}`]).toEqual({
+      inputPerMTok: 0.1,
+      outputPerMTok: 0.5,
+    });
   });
 });
