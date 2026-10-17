@@ -3,6 +3,8 @@ import path from "node:path";
 import Database from "better-sqlite3";
 import {
   CachedFacts,
+  SUMMARY_NAMESPACES,
+  isSummaryNamespace,
   type CacheStats,
   type CacheStore,
   type ManifestEntry,
@@ -331,7 +333,21 @@ export class SqliteCacheStore implements CacheStore {
       repos: count("repos"),
       manifestEntries: count("manifest"),
       derived: count("derived"),
+      summaries: {
+        paid: this.countNamespace(SUMMARY_NAMESPACES.anthropic),
+        local: this.countNamespace(SUMMARY_NAMESPACES.local),
+      },
     };
+  }
+
+  private countNamespace(namespace: string): number {
+    return (
+      this.db
+        .prepare<[string], { n: number }>(
+          "SELECT COUNT(*) AS n FROM derived WHERE namespace = ?",
+        )
+        .get(namespace)?.n ?? 0
+    );
   }
 
   clear(): void {
@@ -344,7 +360,10 @@ export class SqliteCacheStore implements CacheStore {
     this.db.pragma("wal_checkpoint(TRUNCATE)");
   }
 
-  /** Evicts least-recently-used facts and derived values until their payload fits in maxBytes. */
+  /**
+   * Evicts least-recently-used facts and derived values until their payload
+   * fits in maxBytes; summaries last, as a paid one costs money to make again.
+   */
   prune(maxBytes: number): number {
     return this.transaction(() => {
       let excess = this.payloadBytes() - maxBytes;
@@ -359,7 +378,12 @@ export class SqliteCacheStore implements CacheStore {
            SELECT 'derived', namespace, key, bytes, last_used FROM derived
            ORDER BY last_used, tbl, k1, k2`,
         )
-        .all();
+        .all()
+        .sort(
+          (a, b) =>
+            Number(a.tbl === "derived" && isSummaryNamespace(a.k1)) -
+            Number(b.tbl === "derived" && isSummaryNamespace(b.k1)),
+        );
       const delFact = this.db.prepare("DELETE FROM facts WHERE key = ?");
       const delDerived = this.db.prepare(
         "DELETE FROM derived WHERE namespace = ? AND key = ?",

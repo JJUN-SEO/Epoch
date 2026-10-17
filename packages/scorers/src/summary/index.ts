@@ -4,3 +4,4 @@
  */
 export * from "./prompt.js";
 export * from "./sanitize.js";
+export * from "../secrets.js";

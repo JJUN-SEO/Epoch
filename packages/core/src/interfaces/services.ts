@@ -32,6 +32,8 @@ export interface CacheStats {
   readonly repos: number;
   readonly manifestEntries: number;
   readonly derived: number;
+  /** Stored summaries (M7): paid ones cost money to make again. */
+  readonly summaries: { readonly paid: number; readonly local: number };
 }
 
 /**
@@ -52,7 +54,7 @@ export interface CacheStore extends DerivedStore {
   transaction<T>(fn: () => T): T;
   stats(): CacheStats;
   clear(): void;
-  /** Evicts least-recently-used facts and derived values until under `maxBytes`; returns entries removed. */
+  /** Evicts least-recently-used facts and derived values until under `maxBytes`, summaries last; returns entries removed. */
   prune(maxBytes: number): number;
   close(): void;
 }

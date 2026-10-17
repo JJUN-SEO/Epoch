@@ -3,10 +3,13 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { Graph, serializeCanonical } from "@epoch-dev/core";
 import { DismissalStore, analyze } from "@epoch-dev/engine";
 import { EXIT_ERROR, EXIT_FINDINGS, EXIT_OK, run } from "./run.js";
+
+// Most tests here run a whole analysis: slow on a loaded Windows runner.
+vi.setConfig({ testTimeout: 60_000 });
 
 // Every CLI run in this file uses a throwaway cache, never the user's.
 const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-cache-"));
@@ -269,8 +272,7 @@ describe("the built bin", () => {
       },
     );
     expect(() => Graph.parse(JSON.parse(stdout))).not.toThrow();
-    // A whole process and an analysis: slow on a loaded Windows runner.
-  }, 60_000);
+  });
 });
 
 describe("epoch analyze --since", () => {
@@ -281,7 +283,7 @@ describe("epoch analyze --since", () => {
     expect(bad.code).toBe(EXIT_ERROR);
     expect(bad.stderr).toContain("unknown commit");
     expect(bad.stdout).toBe("");
-  }, 60_000);
+  });
 });
 
 describe("epoch cache", () => {
@@ -291,6 +293,7 @@ describe("epoch cache", () => {
     expect(stats.code).toBe(EXIT_OK);
     expect(stats.stdout).toContain(cacheDir);
     expect(stats.stdout).toMatch(/facts\s+[1-9]/);
+    expect(stats.stdout).toMatch(/summaries\s+0 \(0 paid\)/);
     const pruned = await cli("cache", "prune", "--max-size", "0");
     expect(pruned.stdout).toMatch(/^Removed [1-9]\d* entries/);
     await cli("analyze", monorepo);

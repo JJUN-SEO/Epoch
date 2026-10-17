@@ -4,8 +4,8 @@ import { normalizeLine } from "@epoch-dev/core";
  * What is kept of a model's answer before it is stored (CLAUDE.md: the
  * cache never stores code). Code blocks are dropped, and so is any sentence
  * that repeats a line of the source sent (core sourceLines: the same rule
- * as the cache's no-source test). Markdown becomes plain text, and the
- * result is cut to a length.
+ * as the cache's no-source test), line by line and sentence by sentence.
+ * Markdown becomes plain text, and the result is cut to a length.
  */
 
 export function sanitizeSummary(
@@ -21,8 +21,11 @@ export function sanitizeSummary(
     .replace(/`([^`\n]*)`/g, "$1")
     .replace(/^\s*(?:#{1,6}|[-*•]|\d+[.)])\s+/gm, "");
   const forbidden = [...opts.forbidden];
-  const sentences = normalizeLine(prose)
-    .split(/(?<=[.!?])\s+/)
+  // Line by line, then sentence by sentence: a pasted source line drops
+  // with its own line, not with the prose around it.
+  const sentences = prose
+    .split(/\r?\n/)
+    .flatMap((line) => normalizeLine(line).split(/(?<=[.!?])\s+/))
     .filter((s) => s !== "" && !forbidden.some((line) => s.includes(line)));
   let text = sentences.join(" ");
   if (text.length <= opts.maxChars) return text;

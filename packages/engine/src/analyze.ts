@@ -116,6 +116,8 @@ export interface AnalyzeResult {
     readonly walked: readonly string[];
     readonly skipped: readonly string[];
   };
+  /** Package node id -> its member files, sorted (ADR-013, Go); what a package summary reads. */
+  readonly packages: ReadonlyMap<string, readonly string[]>;
 }
 
 export { DEFAULT_REGISTRATIONS };
@@ -671,5 +673,8 @@ export async function analyze(
     graph,
     meta,
     dirs: { walked: found.dirs, skipped: found.skippedDirs },
+    packages: new Map(
+      [...members].map(([id, files]) => [id, [...files].sort()]),
+    ),
   };
 }

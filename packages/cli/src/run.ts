@@ -504,6 +504,7 @@ function cacheCommand(args: readonly string[], io: CliIo): number {
           `  repos          ${String(s.repos)}`,
           `  manifest       ${String(s.manifestEntries)}`,
           `  derived        ${String(s.derived)}`,
+          `  summaries      ${String(s.summaries.paid + s.summaries.local)} (${String(s.summaries.paid)} paid)`,
           "",
         ].join("\n"),
       );

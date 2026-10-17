@@ -18,6 +18,22 @@ import type { Graph } from "./schemas/index.js";
  * still shown, marked stale, and regenerated only when the user asks.
  */
 
+/**
+ * Where summaries live in the cache's derived store: by provider (a paid
+ * summary costs money to make again), and a pointer per project and
+ * subject to its latest summary. Pruning evicts these last.
+ */
+export const SUMMARY_NAMESPACES = {
+  anthropic: "summary:anthropic",
+  local: "summary:local",
+  latest: "summary-latest",
+} as const;
+
+export const isSummaryNamespace = (namespace: string): boolean =>
+  namespace === SUMMARY_NAMESPACES.anthropic ||
+  namespace === SUMMARY_NAMESPACES.local ||
+  namespace === SUMMARY_NAMESPACES.latest;
+
 /** Bump when the prompt changes: every summary is then made again. */
 export const SUMMARY_PROMPT_VERSION = 1;
 /** Summaries are short; anything longer is cut by the engine and refused here. */

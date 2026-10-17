@@ -1,5 +1,7 @@
 import {
   CachedFacts,
+  SUMMARY_NAMESPACES,
+  isSummaryNamespace,
   type CacheStats,
   type CacheStore,
   type RepoIndex,
@@ -87,7 +89,18 @@ export class MemoryCacheStore implements CacheStore {
       repos: this.repos.size,
       manifestEntries,
       derived: this.derived.size,
+      summaries: {
+        paid: this.countNamespace(SUMMARY_NAMESPACES.anthropic),
+        local: this.countNamespace(SUMMARY_NAMESPACES.local),
+      },
     };
+  }
+
+  private countNamespace(namespace: string): number {
+    let n = 0;
+    for (const k of this.derived.keys())
+      if (k.startsWith(`${namespace}\u0000`)) n++;
+    return n;
   }
 
   clear(): void {
@@ -108,7 +121,11 @@ export class MemoryCacheStore implements CacheStore {
         k,
         r,
       })),
-    ].sort((a, b) => a.r.lastUsed - b.r.lastUsed);
+    ].sort(
+      (a, b) =>
+        Number(this.isSummary(a.map, a.k)) -
+          Number(this.isSummary(b.map, b.k)) || a.r.lastUsed - b.r.lastUsed,
+    );
     let bytes = rows.reduce((n, x) => n + x.r.json.length, 0);
     let removed = 0;
     for (const { map, k, r } of rows) {
@@ -118,6 +135,14 @@ export class MemoryCacheStore implements CacheStore {
       removed++;
     }
     return removed;
+  }
+
+  /** Summaries are evicted last: a paid one costs money to make again. */
+  private isSummary(map: Map<string, unknown>, k: string): boolean {
+    return (
+      map === this.derived &&
+      isSummaryNamespace(k.slice(0, k.indexOf("\u0000")))
+    );
   }
 
   close(): void {

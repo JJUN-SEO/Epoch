@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SpendCap, SpendCapReached, costOf, estimateTokens } from "./cost.js";
 import { NetworkBlockedError, createNet } from "./net.js";
-import { isSecretPath } from "./secrets.js";
+import { isSecretPath, looksLikeSecretContent } from "./secrets.js";
 
 const ok = () =>
   Promise.resolve(new Response("{}", { status: 200 })) as ReturnType<
@@ -194,5 +194,26 @@ describe("SpendCap", () => {
     expect(estimateTokens("")).toBe(0);
     // Four CJK characters are 12 bytes: counting characters would guess low.
     expect(estimateTokens("漢字漢字")).toBe(5);
+  });
+});
+
+describe("looksLikeSecretContent", () => {
+  it.each([
+    "-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----",
+    "const k = `-----BEGIN RSA PRIVATE KEY-----\n...`;",
+    "-----BEGIN ENCRYPTED PRIVATE KEY-----",
+    "-----BEGIN OPENSSH PRIVATE KEY-----",
+    "-----BEGIN EC PRIVATE KEY-----",
+  ])("refuses a file holding a private key: %s", (text) => {
+    expect(looksLikeSecretContent(text)).toBe(true);
+  });
+
+  it.each([
+    "-----BEGIN CERTIFICATE-----",
+    "-----BEGIN PUBLIC KEY-----",
+    "// parse '-----BEGIN ' headers",
+    "export const privateKey = load();",
+  ])("lets ordinary text through: %s", (text) => {
+    expect(looksLikeSecretContent(text)).toBe(false);
   });
 });
