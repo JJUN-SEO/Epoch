@@ -47,109 +47,117 @@ const sqlite = () => {
 const canonical = async (dir: string, cache?: CacheStore) =>
   serializeCanonical((await analyze(dir, cache ? { cache } : {})).graph);
 
-describe("incremental analysis (PLAN.md M2 acceptance)", () => {
-  it.each([
-    ["memory", () => new MemoryCacheStore()],
-    ["sqlite", sqlite],
-  ])(
-    "re-running on unchanged input is a 100%% FileFacts cache hit (%s)",
-    async (_n, make) => {
+// Full analyses over SQLite: past 5 s when every package tests at once on
+// a small machine, so the budget the git-heavy suites have.
+describe(
+  "incremental analysis (PLAN.md M2 acceptance)",
+  { timeout: 60_000 },
+  () => {
+    it.each([
+      ["memory", () => new MemoryCacheStore()],
+      ["sqlite", sqlite],
+    ])(
+      "re-running on unchanged input is a 100%% FileFacts cache hit (%s)",
+      async (_n, make) => {
+        const dir = path.join(FIXTURES, "monorepo");
+        const cache = make();
+        const first = await analyze(dir, { cache });
+        const second = await analyze(dir, { cache });
+        expect(first.meta.counts.cacheMisses).toBe(
+          first.meta.counts.filesAnalyzed,
+        );
+        expect(second.meta.counts.cacheMisses).toBe(0);
+        expect(second.meta.counts.cacheHits).toBe(
+          second.meta.counts.filesAnalyzed,
+        );
+        expect(serializeCanonical(second.graph)).toBe(
+          serializeCanonical(first.graph),
+        );
+        expect(serializeCanonical(second.graph)).toBe(await canonical(dir));
+      },
+    );
+
+    it("trusts the manifest for files untouched since well before the last scan", async () => {
+      const dir = copyFixture("monorepo");
+      await new Promise((r) => setTimeout(r, 2_100)); // past the racy margin
+      const cache = new MemoryCacheStore();
+      await analyze(dir, { cache });
+      const warm = await analyze(dir, { cache });
+      expect(warm.meta.counts.rehashed).toBe(0);
+      fs.appendFileSync(
+        path.join(dir, "packages/core/src/math.ts"),
+        "\nexport const added = 1;\n",
+      );
+      const edited = await analyze(dir, { cache });
+      expect(edited.meta.counts.rehashed).toBe(1);
+      expect(edited.meta.counts.cacheMisses).toBe(1);
+      expect(serializeCanonical(edited.graph)).toBe(await canonical(dir));
+    }, 20_000);
+
+    it("re-reads an evicted entry and keys it by the bytes actually read", async () => {
       const dir = path.join(FIXTURES, "monorepo");
-      const cache = make();
+      const cache = new MemoryCacheStore();
       const first = await analyze(dir, { cache });
-      const second = await analyze(dir, { cache });
-      expect(first.meta.counts.cacheMisses).toBe(
+      cache.prune(0);
+      const again = await analyze(dir, { cache });
+      expect(again.meta.counts.cacheMisses).toBe(
         first.meta.counts.filesAnalyzed,
       );
-      expect(second.meta.counts.cacheMisses).toBe(0);
-      expect(second.meta.counts.cacheHits).toBe(
-        second.meta.counts.filesAnalyzed,
-      );
-      expect(serializeCanonical(second.graph)).toBe(
+      expect(serializeCanonical(again.graph)).toBe(
         serializeCanonical(first.graph),
       );
-      expect(serializeCanonical(second.graph)).toBe(await canonical(dir));
-    },
-  );
+    });
 
-  it("trusts the manifest for files untouched since well before the last scan", async () => {
-    const dir = copyFixture("monorepo");
-    await new Promise((r) => setTimeout(r, 2_100)); // past the racy margin
-    const cache = new MemoryCacheStore();
-    await analyze(dir, { cache });
-    const warm = await analyze(dir, { cache });
-    expect(warm.meta.counts.rehashed).toBe(0);
-    fs.appendFileSync(
-      path.join(dir, "packages/core/src/math.ts"),
-      "\nexport const added = 1;\n",
-    );
-    const edited = await analyze(dir, { cache });
-    expect(edited.meta.counts.rehashed).toBe(1);
-    expect(edited.meta.counts.cacheMisses).toBe(1);
-    expect(serializeCanonical(edited.graph)).toBe(await canonical(dir));
-  }, 20_000);
+    it("never serves facts across an adapter version bump", async () => {
+      const dir = path.join(FIXTURES, "monorepo");
+      const cache = new MemoryCacheStore();
+      await analyze(dir, { cache });
+      const bumped: AdapterRegistration<Tree> = {
+        ...typescriptRegistration,
+        adapter: { ...typescriptRegistration.adapter, version: "999" },
+      };
+      const after = await analyze(dir, { cache, registrations: [bumped] });
+      expect(after.meta.counts.cacheHits).toBe(0);
+    });
 
-  it("re-reads an evicted entry and keys it by the bytes actually read", async () => {
-    const dir = path.join(FIXTURES, "monorepo");
-    const cache = new MemoryCacheStore();
-    const first = await analyze(dir, { cache });
-    cache.prune(0);
-    const again = await analyze(dir, { cache });
-    expect(again.meta.counts.cacheMisses).toBe(first.meta.counts.filesAnalyzed);
-    expect(serializeCanonical(again.graph)).toBe(
-      serializeCanonical(first.graph),
-    );
-  });
-
-  it("never serves facts across an adapter version bump", async () => {
-    const dir = path.join(FIXTURES, "monorepo");
-    const cache = new MemoryCacheStore();
-    await analyze(dir, { cache });
-    const bumped: AdapterRegistration<Tree> = {
-      ...typescriptRegistration,
-      adapter: { ...typescriptRegistration.adapter, version: "999" },
-    };
-    const after = await analyze(dir, { cache, registrations: [bumped] });
-    expect(after.meta.counts.cacheHits).toBe(0);
-  });
-
-  it("keeps no file contents or code excerpts in the cache database", async () => {
-    const cacheDir = tempDir("cache");
-    const store = SqliteCacheStore.open(cacheDir);
-    const projects = [
-      ...fs
-        .readdirSync(path.join(FIXTURES, "conformance"))
-        .map((c) => path.join(FIXTURES, "conformance", c)),
-      path.join(FIXTURES, "monorepo"),
-      path.join(FIXTURES, "safety"),
-    ];
-    const lines = new Set<string>();
-    for (const dir of projects) {
-      await analyze(dir, { cache: store });
-      for (const f of fs.readdirSync(dir, {
-        recursive: true,
-        encoding: "utf8",
-      })) {
-        if (!SOURCE.test(f)) continue;
-        for (const line of sourceLines(
-          fs.readFileSync(path.join(dir, f), "utf8"),
-        ))
-          lines.add(line);
+    it("keeps no file contents or code excerpts in the cache database", async () => {
+      const cacheDir = tempDir("cache");
+      const store = SqliteCacheStore.open(cacheDir);
+      const projects = [
+        ...fs
+          .readdirSync(path.join(FIXTURES, "conformance"))
+          .map((c) => path.join(FIXTURES, "conformance", c)),
+        path.join(FIXTURES, "monorepo"),
+        path.join(FIXTURES, "safety"),
+      ];
+      const lines = new Set<string>();
+      for (const dir of projects) {
+        await analyze(dir, { cache: store });
+        for (const f of fs.readdirSync(dir, {
+          recursive: true,
+          encoding: "utf8",
+        })) {
+          if (!SOURCE.test(f)) continue;
+          for (const line of sourceLines(
+            fs.readFileSync(path.join(dir, f), "utf8"),
+          ))
+            lines.add(line);
+        }
       }
-    }
-    expect(store.stats().facts).toBeGreaterThan(0);
-    store.close();
-    const bytes = [CACHE_FILE, `${CACHE_FILE}-wal`]
-      .map((f) => path.join(cacheDir, f))
-      .filter((f) => fs.existsSync(f))
-      .map((f) => fs.readFileSync(f).toString("latin1"))
-      .join("\n");
-    // The same rule as the summary sanitizer (core source-lines.ts).
-    const stored = normalizeLine(bytes);
-    expect(lines.size).toBeGreaterThan(50);
-    expect([...lines].filter((l) => stored.includes(l))).toEqual([]);
-  });
-});
+      expect(store.stats().facts).toBeGreaterThan(0);
+      store.close();
+      const bytes = [CACHE_FILE, `${CACHE_FILE}-wal`]
+        .map((f) => path.join(cacheDir, f))
+        .filter((f) => fs.existsSync(f))
+        .map((f) => fs.readFileSync(f).toString("latin1"))
+        .join("\n");
+      // The same rule as the summary sanitizer (core source-lines.ts).
+      const stored = normalizeLine(bytes);
+      expect(lines.size).toBeGreaterThan(50);
+      expect([...lines].filter((l) => stored.includes(l))).toEqual([]);
+    });
+  },
+);
 
 /* ---------- equivalence property test (the key M2 correctness test) ---------- */
 
