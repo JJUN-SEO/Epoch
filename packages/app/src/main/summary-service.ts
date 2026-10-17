@@ -190,6 +190,11 @@ export class SummaryService {
     return this.deps.ledger.status(this.limits(this.deps.settings()));
   }
 
+  /** The user's reset: this month's spending starts over. */
+  resetSpend(): void {
+    this.deps.ledger.resetMonth();
+  }
+
   /** Offline mode turned on aborts what is in flight. */
   settingsChanged(prev: Settings, next: Settings): void {
     if (prev.offline || !next.offline) return;

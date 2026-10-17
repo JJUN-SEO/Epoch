@@ -17,6 +17,14 @@ import type {
   WatchStatus,
 } from "@epoch-dev/core";
 
+/** The shared cache, as Settings shows it: sizes and counts only. */
+export interface CacheSummary {
+  readonly bytes: number;
+  readonly facts: number;
+  readonly derived: number;
+  readonly summaries: { readonly paid: number; readonly local: number };
+}
+
 /**
  * What the desktop app's preload script exposes as `window.epoch`: the M3
  * subset of EpochApi over IPC, plus the shell functions that grant access to
@@ -74,4 +82,8 @@ export interface DesktopBridge {
   cancelSummaries(): Promise<void>;
   onSummaryProgress(cb: (p: SummaryProgress) => void): Unsubscribe;
   getSpend(): Promise<SpendStatus>;
+  /** Asks in main's own dialog; answers the spend after (unchanged if declined). */
+  resetSpend(): Promise<SpendStatus>;
+  getCacheStats(): Promise<CacheSummary>;
+  clearCache(): Promise<CacheSummary>;
 }

@@ -3,6 +3,7 @@ import type { Shortcut } from "./shortcuts";
 /** Commands with a fixed id: the palette, shortcuts and the native menu run them. */
 export type CommandId =
   | "palette"
+  | "settings"
   | "project.open"
   | "view.graph"
   | "view.focus"
@@ -26,6 +27,7 @@ export type CommandId =
 /** What the native menu may ask for (main sends one of these; anything else is ignored). */
 export const MENU_COMMANDS: readonly CommandId[] = [
   "palette",
+  "settings",
   "view.graph",
   "view.focus",
   "view.findings",
@@ -41,6 +43,7 @@ export const isMenuCommand = (id: string): id is CommandId =>
 /** Matches the accelerators of the native menu (packages/app/src/main/menu.ts). */
 export const SHORTCUTS: Readonly<Partial<Record<CommandId, Shortcut>>> = {
   palette: { mod: true, key: "k" },
+  settings: { mod: true, code: "Comma" },
   "project.open": { mod: true, key: "o" },
   "view.graph": { mod: true, code: "Digit1" },
   "view.focus": { mod: true, code: "Digit2" },

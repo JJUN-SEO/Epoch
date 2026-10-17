@@ -17,6 +17,13 @@ describe("errorMessage", () => {
         ),
       ),
     ).toBe("No project is open.");
+    expect(
+      errorMessage(
+        new Error(
+          "Error invoking remote method 'epoch:update-settings': SettingsNotConfirmed: The change was not confirmed.",
+        ),
+      ),
+    ).toBe("The change was not confirmed.");
   });
 
   it("keeps other messages as they are", () => {

@@ -93,6 +93,8 @@ export interface WorkspaceProps {
   readonly shell?: Shell;
   readonly onOpenAnother?: () => void;
   readonly onOpenRecent?: (folder: string) => void;
+  /** Opens Settings (the desktop app). */
+  readonly onOpenSettings?: () => void;
 }
 
 interface FocusHistory {
@@ -133,6 +135,7 @@ export function Workspace({
   shell,
   onOpenAnother,
   onOpenRecent,
+  onOpenSettings,
 }: WorkspaceProps) {
   const mac = isMac();
   const nodeIds = useMemo(() => new Set(graph.nodes.map((n) => n.id)), [graph]);
@@ -425,6 +428,7 @@ export function Workspace({
     palette: () => {
       setPalette((p) => !p);
     },
+    settings: () => onOpenSettings?.(),
     "project.open": () => onOpenAnother?.(),
     "view.graph": () => {
       setView("graph");
@@ -490,6 +494,11 @@ export function Workspace({
       id: "project.open",
       title: "Open Project…",
       enabled: onOpenAnother !== undefined,
+    },
+    {
+      id: "settings",
+      title: "Settings…",
+      enabled: onOpenSettings !== undefined,
     },
     { id: "view.graph", title: "Show Graph", enabled: view !== "graph" },
     { id: "view.focus", title: "Show Focus View", enabled: canFocus },
@@ -680,6 +689,7 @@ export function Workspace({
               }
             : undefined
         }
+        onSettings={onOpenSettings}
       >
         <IconButton
           icon={PanelLeft}

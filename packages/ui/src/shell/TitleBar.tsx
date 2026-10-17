@@ -1,4 +1,4 @@
-import { Menu } from "lucide-react";
+import { Menu, Settings } from "lucide-react";
 import type { ReactNode } from "react";
 import { cx, IconButton } from "../components/ui";
 import { isMac } from "../platform";
@@ -13,6 +13,8 @@ export function TitleBar(props: {
   /** In the desktop app (not the static demo): leave room for window buttons. */
   readonly desktop: boolean;
   readonly onAppMenu?: ((x: number, y: number) => void) | undefined;
+  /** Shows a Settings button at the end (the desktop app). */
+  readonly onSettings?: (() => void) | undefined;
   readonly children?: ReactNode;
 }) {
   const mac = isMac();
@@ -35,6 +37,13 @@ export function TitleBar(props: {
           />
         )}
         {props.children}
+        {props.onSettings && (
+          <IconButton
+            icon={Settings}
+            label="Settings"
+            onClick={props.onSettings}
+          />
+        )}
       </div>
     </header>
   );

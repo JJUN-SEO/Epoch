@@ -10,7 +10,11 @@ import {
 } from "@epoch-dev/core";
 import type { Shell } from "./api";
 import { errorMessage } from "./errors";
+import { isMac } from "./platform";
+import { SettingsDialog } from "./settings/SettingsDialog";
+import { SHORTCUTS } from "./shell/commands";
 import { ProgressPane } from "./shell/ProgressPane";
+import { matches } from "./shell/shortcuts";
 import { TitleBar } from "./shell/TitleBar";
 import { Welcome } from "./shell/Welcome";
 import { Workspace } from "./shell/Workspace";
@@ -37,8 +41,48 @@ export function App({ api, shell }: AppProps) {
   const [watch, setWatch] = useState<WatchStatus | undefined>();
   const [analysis, setAnalysis] = useState<AnalysisInfo | null>(null);
   const [updatedAt, setUpdatedAt] = useState<Date | undefined>();
+  const [settingsOpen, setSettingsOpen] = useState(false);
   /** Only the newest open request may update the view. */
   const generation = useRef(0);
+
+  // Settings opens from the native menu or its shortcut, on any screen.
+  useEffect(
+    () =>
+      shell?.onMenuCommand((id) => {
+        if (id === "settings") setSettingsOpen(true);
+      }),
+    [shell],
+  );
+  useEffect(() => {
+    const shortcut = SHORTCUTS.settings;
+    if (!shell || !shortcut) return;
+    const mac = isMac();
+    const onKey = (e: KeyboardEvent) => {
+      if (matches(e, shortcut, mac)) {
+        e.preventDefault();
+        setSettingsOpen(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [shell]);
+  const openSettings = shell
+    ? () => {
+        setSettingsOpen(true);
+      }
+    : undefined;
+  const settingsDialog =
+    settingsOpen && shell ? (
+      <SettingsDialog
+        api={api}
+        shell={shell}
+        onClose={() => {
+          setSettingsOpen(false);
+        }}
+      />
+    ) : null;
 
   useEffect(() => api.onProgress(setProgress), [api]);
   // Watcher updates, already applied in main; applying one twice changes nothing.
@@ -122,6 +166,7 @@ export function App({ api, shell }: AppProps) {
             }
           : undefined
       }
+      onSettings={openSettings}
     >
       <span className="text-muted flex-1 truncate text-center text-[13px] font-medium">
         {title ?? "Epoch"}
@@ -146,6 +191,7 @@ export function App({ api, shell }: AppProps) {
           ) : (
             <main className="p-8">This page needs the Epoch desktop app.</main>
           )}
+          {settingsDialog}
         </div>
       );
     case "analyzing":
@@ -153,30 +199,37 @@ export function App({ api, shell }: AppProps) {
         <div className="flex h-full flex-col">
           {titleBar(view.project.name)}
           <ProgressPane project={view.project} progress={progress} />
+          {settingsDialog}
         </div>
       );
     case "graph":
       return (
-        <Workspace
-          key={view.project.root}
-          api={api}
-          project={view.project}
-          graph={view.graph}
-          watch={watch}
-          analysis={analysis}
-          updatedAt={updatedAt}
-          {...(shell
-            ? {
-                shell,
-                onOpenAnother: () => {
-                  open(() => shell.chooseProject());
-                },
-                onOpenRecent: (folder: string) => {
-                  open(() => api.openProject(folder));
-                },
-              }
-            : {})}
-        />
+        <>
+          <Workspace
+            key={view.project.root}
+            api={api}
+            project={view.project}
+            graph={view.graph}
+            watch={watch}
+            analysis={analysis}
+            updatedAt={updatedAt}
+            {...(shell
+              ? {
+                  shell,
+                  onOpenAnother: () => {
+                    open(() => shell.chooseProject());
+                  },
+                  onOpenRecent: (folder: string) => {
+                    open(() => api.openProject(folder));
+                  },
+                  onOpenSettings: () => {
+                    setSettingsOpen(true);
+                  },
+                }
+              : {})}
+          />
+          {settingsDialog}
+        </>
       );
   }
 }

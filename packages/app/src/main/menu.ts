@@ -46,14 +46,35 @@ export function buildMenu(actions: MenuActions): Menu {
             actions.openRecent(folder);
           },
         }));
+  const settings = command("Settings…", "CmdOrCtrl+,", "settings");
   const template: MenuItemConstructorOptions[] = [
-    ...(mac ? [{ role: "appMenu" as const }] : []),
+    ...(mac
+      ? [
+          {
+            role: "appMenu" as const,
+            submenu: [
+              { role: "about" as const },
+              { type: "separator" as const },
+              settings,
+              { type: "separator" as const },
+              { role: "services" as const },
+              { type: "separator" as const },
+              { role: "hide" as const },
+              { role: "hideOthers" as const },
+              { role: "unhide" as const },
+              { type: "separator" as const },
+              { role: "quit" as const },
+            ],
+          },
+        ]
+      : []),
     {
       label: "File",
       submenu: [
         app("Open Project…", "CmdOrCtrl+O", actions.openProject),
         { label: "Open Recent", submenu: recent },
         { type: "separator" },
+        ...(mac ? [] : [settings, { type: "separator" as const }]),
         mac ? { role: "close" } : { role: "quit" },
       ],
     },

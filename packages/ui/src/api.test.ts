@@ -69,6 +69,31 @@ function fakeBridge() {
       }),
     ),
     cancelSummaries: vi.fn(() => Promise.resolve()),
+    resetSpend: vi.fn(() =>
+      Promise.resolve({
+        month: "2026-10",
+        monthUsd: 0,
+        sessionUsd: 0,
+        sessionBudgetUsd: 1,
+        heldUsd: 0,
+      }),
+    ),
+    getCacheStats: vi.fn(() =>
+      Promise.resolve({
+        bytes: 0,
+        facts: 0,
+        derived: 0,
+        summaries: { paid: 0, local: 0 },
+      }),
+    ),
+    clearCache: vi.fn(() =>
+      Promise.resolve({
+        bytes: 0,
+        facts: 0,
+        derived: 0,
+        summaries: { paid: 0, local: 0 },
+      }),
+    ),
     onSummaryProgress: vi.fn(() => () => undefined),
     getSpend: vi.fn(() =>
       Promise.resolve({

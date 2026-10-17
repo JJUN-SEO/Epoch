@@ -40,6 +40,12 @@ export const CHANNELS = {
   cancelSummaries: "epoch:cancel-summaries",
   /** What model features spent; no payload. */
   getSpend: "epoch:get-spend",
+  /** Starts this month's spending over, after main's own dialog; no payload. */
+  resetSpend: "epoch:reset-spend",
+  /** The shared cache's size and contents (counts only); no payload. */
+  getCacheStats: "epoch:get-cache-stats",
+  /** Deletes the cache (derived data); no payload. */
+  clearCache: "epoch:clear-cache",
 } as const;
 
 /** Main-to-renderer events. */
@@ -67,6 +73,7 @@ export const EVENTS = {
  */
 export const MENU_COMMANDS = [
   "palette",
+  "settings",
   "view.graph",
   "view.focus",
   "view.findings",

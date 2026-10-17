@@ -7,9 +7,10 @@ import {
   type Graph,
   type ProjectInfo,
   type Settings,
+  type SpendStatus,
   type WatchStatus,
 } from "@epoch-dev/core";
-import type { DesktopBridge } from "./bridge";
+import type { CacheSummary, DesktopBridge } from "./bridge";
 
 /**
  * App-only functions that grant access to a folder. The static demo site has
@@ -32,6 +33,10 @@ export interface Shell {
   onAnalysisInfo(cb: (info: AnalysisInfo) => void): () => void;
   /** The settings changed, in this window or another. */
   onSettingsChanged(cb: (settings: Settings) => void): () => void;
+  /** Starts this month's spending over, after main's own dialog. */
+  resetSpend(): Promise<SpendStatus>;
+  getCacheStats(): Promise<CacheSummary>;
+  clearCache(): Promise<CacheSummary>;
 }
 
 const unavailable = (what: string) => (): Promise<never> =>
@@ -92,6 +97,9 @@ export function createIpcApi(bridge: DesktopBridge): {
       getAnalysisInfo: () => bridge.getAnalysisInfo(),
       onAnalysisInfo: (cb) => bridge.onAnalysisInfo(cb),
       onSettingsChanged: (cb) => bridge.onSettingsChanged(cb),
+      resetSpend: () => bridge.resetSpend(),
+      getCacheStats: () => bridge.getCacheStats(),
+      clearCache: () => bridge.clearCache(),
     },
   };
 }

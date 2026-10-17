@@ -21,6 +21,10 @@
     "./onnx-embedder": {
       "types": "./dist/onnx-embedder.d.ts",
       "default": "./dist/onnx-embedder.js"
+    },
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "default": "./dist/cache/index.js"
     }
   },
   "scripts": {

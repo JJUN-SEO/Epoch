@@ -15,6 +15,7 @@ import { EVENTS } from "../shared/channels";
 import { hardenSession, hardenWebContents, openExternally } from "./harden";
 import { HostClient } from "./host-client";
 import { createRouter } from "./ipc";
+import { openCache, type SqliteCacheStore } from "@epoch-dev/engine/cache";
 import { KeyStore } from "./key-store";
 import { buildMenu } from "./menu";
 import { embeddingModelDir, hostModelArgs } from "./model";
@@ -143,6 +144,10 @@ async function start(): Promise<void> {
     process.platform,
   );
   let sender: Promise<SenderLike> | undefined;
+  let cache: SqliteCacheStore | undefined;
+  app.on("will-quit", () => {
+    cache?.close();
+  });
   const summaries = new SummaryService({
     settings: () => settings.get(),
     keys,
@@ -287,6 +292,19 @@ async function start(): Promise<void> {
             : undefined;
       },
       summaries,
+      confirmResetSpend: async (win) => {
+        const { response } = await dialog.showMessageBox(win, {
+          type: "question",
+          buttons: ["Cancel", "Reset"],
+          defaultId: 0,
+          cancelId: 0,
+          message: "Start this month's spending over?",
+          detail:
+            "Epoch may then spend up to your monthly cap again. What was already spent at the provider stays spent.",
+        });
+        return response === 1;
+      },
+      cache: () => (cache ??= openCache()),
       summaryContext: (win) => {
         const target = sessions.get(win.webContents)?.summaryTarget();
         if (!target) return undefined;

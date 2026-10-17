@@ -130,6 +130,8 @@ export function Toggle(props: {
   readonly checked: boolean;
   readonly onChange: (checked: boolean) => void;
   readonly title?: string;
+  /** The label names the switch for assistive tech only (a row already shows it). */
+  readonly hideLabel?: boolean;
 }) {
   return (
     <label
@@ -144,7 +146,11 @@ export function Toggle(props: {
           props.onChange(e.target.checked);
         }}
       />
-      {props.label}
+      {props.hideLabel === true ? (
+        <span className="sr-only">{props.label}</span>
+      ) : (
+        props.label
+      )}
     </label>
   );
 }

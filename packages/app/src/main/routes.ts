@@ -11,6 +11,7 @@ import {
 } from "../shared/host-protocol";
 import type { Register } from "./ipc";
 import type { ProjectSession } from "./project";
+import type { SqliteCacheStore } from "@epoch-dev/engine/cache";
 import type { KeyStore } from "./key-store";
 import type { Projects } from "./projects";
 import type { SettingsStore } from "./settings-store";
@@ -72,6 +73,10 @@ export interface SettingsRoutes {
     win: BrowserWindow,
   ) => Promise<"store" | "session" | undefined>;
   readonly summaries: SummaryService;
+  /** Main's own dialog before this month's spending starts over. */
+  readonly confirmResetSpend: (win: BrowserWindow) => Promise<boolean>;
+  /** The shared cache (main's own connection; the host has another). */
+  readonly cache: () => SqliteCacheStore;
   /** The window's open project as a summary context; undefined when none is open. */
   readonly summaryContext: (win: BrowserWindow) => SummaryContext | undefined;
 }
@@ -206,6 +211,40 @@ export function registerRoutes(
   handle(CHANNELS.getSpend, {
     args: z.tuple([]),
     handle: () => Promise.resolve(settings.summaries.spend()),
+  });
+  handle(CHANNELS.resetSpend, {
+    args: z.tuple([]),
+    handle: async (win) => {
+      if (await settings.confirmResetSpend(win))
+        settings.summaries.resetSpend();
+      return settings.summaries.spend();
+    },
+  });
+  handle(CHANNELS.getCacheStats, {
+    args: z.tuple([]),
+    handle: () => {
+      const s = settings.cache().stats();
+      return Promise.resolve({
+        bytes: s.bytes,
+        facts: s.facts,
+        derived: s.derived,
+        summaries: s.summaries,
+      });
+    },
+  });
+  handle(CHANNELS.clearCache, {
+    args: z.tuple([]),
+    handle: () => {
+      const cache = settings.cache();
+      cache.clear();
+      const s = cache.stats();
+      return Promise.resolve({
+        bytes: s.bytes,
+        facts: s.facts,
+        derived: s.derived,
+        summaries: s.summaries,
+      });
+    },
   });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),

@@ -16,7 +16,7 @@ import type {
   ProjectInfo,
   Settings,
 } from "@epoch-dev/core";
-import type { DesktopBridge } from "@epoch-dev/ui/bridge";
+import type { CacheSummary, DesktopBridge } from "@epoch-dev/ui/bridge";
 import { CHANNELS, EVENTS } from "../shared/channels";
 
 /*
@@ -111,6 +111,9 @@ const bridge: DesktopBridge = {
   cancelSummaries: () => invoke<undefined>(CHANNELS.cancelSummaries),
   onSummaryProgress: (cb) => on(EVENTS.summaryProgress, cb),
   getSpend: () => invoke<SpendStatus>(CHANNELS.getSpend),
+  resetSpend: () => invoke<SpendStatus>(CHANNELS.resetSpend),
+  getCacheStats: () => invoke<CacheSummary>(CHANNELS.getCacheStats),
+  clearCache: () => invoke<CacheSummary>(CHANNELS.clearCache),
   onMenuCommand: (cb) => {
     const listener = (_event: IpcRendererEvent, id: string) => {
       cb(id);
