@@ -906,7 +906,7 @@ async function main(): Promise<void> {
       edgeRows,
     ),
     "",
-    `Enrich stage time is the run without a cache: the co-change log is read from git${embedder ? " and every file is embedded" : ""}. With the cache, the commit sets of a HEAD are read once${embedder ? " and a file is embedded once per content and model" : ""}.`,
+    `Enrich stage time is the run without a cache: the co-change log is read from git${embedder ? " and every file is embedded" : ""}. With the cache, the commit sets of a HEAD are read once${embedder ? " and a file is embedded once per content and model" : ""}.${model ? ` At T it also includes ${model.backend.id}'s requests (see "Model scorers").` : ""}`,
     "",
   );
   writeReport(path.resolve(values.out), lines.join("\n"));
