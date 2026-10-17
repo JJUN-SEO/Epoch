@@ -132,7 +132,12 @@ async function open(folder: string, files: string): Promise<void> {
 }
 
 async function select(id: string): Promise<void> {
-  await epoch.page.keyboard.press("ControlOrMeta+K");
+  // The palette's button, not Ctrl+K: these tests are not about the
+  // shortcut (ui.spec covers it), and a synthesized shortcut was twice lost
+  // on Linux CI right after a project opened (runs 73 and 78).
+  await epoch.page
+    .getByRole("button", { name: "Search files and commands" })
+    .click();
   const palette = epoch.page.getByRole("dialog", { name: "Command palette" });
   await palette
     .getByRole("combobox", { name: "Search files and commands" })
