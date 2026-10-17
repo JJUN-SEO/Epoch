@@ -30,7 +30,16 @@ This ADR records how the app does it safely.
 
 ### Egress and offline mode
 
-5. **One egress in main.** All of main's model requests go through `createNet` (origin allowlist, live offline flag, abort of requests in flight). The transport, a dedicated Electron session versus Node's fetch, is settled by the spike in M7 step 13; its result is recorded here.
+5. **One egress in main** (`main/egress.ts`), loaded only when a model feature first sends.
+   - **First layer:** `createNet`, with an origin allowlist, the offline setting read at each request, and abort of requests in flight.
+   - **Second layer:** a dedicated Electron session (`epoch-egress`, no cache) that no window uses. Its request filter allows the Anthropic origin, and the Ollama origin on loopback. Offline, it allows only Ollama. It refuses permission requests.
+   - **Lint:** Electron's `net` module and any session's `fetch` are banned elsewhere in the app.
+   - **Spike result** (M7 step 13, Electron 43.7.7, SDK 0.129.0): the SDK runs unchanged on the session's `fetch`.
+     - It sends `x-api-key` and `anthropic-version`, no `authorization` header, and the exact request body.
+     - A caller's abort, and turning offline mode on mid-request (`abortInFlight`), each stopped a pending request in about 200 ms.
+     - The session filter runs before a `protocol.handle` interceptor, so e2e tests can stub the provider on the partition from the test side and the filter still guards. A refused origin fails with `net::ERR_BLOCKED_BY_CLIENT`.
+     - Offline requests are refused by `createNet` before the session sees them.
+   - **Not used:** `enableNetworkEmulation({ offline })` cannot keep the loopback exception, so the request filter is the session-level layer. The Node-fetch fallback was not needed.
 6. **Offline mode** refuses every remote origin, reading the setting at each request (not a fixed flag), and aborts requests in flight when it is turned on. It allows only `http://127.0.0.1:11434`, and only when a local model is the user's summary provider. Update checks are forced off (the setting exists; the check itself is M8). CLAUDE.md's offline rule gains: "A local model on this machine that the user chose (loopback only) keeps working."
 
 ### Consent, approval and spend

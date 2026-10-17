@@ -27,6 +27,16 @@ const NETWORK_MODULES = [
 ];
 const NETWORK_GLOBALS = ["fetch", "WebSocket", "EventSource"];
 
+const NETWORK_IMPORT_PATHS = [
+  ...NETWORK_MODULES.flatMap((m) => [m, `node:${m}`]),
+  "undici",
+].map((name) => ({ name, message: NETWORK_MESSAGE, allowTypeImports: true }));
+const NETWORK_IMPORT_PATTERNS = [
+  { group: ["undici/*"], message: NETWORK_MESSAGE, allowTypeImports: true },
+];
+const EGRESS_MESSAGE =
+  "Main sends only through its egress, packages/app/src/main/egress.ts (ADR-016).";
+
 const RENDER_AS_TEXT_MESSAGE =
   "Render repository-derived strings as text, never as HTML (CLAUDE.md, Electron security).";
 
@@ -75,23 +85,7 @@ export default defineConfig(
 
       "no-restricted-imports": [
         "error",
-        {
-          paths: [
-            ...NETWORK_MODULES.flatMap((m) => [m, `node:${m}`]),
-            "undici",
-          ].map((name) => ({
-            name,
-            message: NETWORK_MESSAGE,
-            allowTypeImports: true,
-          })),
-          patterns: [
-            {
-              group: ["undici/*"],
-              message: NETWORK_MESSAGE,
-              allowTypeImports: true,
-            },
-          ],
-        },
+        { paths: NETWORK_IMPORT_PATHS, patterns: NETWORK_IMPORT_PATTERNS },
       ],
       "no-restricted-globals": [
         "error",
@@ -117,6 +111,37 @@ export default defineConfig(
     rules: {
       "no-restricted-globals": "off",
       "no-restricted-properties": "off",
+    },
+  },
+  {
+    // The app's main process sends model requests through one egress: an
+    // Electron session of its own behind the network wrapper. Electron's net
+    // module and any session's fetch belong to that file alone.
+    files: ["packages/app/src/**/*.ts"],
+    ignores: ["packages/app/src/main/egress.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            ...NETWORK_IMPORT_PATHS,
+            {
+              name: "electron",
+              importNames: ["net"],
+              message: EGRESS_MESSAGE,
+              allowTypeImports: true,
+            },
+          ],
+          patterns: NETWORK_IMPORT_PATTERNS,
+        },
+      ],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='fetch']",
+          message: EGRESS_MESSAGE,
+        },
+      ],
     },
   },
   {

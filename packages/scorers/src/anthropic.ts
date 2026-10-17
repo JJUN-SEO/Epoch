@@ -8,6 +8,9 @@ import {
   type Prompt,
 } from "./model.js";
 import { NetworkBlockedError, type Net } from "./net.js";
+import { ANTHROPIC_ORIGIN } from "./origins.js";
+
+export { ANTHROPIC_ORIGIN };
 
 /*
  * LlmScorer's backend: Claude through the official TypeScript SDK
@@ -21,7 +24,6 @@ import { NetworkBlockedError, type Net } from "./net.js";
  * --model picks another.
  */
 
-export const ANTHROPIC_ORIGIN = "https://api.anthropic.com";
 /** One default for the scorer and the app's summaries (core settings). */
 export const DEFAULT_LLM_MODEL = DEFAULT_CLAUDE_MODEL;
 

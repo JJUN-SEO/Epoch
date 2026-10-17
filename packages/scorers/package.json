@@ -21,6 +21,14 @@
     "./summary": {
       "types": "./dist/summary/index.d.ts",
       "default": "./dist/summary/index.js"
+    },
+    "./net": {
+      "types": "./dist/net.d.ts",
+      "default": "./dist/net.js"
+    },
+    "./origins": {
+      "types": "./dist/origins.d.ts",
+      "default": "./dist/origins.js"
     }
   },
   "scripts": {

@@ -6,6 +6,9 @@ import {
   type Prompt,
 } from "./model.js";
 import { NetworkBlockedError, type Net } from "./net.js";
+import { OLLAMA_ORIGIN } from "./origins.js";
+
+export { OLLAMA_ORIGIN };
 
 /*
  * LocalScorer's backend: an Ollama server on this machine (nothing leaves
@@ -14,8 +17,6 @@ import { NetworkBlockedError, type Net } from "./net.js";
  * (https://github.com/ollama/ollama/blob/v0.40.5/docs/api.md). Token counts
  * come from `prompt_eval_count` and `eval_count`.
  */
-
-export const OLLAMA_ORIGIN = "http://127.0.0.1:11434";
 
 const ChatResponse = z.object({
   message: z.object({ content: z.string() }),
