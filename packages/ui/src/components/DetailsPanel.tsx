@@ -16,6 +16,10 @@ import { ancestors, dirPath, isDirId } from "../graph/aggregate";
 import { RISK_TIER_LABELS, riskColor } from "../graph/colors";
 import { languageName } from "../languages";
 import { gitSummary } from "../shell/StatusBar";
+import {
+  SummarySection,
+  type SummarySectionProps,
+} from "../summaries/SummarySection";
 import { Button, PathLabel, SectionTitle } from "./ui";
 
 export interface DetailsPanelProps {
@@ -30,6 +34,8 @@ export interface DetailsPanelProps {
   /** Directories: whether the folder is open in the graph, and the toggle. */
   readonly folderOpen: boolean;
   readonly onToggleFolder: (id: string) => void;
+  /** Model summaries (the desktop app); absent in the static demo. */
+  readonly summary?: Omit<SummarySectionProps, "subject"> | undefined;
 }
 
 function EdgeList(props: {
@@ -324,6 +330,7 @@ export function DetailsPanel({
   onFocus,
   folderOpen,
   onToggleFolder,
+  summary,
 }: DetailsPanelProps) {
   if (selected === undefined) {
     return (
@@ -358,6 +365,9 @@ export function DetailsPanel({
         <dl className="py-2">
           <Row label="Files" value={String(files.length)} />
         </dl>
+        {summary && (
+          <SummarySection key={selected} subject={selected} {...summary} />
+        )}
         <ul className="px-1.5 pb-3">
           {files.slice(0, 200).map((f) => (
             <li key={f.id}>
@@ -414,6 +424,9 @@ export function DetailsPanel({
         <Stat label="Imported by" value={String(node.metrics.fanIn)} />
         <Stat label="Imports" value={String(node.metrics.fanOut)} />
       </dl>
+      {summary && (
+        <SummarySection key={node.id} subject={node.id} {...summary} />
+      )}
       <RiskSection node={node} analysis={analysis} />
       {node.exports.length > 0 && (
         <section>

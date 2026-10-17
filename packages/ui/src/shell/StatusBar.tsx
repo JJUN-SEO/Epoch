@@ -144,6 +144,10 @@ export function StatusBar(props: {
   readonly watch?: WatchStatus | undefined;
   readonly analysis?: AnalysisInfo | null;
   readonly updatedAt?: Date | undefined;
+  /** Offline mode is on (the desktop app). */
+  readonly offline?: boolean | undefined;
+  /** What model features spent this month, in dollars. */
+  readonly monthUsd?: number | undefined;
 }) {
   const { graph } = props;
   const byLanguage = new Map<string, number>();
@@ -160,6 +164,27 @@ export function StatusBar(props: {
   const watch = props.watch && watchLabel(props.watch, props.updatedAt);
   return (
     <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px] whitespace-nowrap">
+      {props.offline === true && (
+        <span
+          data-testid="offline-status"
+          className="text-fg inline-flex items-center gap-1.5 font-medium"
+          title="Offline mode: Epoch makes no network requests. A model on this machine still works if you chose one."
+        >
+          Offline
+        </span>
+      )}
+      {props.monthUsd !== undefined && props.monthUsd > 0 && (
+        <span
+          data-testid="spend-status"
+          title="What summaries cost this month, at your prices"
+        >
+          $
+          {props.monthUsd < 0.01
+            ? props.monthUsd.toFixed(4)
+            : props.monthUsd.toFixed(2)}{" "}
+          this month
+        </span>
+      )}
       <span data-testid="graph-stats">
         {nodeCounts(graph)} · {graph.edges.length - hintEdges} edges
         {graph.unresolved.length > 0

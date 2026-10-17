@@ -138,6 +138,24 @@ export function Workspace({
   onOpenSettings,
 }: WorkspaceProps) {
   const mac = isMac();
+  /** Offline mode and this month's spend, for the status bar (the desktop app). */
+  const [modelStatus, setModelStatus] = useState<{
+    offline: boolean;
+    monthUsd: number;
+  }>();
+  const refreshModelStatus = useCallback(() => {
+    if (!shell) return;
+    Promise.all([api.getSettings(), api.getSpend()]).then(
+      ([s, spend]) => {
+        setModelStatus({ offline: s.offline, monthUsd: spend.monthUsd });
+      },
+      () => undefined,
+    );
+  }, [api, shell]);
+  useEffect(() => {
+    refreshModelStatus();
+    return shell?.onSettingsChanged(refreshModelStatus);
+  }, [shell, refreshModelStatus]);
   const nodeIds = useMemo(() => new Set(graph.nodes.map((n) => n.id)), [graph]);
   /** A file (or package) node, which can be the center of the focus view. */
   const isFileNode = useCallback(
@@ -677,6 +695,11 @@ export function Workspace({
   };
 
   const paletteShortcut = SHORTCUTS.palette;
+  const summaryProps = useMemo(
+    () =>
+      shell ? { api, onOpenSettings, onSpent: refreshModelStatus } : undefined,
+    [api, shell, onOpenSettings, refreshModelStatus],
+  );
 
   return (
     <div className="flex h-full flex-col">
@@ -1068,6 +1091,7 @@ export function Workspace({
                       selected !== undefined && expanded.has(dirPath(selected))
                     }
                     onToggleFolder={toggleDir}
+                    summary={summaryProps}
                   />
                 )
               }
@@ -1110,6 +1134,8 @@ export function Workspace({
         watch={watch}
         analysis={analysis ?? null}
         updatedAt={updatedAt}
+        offline={modelStatus?.offline}
+        monthUsd={modelStatus?.monthUsd}
       />
 
       {palette && (
