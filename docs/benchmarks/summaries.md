@@ -28,7 +28,7 @@ Worst case priced at $0.100 per million input tokens and $0.500 per million outp
 
 ## Measured
 
-**Not measured.** No run with `--send` has been made: it needs an Anthropic key in `ANTHROPIC_API_KEY`, prices from Anthropic's pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.
+**Not measured.** No run with `--send` has been made: it needs an Anthropic key in an environment variable (`ANTHROPIC_API_KEY`, or the one `--key-env` names), prices from Anthropic's pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.
 
 ## Limits
 

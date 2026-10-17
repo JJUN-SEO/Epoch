@@ -2,7 +2,7 @@
  * pnpm bench:summaries <repo> [--from <rev>] [--to <rev>] [--model <id>]
  *                     [--out docs/benchmarks/summaries.md]
  *                     [--price-in <usd> --price-out <usd> --price-source <url>]
- *                     [--send --max-spend <usd>]
+ *                     [--send --max-spend <usd> [--key-env <NAME>]]
  *
  * What summaries cost, a full run versus an incremental one (M7; CLAUDE.md
  * "Token accounting"). In a shared clone, the project at --from (default
@@ -12,8 +12,9 @@
  *
  * Without --send nothing leaves the machine: every request is Epoch's own
  * upper estimate (see summary-run.ts). With --send, every request goes to
- * Anthropic with the key in ANTHROPIC_API_KEY (never read from the command
- * line), each holding its worst case against --max-spend before it is
+ * Anthropic with the key in the environment variable --key-env names
+ * (ANTHROPIC_API_KEY by default; never read from the command line), each
+ * holding its worst case against --max-spend before it is
  * sent; the run stops when the next request could pass the cap. Prices are
  * the user's, with the page they came from. Files that look like secrets
  * are never sent. Every number in the report comes from this script.
@@ -68,6 +69,9 @@ const { values, positionals } = parseArgs({
     "price-source": { type: "string" },
     send: { type: "boolean", default: false },
     "max-spend": { type: "string" },
+    // Another name keeps tools that also read ANTHROPIC_API_KEY (Claude
+    // Code among them) from picking the key up.
+    "key-env": { type: "string", default: "ANTHROPIC_API_KEY" },
   },
 });
 
@@ -96,12 +100,15 @@ const prices: Prices | undefined =
     : undefined;
 if (prices && values["price-source"] === undefined)
   fail("--price-source must name the page the prices came from");
-const apiKey = process.env.ANTHROPIC_API_KEY;
+const keyEnv = values["key-env"];
+if (!/^[A-Z_][A-Z0-9_]*$/.test(keyEnv))
+  fail("--key-env must be an environment variable name");
+const apiKey = process.env[keyEnv];
 if (values.send) {
   if (!prices) fail("--send needs --price-in, --price-out and --price-source");
   if (maxSpend === undefined) fail("--send needs --max-spend");
   if (apiKey === undefined || apiKey === "")
-    fail("--send needs the key in ANTHROPIC_API_KEY");
+    fail(`--send needs the key in ${keyEnv}`);
 }
 
 const repo = repoInfo(repoArg);
@@ -180,7 +187,7 @@ async function measure(): Promise<{
   if (cap) {
     const files = full.sent.filter((r) => r.kind !== "dir").length;
     process.stderr.write(
-      `Sending ${String(files)} files of ${repo.name} at ${short(fromCommit)}, then what changed by ${short(toCommit)}, to ${ANTHROPIC_ORIGIN} (${values.model}) with ANTHROPIC_API_KEY. Cap $${cap.capUsd.toFixed(2)}.\n`,
+      `Sending ${String(files)} files of ${repo.name} at ${short(fromCommit)}, then what changed by ${short(toCommit)}, to ${ANTHROPIC_ORIGIN} (${values.model}) with the key in ${keyEnv}. Cap $${cap.capUsd.toFixed(2)}.\n`,
     );
   }
   phases.push({
@@ -326,7 +333,7 @@ const measuredSection = phases.every((p) => p.measured)
       ),
     ]
   : [
-      "**Not measured.** No run with `--send` has been made: it needs an Anthropic key in `ANTHROPIC_API_KEY`, prices from Anthropic's pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.",
+      "**Not measured.** No run with `--send` has been made: it needs an Anthropic key in an environment variable (`ANTHROPIC_API_KEY`, or the one `--key-env` names), prices from Anthropic's pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.",
     ];
 
 const skipped = phases.flatMap((p) => p.estimate.skipped);
