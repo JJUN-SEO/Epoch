@@ -422,7 +422,10 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                   </Button>
                 )}
               </Row>
-              <Row label="Jev (TypeSafe AI)" hint="Not available yet.">
+              <Row
+                label="Jev (TypeSafe AI)"
+                hint="Not in the app; the CLI's --scorer jev reads JEV_API_KEY."
+              >
                 <span className="text-muted text-xs">—</span>
               </Row>
             </Section>

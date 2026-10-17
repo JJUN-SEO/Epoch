@@ -23,6 +23,7 @@ import {
 } from "@epoch-dev/engine";
 import {
   ConsentRequired,
+  DEFAULT_JEV_MODEL,
   DEFAULT_LLM_MODEL,
   SCORER_ARGS,
   ScorerUsageError,
@@ -91,11 +92,12 @@ Commands:
   cache clear      Delete everything in the cache (it is derived data)
   cache prune      Evict least-recently-used entries down to --max-size
   auth set <provider>
-                   Store your own key (provider: anthropic) in the OS
+                   Store your own key (provider: anthropic or jev) in the OS
                    keychain; it is read from standard input (typed hidden,
                    or piped), never from the command line
   auth status      Show where each key is found, never the key; an
-                   environment variable (ANTHROPIC_API_KEY) is used first
+                   environment variable (ANTHROPIC_API_KEY, JEV_API_KEY) is
+                   used first
   auth remove <provider>
                    Delete a stored key from the OS keychain
 
@@ -134,13 +136,18 @@ Hint options (likely relations, never facts; computed on this machine):
                      llm: Claude with your own key, from ANTHROPIC_API_KEY or
                      epoch auth (sends file excerpts to Anthropic; needs
                      --consent-send, --max-spend, --price-in, --price-out);
-                     jev: not built yet
-  --model <name>     The model for --scorer local or llm (llm default: ${DEFAULT_LLM_MODEL})
+                     jev: TypeSafe AI's Jev with your own key, from JEV_API_KEY
+                     or epoch auth (sends the same excerpts to TypeSafe; the
+                     same four options as llm)
+  --model <name>     The model for --scorer local, llm or jev (llm default:
+                     ${DEFAULT_LLM_MODEL}; jev default: ${DEFAULT_JEV_MODEL})
+  --key-env <name>   The environment variable that holds the key (llm or jev;
+                     default ANTHROPIC_API_KEY or JEV_API_KEY); never argv
   --max-pairs <n>    Candidate pairs a model scores at most (default 200)
-  --max-spend <USD>  Stop before a request could pass this spend (llm)
+  --max-spend <USD>  Stop before a request could pass this spend (llm, jev)
   --price-in <USD>, --price-out <USD>
                      Your model's prices per million input and output tokens
-  --consent-send     Send what the plan printed without it lists (llm)
+  --consent-send     Send what the plan printed without it lists (llm, jev)
 
 The cache lives in the per-user cache directory; set EPOCH_CACHE_DIR to move it.
 Dismissals live in the per-user data directory; set EPOCH_DATA_DIR to move it.
@@ -303,10 +310,22 @@ async function scorerEnv(
   values: ScorerValues & { "no-hints": boolean },
   io: RunIo,
 ): Promise<NodeJS.ProcessEnv> {
-  if (values.scorer !== "llm" || values["no-hints"]) return io.env;
-  const key = await resolveKey("anthropic", io.env, io.keychain);
+  const provider =
+    values.scorer === "llm"
+      ? "anthropic"
+      : values.scorer === "jev"
+        ? "jev"
+        : undefined;
+  // --key-env names the variable to read; the keychain fills only the default one.
+  if (
+    provider === undefined ||
+    values["no-hints"] ||
+    values["key-env"] !== undefined
+  )
+    return io.env;
+  const key = await resolveKey(provider, io.env, io.keychain);
   if (key.value !== undefined)
-    return { ...io.env, [PROVIDERS.anthropic.env]: key.value };
+    return { ...io.env, [PROVIDERS[provider].env]: key.value };
   if (key.unavailable !== undefined)
     io.stderr.write(
       `epoch: the OS keychain is not available (${key.unavailable})\n`,

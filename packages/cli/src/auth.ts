@@ -11,6 +11,7 @@ import type { Readable } from "node:stream";
 
 export const PROVIDERS = {
   anthropic: { label: "Anthropic", env: "ANTHROPIC_API_KEY" },
+  jev: { label: "Jev (TypeSafe AI)", env: "JEV_API_KEY" },
 } as const;
 
 export type Provider = keyof typeof PROVIDERS;

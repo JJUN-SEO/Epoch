@@ -111,6 +111,8 @@ export interface ModelRunReport {
   /** Pairs not sent because the next request could have passed the cap. */
   readonly unsentAtCap: number;
   readonly unverifiedSymbols: number;
+  /** Wall time of the requests sent, retries included. */
+  readonly requestMs: number;
   readonly usage: Usage;
   readonly spentUsd: number;
 }
@@ -195,6 +197,7 @@ export class ModelScorer implements RelationScorer {
     stoppedAtCap: false,
     unsentAtCap: 0,
     unverifiedSymbols: 0,
+    requestMs: 0,
     usage: { inputTokens: 0, outputTokens: 0 },
     spentUsd: 0,
   };
@@ -334,6 +337,7 @@ export class ModelScorer implements RelationScorer {
     let failed = 0;
     let unverified = 0;
     let stoppedAtCap = false;
+    let requestMs = 0;
     const usage = { inputTokens: 0, outputTokens: 0 };
     for (const w of work) {
       let hold: SpendHold | undefined;
@@ -349,11 +353,14 @@ export class ModelScorer implements RelationScorer {
       }
       sent++;
       let result: Awaited<ReturnType<ModelBackend["judge"]>>;
+      const started = performance.now();
       try {
         result = await backend.judge(w.prompt);
       } catch (err) {
         hold?.release();
         throw err;
+      } finally {
+        requestMs += performance.now() - started;
       }
       hold?.settle(result.usage);
       usage.inputTokens += result.usage.inputTokens;
@@ -392,6 +399,7 @@ export class ModelScorer implements RelationScorer {
       stoppedAtCap,
       unsentAtCap: work.length - sent,
       unverifiedSymbols: unverified,
+      requestMs,
       usage,
       spentUsd: spend?.spentUsd ?? 0,
     };

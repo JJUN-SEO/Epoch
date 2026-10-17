@@ -41,7 +41,6 @@ import {
   ConsentRequired,
   DEFAULT_COEFFICIENTS,
   HeuristicScorer,
-  JEV_STATUS,
   SCORER_ARGS,
   heuristicFeatures,
   resolveModel,
@@ -350,7 +349,7 @@ function modelSection(
   model: ResolvedModel | undefined,
   heuristic: HeuristicScorer,
 ): string[] {
-  const status = (kind: "local" | "llm") =>
+  const status = (kind: "local" | "llm" | "jev") =>
     model?.backend.id.startsWith(`${kind}:`) === true
       ? "run (below)"
       : "not run";
@@ -360,24 +359,32 @@ function modelSection(
       [
         ["Local model (Ollama)", status("local")],
         ["LLM (Claude, your key)", status("llm")],
-        ["Jev", JEV_STATUS],
+        ["Jev (TypeSafe AI, your key)", status("jev")],
       ],
     ),
   ];
   if (!model) return lines;
   const judged: { p: number; h: number; y: number }[] = [];
+  const perRepo: {
+    name: string;
+    judged: { p: number; h: number; y: number }[];
+  }[] = [];
   const reports: ModelRunReport[] = [];
   for (const r of runs) {
     const m = r.test.snapshot.model;
     if (!m) continue;
     reports.push(m.report);
+    const mine: { p: number; h: number; y: number }[] = [];
+    perRepo.push({ name: r.name, judged: mine });
     const scores = new Map(
       m.scores.map((x) => [`${x.source}\u0000${x.target}`, x.probability]),
     );
     for (const l of r.test.labeled) {
       const p = scores.get(`${l.candidate.source}\u0000${l.candidate.target}`);
       if (p === undefined) continue;
-      judged.push({ p, h: heuristic.probability(l.candidate.signals), y: l.y });
+      const j = { p, h: heuristic.probability(l.candidate.signals), y: l.y };
+      judged.push(j);
+      mine.push(j);
     }
   }
   const ys = judged.map((j) => j.y);
@@ -409,6 +416,69 @@ function modelSection(
       ],
     ),
     "",
+    "Precision and recall by threshold, on the same pairs:",
+    "",
+    table(
+      [
+        "Threshold",
+        ...[model.backend.id, "Heuristic, fitted"].flatMap((n) => [
+          `${n}: at or above`,
+          "Precision",
+          "Recall",
+        ]),
+      ],
+      THRESHOLDS.map((t, i) => {
+        const cells = (ps: number[]) => {
+          const x = precisionRecall(ps, ys, THRESHOLDS)[i];
+          return [
+            String(x?.predicted ?? 0),
+            pctOrDash(x?.precision ?? Number.NaN),
+            pctOrDash(x?.recall ?? Number.NaN),
+          ];
+        };
+        return [
+          num(t, 2),
+          ...cells(judged.map((j) => j.p)),
+          ...cells(judged.map((j) => j.h)),
+        ];
+      }),
+    ),
+    "",
+    "By repository:",
+    "",
+    table(
+      [
+        "Repository",
+        "Judged",
+        "Positive rate",
+        `${model.backend.id}: ROC AUC`,
+        "Heuristic: ROC AUC",
+        `${model.backend.id}: Brier`,
+        "Heuristic: Brier",
+      ],
+      perRepo.map((r) => {
+        const ry = r.judged.map((j) => j.y);
+        const rp = r.judged.map((j) => j.p);
+        const rh = r.judged.map((j) => j.h);
+        return [
+          r.name,
+          String(ry.length),
+          pct(ry.filter((y) => y === 1).length / Math.max(1, ry.length)),
+          num(rocAuc(rp, ry)),
+          num(rocAuc(rh, ry)),
+          num(brier(rp, ry)),
+          num(brier(rh, ry)),
+        ];
+      }),
+    ),
+    "",
+    ...("servedModels" in model.backend &&
+    model.backend.servedModels instanceof Set
+      ? [
+          `Answered by: ${[...(model.backend.servedModels as Set<string>)].sort().join(", ") || "none"} (the model id each response named).`,
+          "",
+        ]
+      : []),
     `It scored at most ${String(model.maxPairs)} pairs per repository, the heuristic's likeliest first, so these pairs are not a random sample. ${runSummary(
       model.backend,
       {
@@ -420,6 +490,7 @@ function modelSection(
         stoppedAtCap: reports.some((r) => r.stoppedAtCap),
         unsentAtCap: sum((r) => r.unsentAtCap),
         unverifiedSymbols: sum((r) => r.unverifiedSymbols),
+        requestMs: sum((r) => r.requestMs),
         usage: {
           inputTokens: sum((r) => r.usage.inputTokens),
           outputTokens: sum((r) => r.usage.outputTokens),

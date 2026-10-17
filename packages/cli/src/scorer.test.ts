@@ -79,9 +79,9 @@ describe("epoch --scorer", () => {
       "needs your own Anthropic key: set ANTHROPIC_API_KEY",
     ],
     [["--scorer", "local"], "--scorer local needs --model"],
-    [["--scorer", "jev"], "The Jev scorer is not built"],
+    [["--scorer", "jev"], "needs your own Jev key: set JEV_API_KEY"],
     [["--scorer", "gpt"], "--scorer must be heuristic, local, llm or jev"],
-    [["--consent-send"], "apply to --scorer local or llm"],
+    [["--consent-send"], "apply to --scorer local, llm or jev"],
     [["--no-hints", "--scorer", "local"], "--no-hints cannot be combined"],
   ])("refuses %j before analyzing", async (flags, message) => {
     const dir = project();

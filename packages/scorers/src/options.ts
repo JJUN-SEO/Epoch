@@ -4,7 +4,7 @@ import {
   anthropicBackend,
 } from "./anthropic.js";
 import { SpendCap } from "./cost.js";
-import { jevUnavailable } from "./jev.js";
+import { DEFAULT_JEV_MODEL, JEV_ORIGIN, jevBackend } from "./jev.js";
 import type { ModelBackend, ModelRunReport } from "./model.js";
 import { createNet } from "./net.js";
 import { OLLAMA_ORIGIN, ollamaBackend } from "./ollama.js";
@@ -15,8 +15,10 @@ import { OLLAMA_ORIGIN, ollamaBackend } from "./ollama.js";
  * are opt-in (CLAUDE.md "Privacy and data flow"): `local` asks an Ollama
  * server on this machine; `llm` sends file excerpts to Anthropic with the
  * user's own key (ANTHROPIC_API_KEY), only after --consent-send, within
- * --max-spend at the user's own --price-in and --price-out; `jev` is not
- * built (its docs could not be read).
+ * --max-spend at the user's own --price-in and --price-out; `jev` sends
+ * the same excerpts to TypeSafe AI's Jev API with the user's own key
+ * (JEV_API_KEY), under the same rules (ADR-017). A key is only ever read
+ * from the environment (--key-env names another variable), never argv.
  */
 
 export class ScorerUsageError extends Error {}
@@ -28,6 +30,7 @@ export const SCORER_ARGS = {
   "max-spend": { type: "string" },
   "price-in": { type: "string" },
   "price-out": { type: "string" },
+  "key-env": { type: "string" },
   "consent-send": { type: "boolean", default: false },
 } as const;
 
@@ -38,6 +41,7 @@ export interface ScorerValues {
   readonly "max-spend"?: string | undefined;
   readonly "price-in"?: string | undefined;
   readonly "price-out"?: string | undefined;
+  readonly "key-env"?: string | undefined;
   readonly "consent-send": boolean;
 }
 
@@ -82,16 +86,16 @@ export function resolveModel(
       values["max-spend"] !== undefined ||
       values["price-in"] !== undefined ||
       values["price-out"] !== undefined ||
+      values["key-env"] !== undefined ||
       values["consent-send"]
     ) {
       throw new ScorerUsageError(
-        "--model, --max-pairs, --max-spend, --price-in, --price-out and --consent-send apply to --scorer local or llm",
+        "--model, --max-pairs, --max-spend, --price-in, --price-out, --key-env and --consent-send apply to --scorer local, llm or jev",
       );
     }
     return undefined;
   }
-  if (kind === "jev") jevUnavailable();
-  if (kind !== "local" && kind !== "llm") {
+  if (kind !== "local" && kind !== "llm" && kind !== "jev") {
     throw new ScorerUsageError(
       `--scorer must be heuristic, local, llm or jev, got ${kind}`,
     );
@@ -105,6 +109,11 @@ export function resolveModel(
     );
   }
   if (kind === "local") {
+    if (values["key-env"] !== undefined) {
+      throw new ScorerUsageError(
+        "--key-env applies to --scorer llm or jev (an Ollama server needs no key)",
+      );
+    }
     if (values.model === undefined) {
       throw new ScorerUsageError(
         "--scorer local needs --model, the name of a model your Ollama server has",
@@ -125,15 +134,22 @@ export function resolveModel(
       consent: values["consent-send"],
     };
   }
+  const remote = REMOTE[kind];
   if (offline) {
     throw new ScorerUsageError(
-      `--offline: --scorer llm would send to ${ANTHROPIC_ORIGIN}; drop --offline, or use --scorer local (a model on this machine)`,
+      `--offline: --scorer ${kind} would send to ${remote.origin}; drop --offline, or use --scorer local (a model on this machine)`,
     );
   }
-  const apiKey = env.ANTHROPIC_API_KEY;
+  const keyEnv = values["key-env"] ?? remote.keyEnv;
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(keyEnv)) {
+    throw new ScorerUsageError(
+      "--key-env must be an environment variable name",
+    );
+  }
+  const apiKey = env[keyEnv];
   if (apiKey === undefined || apiKey === "") {
     throw new ScorerUsageError(
-      "--scorer llm needs your own Anthropic key: set ANTHROPIC_API_KEY, or store it with `epoch auth set anthropic`",
+      `--scorer ${kind} needs your own ${remote.label} key: set ${keyEnv}, or store it with \`epoch auth set ${remote.auth}\``,
     );
   }
   const maxSpend = amount("--max-spend", values["max-spend"]);
@@ -145,15 +161,19 @@ export function resolveModel(
     priceOut === undefined
   ) {
     throw new ScorerUsageError(
-      "--scorer llm spends your money: give --max-spend <USD> and your model's prices, --price-in and --price-out (USD per million tokens, from Anthropic's price list)",
+      `--scorer ${kind} spends your money: give --max-spend <USD> and your model's prices, --price-in and --price-out (USD per million tokens, from ${remote.prices})`,
     );
   }
+  const net = createNet({ offline, allow: [remote.origin], ...fetchOpt });
   return {
-    backend: anthropicBackend({
-      apiKey,
-      model: values.model ?? DEFAULT_LLM_MODEL,
-      net: createNet({ offline, allow: [ANTHROPIC_ORIGIN], ...fetchOpt }),
-    }),
+    backend:
+      kind === "llm"
+        ? anthropicBackend({
+            apiKey,
+            model: values.model ?? DEFAULT_LLM_MODEL,
+            net,
+          })
+        : jevBackend({ apiKey, model: values.model ?? DEFAULT_JEV_MODEL, net }),
     spend: new SpendCap(maxSpend, {
       inputPerMTok: priceIn,
       outputPerMTok: priceOut,
@@ -162,6 +182,24 @@ export function resolveModel(
     consent: values["consent-send"],
   };
 }
+
+/** The paid scorers: where each sends, and where its key and prices come from. */
+const REMOTE = {
+  llm: {
+    origin: ANTHROPIC_ORIGIN,
+    label: "Anthropic",
+    keyEnv: "ANTHROPIC_API_KEY",
+    auth: "anthropic",
+    prices: "Anthropic's price list",
+  },
+  jev: {
+    origin: JEV_ORIGIN,
+    label: "Jev",
+    keyEnv: "JEV_API_KEY",
+    auth: "jev",
+    prices: "docs.typesafe.ai/models",
+  },
+} as const;
 
 /** One line on what a model scorer did. */
 export function runSummary(
@@ -181,6 +219,9 @@ export function runSummary(
       : "",
     r.unverifiedSymbols > 0
       ? `${String(r.unverifiedSymbols)} cited names not found in the files (dropped)`
+      : "",
+    r.sent > 0
+      ? `${(r.requestMs / r.sent).toFixed(0)} ms per request on average`
       : "",
     `${String(r.usage.inputTokens)} input and ${String(r.usage.outputTokens)} output tokens`,
     spend

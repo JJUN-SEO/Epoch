@@ -40,7 +40,7 @@ const PreviewArgs = z
     `a range of 1 to ${String(MAX_PREVIEW_LINES)} lines`,
   );
 
-/** A model provider whose key the user can set (Jev is not built yet). */
+/** A model provider whose key the user can set (Jev is CLI-only: the app has no relation scorer, ADR-017). */
 const Provider = z.enum(["anthropic"], { error: "unknown provider" });
 
 /**
