@@ -1,0 +1,44 @@
+{
+  "privacy": {
+    "file": "docs/privacy.md",
+    "heading": "What leaves the machine"
+  },
+  "typescript-performance": {
+    "file": "docs/benchmarks/typescript-performance.md",
+    "heading": "zod"
+  },
+  "typescript-accuracy": {
+    "file": "docs/benchmarks/typescript.md",
+    "heading": "Results"
+  },
+  "python-accuracy": {
+    "file": "docs/benchmarks/python-accuracy.md",
+    "heading": "Results",
+    "table": 1
+  },
+  "go-accuracy": {
+    "file": "docs/benchmarks/go.md",
+    "heading": "Results",
+    "table": 1
+  },
+  "findings-precision": {
+    "file": "docs/benchmarks/findings.md",
+    "heading": "Precision on the reviewed sample"
+  },
+  "risk": {
+    "file": "docs/benchmarks/risk.md",
+    "heading": "Check window: share of files fixed later, by tier"
+  },
+  "scorers": {
+    "file": "docs/benchmarks/scorers.md",
+    "heading": "Scorers at T with the model, all repositories"
+  },
+  "summary-cost": {
+    "file": "docs/benchmarks/summaries.md",
+    "heading": "Measured"
+  },
+  "installers": {
+    "file": "docs/benchmarks/installers.md",
+    "heading": "Installer sizes"
+  }
+}

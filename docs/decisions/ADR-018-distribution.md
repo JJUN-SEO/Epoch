@@ -1,6 +1,6 @@
 # ADR-018: Distribution: installers, fuses, release, update check
 
-- **Status:** Proposed (fuses and the update check built 2026-10-18; installers and the release workflow follow in M8)
+- **Status:** Proposed (implementation and installer smoke tests pass; tagged draft and maintainer publication pending)
 - **Date:** 2026-10-18
 - **Milestone:** M8
 
@@ -8,7 +8,7 @@
 
 CLAUDE.md ("Distribution") asks for installers for macOS, Windows and Linux built by CI on one runner per OS and published on GitHub Releases, unsigned early builds with documented first-run steps, and a static site. ADR-005 left two things for M8: the size work, and Electron's fuses, which it tied to M8 because turning off Node's inspector also stops Playwright's Electron launcher.
 
-This ADR records how Epoch is packaged and released. It grows as M8 lands: fuses first, then installers, the release workflow and the update check. Decision 4 (installers, the release workflow and signing status) is written when the first release has been built.
+This ADR records how Epoch is packaged and released. It grew through M8: fuses, installers, the release workflow and the update check. The release workflow still needs its first version tag and maintainer review before this ADR is accepted.
 
 ## Sources
 
@@ -71,3 +71,11 @@ How it works (`src/main/update-check.ts`, `update-store.ts`, `egress.ts`):
 - The e2e suite runs against a build that differs from the installers in one fuse. The installer smoke test covers the shipped fuses.
 - Asar integrity on macOS depends on electron-builder signing (ad hoc) after it flips the fuses; the packaged e2e suite on macOS and Windows shows the app still starts.
 - Epoch makes one network request that no user action starts: the daily update check, opt-out in Settings and off in offline mode. The first-run screen and Settings say so.
+
+### 4. Installers, release, and signing
+
+`electron-builder.yml` produces an Apple silicon DMG, a per-user Windows NSIS installer, and Linux AppImage and deb packages. `packages/app/package.json` is the version source. A `v<version>` tag runs the version check, then the matrix builds and smoke-tests each installer on a fresh runner of its own OS. Only after every smoke leg passes does the workflow create a **draft** GitHub Release with the four installers and `SHA256SUMS.txt`. The maintainer publishes it after review. The site uses version-free artifact names in `releases/latest/download/...`, so the links do not change for the next release.
+
+The [installer size report](../benchmarks/installers.md) is generated from the successful [CI run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655) at commit `76375cfdafdf604e5d3afc8383c4bc921e0fa20f`. It includes component breakdowns and all four package sizes, measured on their native OS runners. It supersedes the earlier Linux size quoted in decision 1 for the later build; no benchmark number was estimated for the README.
+
+Early releases are unsigned. macOS uses only an ad hoc signature for Apple silicon, with no Developer ID certificate or notarization. Windows has no code-signing certificate. Linux packages are unsigned. The README and release notes give checksum verification and first-run steps. No signing purchase or credential is assumed.

@@ -2,7 +2,12 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "lib": ["es2024", "DOM", "DOM.Iterable"],
+    "types": ["node", "vite/client"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src", "e2e", "vite.config.ts", "playwright.config.ts"]
 }

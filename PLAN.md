@@ -361,15 +361,17 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Distribution, Definition of done for MVP.
 
 **Tasks**
-- [ ] `electron-builder` config for macOS (dmg), Windows (NSIS), Linux (AppImage/deb). `asarUnpack` for native modules and WASM. Verify on a packaged build per OS.
-- [ ] GitHub Actions release matrix (one runner per OS so native modules build correctly); tagged releases publish to GitHub Releases.
-- [ ] Auto-update with opt-out, listed in the data-flow table.
-- [ ] Signing: ship unsigned early builds with first-run instructions; document the status. Ask me before spending money on signing.
-- [ ] **Site** (`apps/site`): landing page, downloads, and an in-browser demo viewer using the static `EpochApi`, with graphs and findings precomputed by the CLI for public OSS repos (record repo, SHA, and license/attribution). No backend, no model features.
-- [ ] **README:** problem, demo GIF, architecture diagram, privacy model and data-flow table, how findings work with their limits and measured precision, tradeoffs, signing status, and benchmark tables copied from `docs/benchmarks/` (never retyped).
-- [ ] Final smoke test on a clean machine or VM per OS: install, open a real repo, blast radius, findings banner, offline mode.
+- [x] `electron-builder` config for macOS (dmg), Windows (NSIS), Linux (AppImage/deb). Native modules are unpacked; grammar WASM stays in the asar because it is read with `fs` (ADR-018). Packaged e2e and installer smoke tests passed on all three OSes in [run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655).
+- [x] GitHub Actions release matrix (one runner per OS so native modules build correctly); a matching version tag creates a draft GitHub Release after smoke tests. Matrix verified on a branch; the first tag run remains the release gate.
+- [x] Check and notify for a newer release, with opt-out and no download or install, listed in the data-flow table (ADR-018).
+- [x] Signing: unsigned early builds with first-run and checksum instructions. macOS is ad hoc signed only; no signing money spent.
+- [x] **Site** (`apps/site`): landing page, downloads, and in-browser demo viewer using the static `EpochApi`, with graphs and findings precomputed by the CLI for zod, Flask and cli/cli at pinned SHAs with license/attribution. No backend or model features. Pages deploy is configured in `site.yml`; the repository's Pages source must be set to GitHub Actions before its first deploy.
+- [x] **README:** problem, demo GIF, architecture diagrams, privacy and data-flow table, findings and measured precision, tradeoffs, signing, and benchmark tables copied by `scripts/readme-tables.mjs` and checked in lint.
+- [x] Fresh-runner installer smoke tests per OS: install, open zod, blast radius, findings banner, offline mode, and zero-network log, [run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655).
 
 **Acceptance:** CI-built installers for macOS and Windows (Linux if time) from a tag; clean-machine smoke test passes; every README number traces to a script.
+
+**Release gate still open:** push a tag matching the app version to exercise `release.yml`, review and publish its draft, and enable the GitHub Actions source in Pages for the first site deploy. No draft or Pages URL is claimed live before those runs pass.
 
 ---
 

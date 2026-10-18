@@ -1,62 +1,202 @@
 # Epoch
 
-> **Work in progress** (milestone M7 of [PLAN.md](PLAN.md)). The desktop app opens a project folder and shows its dependency graph for TypeScript/JavaScript, Python and Go (all tier A, precise resolution, with measured accuracy), keeps it up to date as files change, shows the blast radius of any file, rates each file's risk in tiers that say why, and points out likely-dead features as candidates for review. Opt-in summaries of files and folders come from a model on your machine or from Anthropic with your own key, within limits you set.
+> See how a change moves through a codebase. Epoch maps dependencies, shows blast radius and risk tiers, and surfaces likely dead-feature candidates with evidence and caveats.
 
-Epoch is a local-first desktop app (macOS, Windows, Linux) that turns a codebase into an interactive dependency graph. It rates each file's risk in tiers (how exposed, how active, how fragile), shows the blast radius of changing any file, and flags likely-dead features (constant branches, stale feature flags, unreachable files) as candidates for review.
+Epoch is a local-first desktop app for TypeScript/JavaScript, Python and Go. Open a folder to explore its graph; Epoch reads your project but does not change or execute it. The [browser demo](https://jjun-seo.github.io/Epoch/) uses precomputed graphs from public repositories.
 
-## Privacy
+![Epoch's shared app UI exploring zod's graph and candidate findings](docs/media/demo.gif)
 
-Your code never leaves your machine by default, and Epoch never modifies your project.
+## Try Epoch
 
-- **Local-first.** Source code, the graph and the cache stay on your machine. No accounts, no hosted backend, no telemetry.
-- **Read-only on projects.** Epoch writes only to its own cache and settings, and to files you explicitly export.
-- **Parse, never execute.** Analyzing a repository never runs its code, scripts or config.
-- **Model features are opt-in.** Anything that would send data to a model provider is off until you enable it with your own key, and the first send in each project asks first.
-- **Offline mode** blocks every network request, except to a local model on your machine if you chose one.
+| Platform             | Installer                                                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| macOS, Apple silicon | [Epoch-mac-arm64.dmg](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-mac-arm64.dmg)                                                                                                                    |
+| Windows, x64         | [Epoch-win-x64-setup.exe](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-win-x64-setup.exe)                                                                                                            |
+| Linux, x64           | [Epoch-linux-x64.deb](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-linux-x64.deb) or [Epoch-linux-x64.AppImage](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-linux-x64.AppImage) |
 
-What leaves the machine, feature by feature (kept current in [docs/privacy.md](docs/privacy.md)):
+Download links become available when the maintainer publishes a release. The [latest release page](https://github.com/JJUN-SEO/Epoch/releases/latest) includes notes and [SHA256SUMS.txt](https://github.com/JJUN-SEO/Epoch/releases/latest/download/SHA256SUMS.txt). Check the file before opening an installer:
 
-| Feature                                                       | What leaves the machine                                                                | Default             | Status today                                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Parsing, graph, blast radius, risk tiers, git analysis        | Nothing                                                                                | On                  | Built                                                                                                                                                                                                                                                           |
-| Dead-feature detection (reachability, constants, git history) | Nothing                                                                                | On                  | Built                                                                                                                                                                                                                                                           |
-| Heuristic scorer, co-change and shared-string hints           | Nothing                                                                                | On                  | Built                                                                                                                                                                                                                                                           |
-| Embeddings similarity                                         | Nothing (a small local embedding model, all-MiniLM-L6-v2, bundled with the app)        | On                  | Built (model chosen on measurements in ADR-008); the app adds similarity after the first graph when its installer carries the model                                                                                                                             |
-| Local-model scorer and summaries (e.g. Ollama)                | Nothing                                                                                | Opt-in              | Built: the app's summaries (still work in offline mode) and the CLI scorer (`--scorer local`)                                                                                                                                                                   |
-| Jev scorer                                                    | Code snippets and context sent to TypeSafe AI                                          | Opt-in              | Built: the CLI scorer (`--scorer jev`, your key, `--consent-send`, `--max-spend`; ADR-017); not in the app                                                                                                                                                      |
-| LLM summaries and LLM scorer                                  | File source and neighbor summaries sent to the model provider                          | Opt-in              | Built: the app's summaries with Anthropic, OpenAI or Gemini (just your key, then consent once per project and provider; capped at $5 a month unless you change it; ADR-019) and the CLI scorer with Anthropic (`--scorer llm`, `--consent-send`, `--max-spend`) |
-| Update check                                                  | At most once a day, a request to GitHub for the latest version number. No project data | On; can be disabled | Built: a notice links to the release page; you install it yourself (ADR-018). Offline mode forces it off                                                                                                                                                        |
+```sh
+shasum -a 256 Epoch-mac-arm64.dmg             # macOS
+sha256sum Epoch-linux-x64.deb                 # Linux
+```
 
-With no keys configured and update checks disabled, Epoch makes no network requests.
+In PowerShell: `Get-FileHash .\Epoch-win-x64-setup.exe -Algorithm SHA256`. Compare the printed hash with the matching line in `SHA256SUMS.txt`.
 
-The full rules are in [CLAUDE.md](CLAUDE.md).
+Early builds are **unsigned**. The macOS app has an ad hoc signature, without Apple notarization; if Gatekeeper blocks it, open Privacy & Security and choose **Open Anyway** after verifying the download. Windows may show SmartScreen; choose **More info → Run anyway** after verifying the hash. The Windows installer is per-user. On Ubuntu 24.04, prefer the `.deb`; the AppImage may need FUSE and a compatible AppArmor configuration. Do not turn off Chromium's sandbox to run it. Signing is deferred until the maintainer chooses how to fund and maintain it.
 
-## Measured so far
+To use the CLI without an installer, build the repository and run `node packages/cli/dist/bin.js analyze <folder> --json` or `node packages/cli/dist/bin.js findings <folder> --json`. npm publication remains open.
 
-Every number is measured on pinned public repositories; the reports say how.
+## Explore the demos
 
-| What                                                                                                                       | Result                                                                                                                                                                                                                                                                                                                                                                                                     | Report                                                                                      |
-| -------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| TS/JS edge accuracy vs dependency-cruiser (zod, vitest)                                                                    | every disagreement classified                                                                                                                                                                                                                                                                                                                                                                              | [typescript.md](docs/benchmarks/typescript.md)                                              |
-| Python edge accuracy vs grimp 3.17 (Flask 3.1.3)                                                                           | 100% recall; precision 71.6% raw, 100% counting the imports grimp cannot see (namespace subpackages)                                                                                                                                                                                                                                                                                                       | [python-accuracy.md](docs/benchmarks/python-accuracy.md)                                    |
-| Go edge accuracy vs `go list` (cli/cli v2.82.0)                                                                            | 100% precision and recall (production); tests 99.5% / 100%, the gap is build-tagged files                                                                                                                                                                                                                                                                                                                  | [go.md](docs/benchmarks/go.md)                                                              |
-| Watcher: file write to updated graph                                                                                       | 0.34 s (Flask, 83 files), 1.27 s (vitest, 2,451 files), medians of 3                                                                                                                                                                                                                                                                                                                                       | [watcher.md](docs/benchmarks/watcher.md)                                                    |
-| 90-day churn query on a full history                                                                                       | 0.04 s (cli/cli, 399 commits in the window)                                                                                                                                                                                                                                                                                                                                                                | [watcher.md](docs/benchmarks/watcher.md)                                                    |
-| Analysis time, full vs incremental                                                                                         | see the report                                                                                                                                                                                                                                                                                                                                                                                             | [typescript-performance.md](docs/benchmarks/typescript-performance.md)                      |
-| Possibly unused files vs knip 6.38.0 (zod)                                                                                 | 128 files both report (all 10 of Epoch's High among them), 27 only Epoch (none High), 6 only knip; every disagreement categorized                                                                                                                                                                                                                                                                          | [findings.md](docs/benchmarks/findings.md)                                                  |
-| Findings stage, cold / warm cache                                                                                          | 0.06–4.11 s / 0.07–1.27 s on five repositories (git history lookups included)                                                                                                                                                                                                                                                                                                                              | [findings.md](docs/benchmarks/findings.md)                                                  |
-| Finding precision on a reviewed sample (reviewed by Claude at the maintainer's request, not by a human)                    | Worth a look: 11 of 11 (every High finding on five repositories; 25% before the rubric was tuned); Maybe: 8 of 39 (20.5%)                                                                                                                                                                                                                                                                                  | [findings.md](docs/benchmarks/findings.md), [ADR-007](docs/decisions/ADR-007-findings.md)   |
-| Hint calibration, temporal holdout (zod, vitest, Flask, cli/cli)                                                           | Without a model (3,145 judged candidates): Brier 0.188 (constant baseline 0.240), ECE 0.059, ROC AUC 0.724; at the 0.5 threshold, precision 68.2% and recall 48.8%. With the local model (15,472): Brier 0.126 (constant 0.148), ECE 0.027, AUC 0.707, and on the pairs proposed without it AUC 0.724 → 0.763. Shared strings added nothing; cli/cli ranks worse than chance without the model (AUC 0.441) | [scorers.md](docs/benchmarks/scorers.md), [ADR-008](docs/decisions/ADR-008-hint-scoring.md) |
-| Jev scorer (`jev-1.13.0`), same temporal holdout                                                                           | On the 1,508 judged pairs among the heuristic's top 1,000 per repository (50.1% positive): ROC AUC 0.800 vs the fitted heuristic's 0.826, Brier 0.196 vs 0.171, ECE 0.121 vs 0.059; better than the heuristic only on cli/cli (AUC 0.865 vs 0.659). 4,000 requests, 13.5M input tokens, 126 ms each on average, $0.5674 at the documented price                                                            | [scorers.md](docs/benchmarks/scorers.md), [ADR-017](docs/decisions/ADR-017-jev-scorer.md)   |
-| Local embedding model (all-MiniLM-L6-v2 vs bge-small-en-v1.5 and jina-embeddings-v2-small-en)                              | 21.6 ms per file on the CPU, 3.3–4.4× faster than the other two at about the same quality (ROC AUC within 0.02); a 90.4 MB file                                                                                                                                                                                                                                                                            | [ADR-008](docs/decisions/ADR-008-hint-scoring.md) item 7                                    |
-| Risk tiers in hindsight (zod, vitest, Flask, cli/cli; files fixed in the next 180 days, a window the thresholds never saw) | critical 81.4%, high 50.0%, moderate 33.1%, low-moderate 11.9%, low 9.5%; the top two tiers match the removed weighted score at the same cut (better on zod)                                                                                                                                                                                                                                               | [risk.md](docs/benchmarks/risk.md), [ADR-015](docs/decisions/ADR-015-risk-tiers.md)         |
-| Summary cost, full vs incremental (Flask, one commit changing 7 source files)                                              | Measured with Claude Haiku 5.5 (2026-10-17): the full run was 108 requests, 269,203 input and 16,255 output tokens, **$0.035**. After the commit, the 7 changed files the app sends as they are opened were 56,897 input and 1,250 output tokens, **$0.0063**; refreshing the whole project instead (102 requests) cost $0.035, as much as the full run. Epoch's upper estimate was $0.102 and $0.011      | [summaries.md](docs/benchmarks/summaries.md)                                                |
+- [zod · TypeScript](https://jjun-seo.github.io/Epoch/demo.html?repo=zod) — [source at the pinned commit](https://github.com/colinhacks/zod/tree/680d19f7d1e042e55934209caeb79bc843b94f44), MIT.
+- [Flask · Python](https://jjun-seo.github.io/Epoch/demo.html?repo=flask) — [source at the pinned commit](https://github.com/pallets/flask/tree/22d924701a6ae2e4cd01e9a15bbaf3946094af65), BSD-3-Clause.
+- [GitHub CLI · Go](https://jjun-seo.github.io/Epoch/demo.html?repo=cli) — [source at the pinned commit](https://github.com/cli/cli/tree/d2535897fd14a9c9697f3c6f112ce34007a6bf95), MIT.
 
-## How findings work
+The graphs are the exact output of `epoch --offline analyze <repository> --json` at those commits; [the data script](scripts/site-data.mjs) records the commands, copyright lines and license copies in `apps/site/data/`. The browser demo loads those files only. It cannot read source, dismiss findings, or run a model.
 
-Epoch flags three kinds of likely-dead code: **branches that likely never run** (a constant condition), **possibly stale flags** (OpenFeature calls, your own wrapper functions or prefixed environment variables, introduced long ago and untouched since) and **possibly unused files** (no entry point reaches them). Each finding is a candidate, never a verdict: it lists what static analysis cannot see first, then its evidence, a confidence level from a fixed rubric ("Worth a look", "Maybe", "Unsure") with the reason for any cap, and a suggested next step. Nothing is ever changed in your project; dismissals are kept in Epoch's own data folder.
+The demo links become live after the first GitHub Pages deployment.
 
-The main limit: files loaded by tooling (build configs that compute paths, bundle inputs passed on a command line, plugin systems) or by languages Epoch does not analyze can look unused. "Worth a look" is kept for files in packages that declare their entry points, where an unreached file is most likely really unused; elsewhere the best rating is "Maybe". List them under `entryPoints` in `epoch.config.json`. Details, the full rubric and configuration: [docs/findings.md](docs/findings.md).
+## How it works
+
+Epoch parses files as data, resolves dependency edges, reads local git history for churn and risk, then applies a deterministic findings rubric. It keeps parsed facts in a local cache and updates the graph as files change. The [architecture guide](docs/architecture.md) diagrams the process, network boundary and release flow.
+
+### Privacy and data flow
+
+No account, backend or telemetry is involved. Source and the graph stay on your machine. Remote model features require your own key and consent. Offline mode blocks outbound requests while allowing a local model you chose. The update check asks GitHub Releases for the latest version at most once a day, sends no project data or version, and can be disabled; GitHub still sees the request's IP address, time and `User-Agent: Epoch`. [docs/privacy.md](docs/privacy.md) is the source for this table:
+
+<!-- BEGIN GENERATED:privacy -->
+
+| Feature                                                       | What leaves the machine                                                                                                                                                                                                                                                                                                                                                                                                                                            | Default             | Status today                                                                                                                                                                                                                             |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parsing, graph, blast radius, risk tiers, git analysis        | Nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                            | On                  | Built                                                                                                                                                                                                                                    |
+| Dead-feature detection (reachability, constants, git history) | Nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                            | On                  | Built                                                                                                                                                                                                                                    |
+| Heuristic scorer, co-change and shared-string hints           | Nothing                                                                                                                                                                                                                                                                                                                                                                                                                                                            | On                  | Built                                                                                                                                                                                                                                    |
+| Embeddings similarity                                         | Nothing (a small local embedding model, all-MiniLM-L6-v2, bundled with the app; chosen in ADR-008)                                                                                                                                                                                                                                                                                                                                                                 | On                  | Built; the app adds similarity after the first graph when its installer carries the model                                                                                                                                                |
+| Local-model scorer and summaries (e.g. Ollama)                | Nothing (requests go to the model server on this machine, `http://127.0.0.1:11434`)                                                                                                                                                                                                                                                                                                                                                                                | Opt-in              | Built: the app's summaries (Settings → Summaries, Ollama on this machine; still works in offline mode) and the CLI scorer (`--scorer local`)                                                                                             |
+| Jev scorer                                                    | For each scored pair, the start of each file (up to 6,000 characters, at most three files per Go package) and its co-change counts and shared strings, sent to `https://api.typesafe.ai` with your key. TypeSafe's terms say it does not train on what you send, but they set no fixed retention period (zero data retention is for enterprise customers only) and keep a perpetual right to use it for telemetry, abuse monitoring and legal compliance (ADR-017) | Opt-in              | Built: the CLI and benchmark scorer only (`--scorer jev`, with your key from `JEV_API_KEY` or `epoch auth set jev`, `--consent-send` and `--max-spend`); not in the app                                                                  |
+| LLM summaries and LLM scorer                                  | The file's source (or a Go package's files) and the summaries of up to eight files it imports; for a folder, its children's summaries. Sent with your key to the provider you choose for summaries: `https://api.anthropic.com`, `https://api.openai.com` or `https://generativelanguage.googleapis.com` (ADR-019); the CLI scorer sends only to Anthropic. With a free-tier Gemini key, Google may use what is sent to improve its products                       | Opt-in              | Built: the app's summaries, after you add your key (which turns them on) and give a one-time consent per project in a dialog that lists what is sent; the CLI scorer (`--scorer llm`, with your key, `--consent-send` and `--max-spend`) |
+| Update check                                                  | At most once a day, one GET to `https://api.github.com/repos/JJUN-SEO/Epoch/releases/latest` for the latest version number. No project data, no version and no identifier: GitHub sees your IP address, the time and fixed headers (user agent "Epoch")                                                                                                                                                                                                            | On; can be disabled | Built: a notice in the window links to the release page, and you download and install the new version yourself; nothing is downloaded or run automatically (ADR-018). Offline mode forces it off                                         |
+
+<!-- END GENERATED:privacy -->
+
+### Findings are candidates
+
+Epoch looks for constant branches, possibly stale flags and possibly unused files. Each finding lists caveats before evidence, a confidence level and a suggested next step. Dynamic imports, framework conventions, tooling and languages outside the analyzed set can hide real uses. Epoch never changes the project. See [the rubric and configuration guide](docs/findings.md).
+
+The reviewed sample below was assessed by Claude at the maintainer's request; it is **not** a human precision study. It covers pinned repositories and should not be read as a guarantee on a new codebase. Copied from [the findings report](docs/benchmarks/findings.md):
+
+<!-- BEGIN GENERATED:findings-precision -->
+
+| Confidence   | Yes | No  | Unsure | Not reviewed | Precision |
+| ------------ | --- | --- | ------ | ------------ | --------- |
+| Worth a look | 11  | 0   | 0      | 0            | 100.0%    |
+| Maybe        | 8   | 31  | 0      | 0            | 20.5%     |
+
+<!-- END GENERATED:findings-precision -->
+
+## Measured results
+
+Every table below is copied by `scripts/readme-tables.mjs` from a report generated by a reproducible script. `pnpm lint` fails if a copied cell is edited. Each linked report names its repositories, commits, method, host and limits.
+
+### Full and incremental analysis
+
+zod, from [the performance report](docs/benchmarks/typescript-performance.md). The report also covers vitest; these timings are medians under the report's stated conditions.
+
+<!-- BEGIN GENERATED:typescript-performance -->
+
+| Scenario                     | Wall   | Analysis | Discover | Changes | Parse  | Resolve | Graph | Files parsed | Files re-hashed |
+| ---------------------------- | ------ | -------- | -------- | ------- | ------ | ------- | ----- | ------------ | --------------- |
+| cold (empty cache)           | 1.69 s | 1.18 s   | 27 ms    | 42 ms   | 850 ms | 234 ms  | 26 ms | 522          | 522             |
+| cold, parsing in-process     | 2.11 s | 1.61 s   | 27 ms    | 39 ms   | 1.32 s | 200 ms  | 23 ms | 522          | 522             |
+| warm, unchanged              | 809 ms | 319 ms   | 30 ms    | 66 ms   | 0 ms   | 199 ms  | 25 ms | 0            | 0               |
+| incremental, 1 file edited   | 890 ms | 375 ms   | 34 ms    | 64 ms   | 52 ms  | 201 ms  | 25 ms | 1            | 3               |
+| incremental, 5 files edited  | 898 ms | 406 ms   | 26 ms    | 62 ms   | 91 ms  | 201 ms  | 26 ms | 5            | 15              |
+| incremental, 50 files edited | 1.13 s | 590 ms   | 26 ms    | 78 ms   | 230 ms | 230 ms  | 33 ms | 50           | 135             |
+
+<!-- END GENERATED:typescript-performance -->
+
+### Dependency accuracy
+
+TypeScript/JavaScript versus dependency-cruiser, from [the TS/JS report](docs/benchmarks/typescript.md). Adjusted scores classify each disagreement and include real edges the comparison tool missed.
+
+<!-- BEGIN GENERATED:typescript-accuracy -->
+
+| Repository                               | Commit       | Files | Epoch edges | Tool edges | Agreed | Raw precision | Raw recall | Adjusted precision | Adjusted recall | Unclassified |
+| ---------------------------------------- | ------------ | ----- | ----------- | ---------- | ------ | ------------- | ---------- | ------------------ | --------------- | ------------ |
+| https://github.com/colinhacks/zod.git    | 680d19f7d1e0 | 522   | 965         | 643        | 643    | 66.6%         | 100.0%     | 100.0%             | 100.0%          | 0            |
+| https://github.com/vitest-dev/vitest.git | 2899eb3e9793 | 2400  | 4632        | 2577       | 2556   | 55.2%         | 99.2%      | 100.0%             | 100.0%          | 0            |
+
+<!-- END GENERATED:typescript-accuracy -->
+
+Python versus grimp, from [the Python report](docs/benchmarks/python-accuracy.md). The adjusted score accounts for namespace package imports the comparison tool missed.
+
+<!-- BEGIN GENERATED:python-accuracy -->
+
+| Edges          | Epoch | grimp | Agreed | Raw precision | Raw recall | Adjusted precision | Adjusted recall | Unclassified |
+| -------------- | ----- | ----- | ------ | ------------- | ---------- | ------------------ | --------------- | ------------ |
+| Module imports | 95    | 68    | 68     | 71.6%         | 100.0%     | 100.0%             | 100.0%          | 0            |
+
+<!-- END GENERATED:python-accuracy -->
+
+Go versus `go list`, from [the Go report](docs/benchmarks/go.md). Build-tagged test files explain the remaining test-edge difference.
+
+<!-- BEGIN GENERATED:go-accuracy -->
+
+| Edges      | Epoch | go list | Agreed | Precision | Recall |
+| ---------- | ----- | ------- | ------ | --------- | ------ |
+| Production | 1444  | 1444    | 1444   | 100.0%    | 100.0% |
+| Tests      | 1098  | 1093    | 1093   | 99.5%     | 100.0% |
+
+<!-- END GENERATED:go-accuracy -->
+
+### Risk and hint scoring
+
+The risk tiers were evaluated against files fixed in a later window; hindsight is a proxy, not proof of a defect. From [the risk report](docs/benchmarks/risk.md):
+
+<!-- BEGIN GENERATED:risk -->
+
+| Tier         | All repositories   | zod             | vitest              | flask-full     | cli-full          |
+| ------------ | ------------------ | --------------- | ------------------- | -------------- | ----------------- |
+| critical     | 81.4% (48 of 59)   | 75.0% (6 of 8)  | 97.1% (33 of 34)    | 33.3% (1 of 3) | 57.1% (8 of 14)   |
+| high         | 50.0% (46 of 92)   | 20.0% (1 of 5)  | 66.0% (33 of 50)    | 0.0% (0 of 3)  | 35.3% (12 of 34)  |
+| moderate     | 33.1% (119 of 360) | 18.0% (9 of 50) | 42.8% (92 of 215)   | 9.1% (1 of 11) | 20.2% (17 of 84)  |
+| low-moderate | 11.9% (44 of 371)  | 1.6% (1 of 61)  | 17.0% (24 of 141)   | 0.0% (0 of 9)  | 11.9% (19 of 160) |
+| low          | 9.5% (197 of 2081) | 3.6% (9 of 247) | 10.5% (162 of 1540) | 0.0% (0 of 57) | 11.0% (26 of 237) |
+
+<!-- END GENERATED:risk -->
+
+Hint scorer calibration on a temporal holdout, from [the scorer report](docs/benchmarks/scorers.md). Hints never become fact edges or findings.
+
+<!-- BEGIN GENERATED:scorers -->
+
+| Scorer                                                                               | Judged | Positive rate | Mean p | Brier | ECE   | ROC AUC |
+| ------------------------------------------------------------------------------------ | ------ | ------------- | ------ | ----- | ----- | ------- |
+| Heuristic with a model, fitted on T0                                                 | 15472  | 18.0%         | 0.163  | 0.126 | 0.027 | 0.707   |
+| Heuristic with a model, shipped coefficients                                         | 15472  | 18.0%         | 0.163  | 0.126 | 0.027 | 0.707   |
+| Heuristic without a model, fitted on T0 (similarity-only pairs at 0: never proposed) | 15472  | 18.0%         | 0.076  | 0.139 | 0.113 | 0.659   |
+| Cosine alone                                                                         | 15472  | 18.0%         | 0.708  | 0.464 | 0.566 | 0.501   |
+| Co-change ratio alone                                                                | 15472  | 18.0%         | 0.044  | 0.149 | 0.141 | 0.638   |
+| Constant (T0 positive rate)                                                          | 15472  | 18.0%         | 0.195  | 0.148 | 0.015 | 0.500   |
+
+<!-- END GENERATED:scorers -->
+
+### Summary cost
+
+Measured with one provider, one pinned Flask history and the report's stated price; your cost depends on your provider, model and changes. From [the summary report](docs/benchmarks/summaries.md):
+
+<!-- BEGIN GENERATED:summary-cost -->
+
+| Run                                         | Requests | Stored | Not stored (refusal, cut off, emptied) | Input tokens | Output tokens | Cost    | Time in requests | Stopped early |
+| ------------------------------------------- | -------- | ------ | -------------------------------------- | ------------ | ------------- | ------- | ---------------- | ------------- |
+| Full run                                    | 108      | 108    | 0                                      | 269203       | 16255         | $0.035  | 144.5 s          | no            |
+| Incremental run, whole project              | 102      | 102    | 0                                      | 269860       | 15408         | $0.035  | 136.9 s          | no            |
+| Incremental run, new and changed files only | 7        | 7      | 0                                      | 56897        | 1250          | $0.0063 | 11.1 s           | –             |
+
+<!-- END GENERATED:summary-cost -->
+
+### Installer sizes
+
+These are from the [installer size report](docs/benchmarks/installers.md), generated by `scripts/package-size.mjs` on the CI run named there. They describe that run's build, not a promise about later releases.
+
+<!-- BEGIN GENERATED:installers -->
+
+| Runner       | Installer                  | Size     |
+| ------------ | -------------------------- | -------- |
+| macos-26     | `Epoch-mac-arm64.dmg`      | 210.3 MB |
+| windows-2025 | `Epoch-win-x64-setup.exe`  | 200.1 MB |
+| ubuntu-24.04 | `Epoch-linux-x64.AppImage` | 223.3 MB |
+| ubuntu-24.04 | `Epoch-linux-x64.deb`      | 192.5 MB |
+
+<!-- END GENERATED:installers -->
+
+## Tradeoffs and limits
+
+Electron carries a full runtime and a local embedding model, which makes installers larger. It lets the same Node-based analysis engine run in the desktop app and CLI. The installer size report breaks down that cost. Resolver-proven edges are distinct from heuristic hints; unsupported dynamic behavior remains a limit. The static demo cannot represent private code or try model features. The app's notice checks for an update but never downloads or installs one.
+
+## Releasing
+
+`packages/app/package.json` is the version source. A matching `v<version>` tag builds and smoke-tests installers on macOS, Windows and Ubuntu runners, then creates a **draft** GitHub Release with all four installers and checksums. The maintainer checks the draft and publishes it. The site deploys from GitHub Actions when Pages uses **GitHub Actions** as its source. See [ADR-018](docs/decisions/ADR-018-distribution.md) for the distribution choices.
 
 ## Development
 

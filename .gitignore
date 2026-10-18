@@ -24,6 +24,7 @@ Thumbs.db
 packages/app/out/
 packages/app/release/
 packages/app/test-results/
+apps/site/test-results/
 
 # Embedding models, downloaded at build time by scripts/fetch-model.mjs
 /models/*/

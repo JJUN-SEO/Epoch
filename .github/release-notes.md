@@ -11,7 +11,7 @@ Epoch {{VERSION}}: a local-first desktop app that turns a codebase into an inter
 
 ## These builds are not signed
 
-Epoch has no Apple or Microsoft signing certificate yet, so your system warns before the first launch. The [README](https://github.com/JJUN-SEO/Epoch/blob/{{TAG}}/README.md#install) has the details.
+Epoch has no Apple or Microsoft signing certificate yet, so your system warns before the first launch. The [README](https://github.com/JJUN-SEO/Epoch/blob/{{TAG}}/README.md#try-epoch) has the details.
 
 - **macOS:** open the dmg and drag Epoch to Applications. The first launch is refused; open System Settings, then Privacy & Security, and choose "Open Anyway" for Epoch. The app has only an ad-hoc signature and is not notarized. Intel Macs are not supported.
 - **Windows:** SmartScreen shows "Windows protected your PC"; choose "More info", then "Run anyway". Epoch installs for your user only, with no administrator rights.
