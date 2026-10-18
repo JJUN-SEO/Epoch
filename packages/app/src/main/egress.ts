@@ -29,7 +29,9 @@ export function createEgress(offline: () => boolean): Egress {
   egress.setSpellCheckerEnabled(false);
   egress.setSpellCheckerLanguages([]);
   egress.webRequest.onBeforeRequest((details, callback) => {
-    callback({ cancel: !egressAllows(details.url, offline()) });
+    callback({
+      cancel: !egressAllows(details.url, offline(), details.method),
+    });
   });
   egress.setPermissionRequestHandler((_contents, _permission, callback) => {
     callback(false);

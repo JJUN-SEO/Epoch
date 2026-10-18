@@ -15,8 +15,11 @@ const OUT = fileURLToPath(new URL("../out", import.meta.url));
 
 /** Strings only the Anthropic SDK contains. */
 const CLIENT = ["@anthropic-ai/sdk", "anthropic-version"];
-/** ...and the model endpoints, which no process but main may even name. */
-const ENDPOINTS = ["api.anthropic.com", "127.0.0.1:11434"];
+/**
+ * ...and the endpoints main sends to (the model APIs, and the release host
+ * the update check asks), which no other process may even name.
+ */
+const ENDPOINTS = ["api.anthropic.com", "127.0.0.1:11434", "api.github.com"];
 
 const has =
   (needles: readonly string[]) =>
