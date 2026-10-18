@@ -1,0 +1,113 @@
+name: Installers
+
+# Builds each OS's installers on that OS (native modules match the runner),
+# with checksums and a size table (ADR-018). Runs on pushes that change what
+# goes into the app, by hand, and from release.yml for a tag. Nothing here can
+# publish: the token is read-only and electron-builder gets none.
+on:
+  workflow_call:
+  workflow_dispatch:
+  push:
+    # Branches only: a tag runs this through release.yml instead.
+    branches: ["**"]
+    paths:
+      - "packages/app/**"
+      - "packages/core/**"
+      - "packages/engine/**"
+      - "packages/adapters/**"
+      - "packages/findings/**"
+      - "packages/scorers/**"
+      - "packages/ui/**"
+      - "models/**"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/installers.yml"
+      - "scripts/checksums.mjs"
+      - "scripts/package-size.mjs"
+      - "scripts/fetch-model.mjs"
+
+concurrency:
+  group: installers-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-26
+            platform: darwin
+            unpacked: packages/app/release/mac-arm64/Epoch.app
+          - os: windows-2025
+            platform: win32
+            unpacked: packages/app/release/win-unpacked
+          - os: ubuntu-24.04
+            platform: linux
+            unpacked: packages/app/release/linux-unpacked
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build the app
+        run: node scripts/turbo.mjs run build --filter=@epoch-dev/app...
+
+      # The local embedding model the installers carry (ADR-008), from its
+      # pinned revision and checked against its sha256.
+      - name: Fetch the embedding model
+        run: node scripts/fetch-model.mjs
+
+      # Unsigned apart from macOS's ad-hoc signature (electron-builder.yml):
+      # no certificate is looked up, and with no token nothing is published.
+      - name: Build the installers
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: pnpm --filter @epoch-dev/app package:installer
+
+      - name: Checksums
+        run: >-
+          node scripts/checksums.mjs packages/app/release
+          --os ${{ matrix.platform }}
+          --out packages/app/release/SHA256SUMS-${{ matrix.platform }}.txt
+          && cat packages/app/release/SHA256SUMS-${{ matrix.platform }}.txt
+
+      - name: Sizes
+        run: |
+          node scripts/package-size.mjs "${{ matrix.unpacked }}" \
+            --installers packages/app/release \
+            --label "${{ matrix.os }}" \
+            --out packages/app/release/size-${{ matrix.platform }}.md
+          cat packages/app/release/size-${{ matrix.platform }}.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: installer-${{ matrix.platform }}
+          path: |
+            packages/app/release/Epoch-*
+            packages/app/release/SHA256SUMS-${{ matrix.platform }}.txt
+            packages/app/release/size-${{ matrix.platform }}.md
+          if-no-files-found: error
+          retention-days: 7
