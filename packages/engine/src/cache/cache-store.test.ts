@@ -127,6 +127,8 @@ describe.each(stores)("CacheStore contract (%s)", (_name, make) => {
     const s = open();
     const values = [
       ["summary:anthropic", "s1", { text: "paid" }],
+      ["summary:openai", "s3", { text: "paid" }],
+      ["summary:gemini", "s4", { text: "paid" }],
       ["summary:local", "s2", { text: "local" }],
       ["summary-latest", "p", { provider: "anthropic", key: "s1" }],
     ] as const;
@@ -134,7 +136,7 @@ describe.each(stores)("CacheStore contract (%s)", (_name, make) => {
     // Facts and other derived values used more recently than the summaries.
     for (let i = 0; i < 3; i++) s.putFacts(`k${String(i)}`, facts(i));
     s.putDerived("score", "a.ts", "h", { p: 0.5 });
-    expect(s.stats().summaries).toEqual({ paid: 1, local: 1 });
+    expect(s.stats().summaries).toEqual({ paid: 3, local: 1 });
     const summaryBytes = values.reduce(
       (n, [, , value]) => n + JSON.stringify(value).length,
       0,
@@ -142,7 +144,7 @@ describe.each(stores)("CacheStore contract (%s)", (_name, make) => {
     expect(s.prune(summaryBytes)).toBe(4);
     for (const [ns, key] of values) expect(s.getDerived(ns, key)).toBeDefined();
     expect(s.getFacts("k2")).toBeUndefined();
-    expect(s.prune(0)).toBe(3);
+    expect(s.prune(0)).toBe(5);
     expect(s.stats().summaries).toEqual({ paid: 0, local: 0 });
   });
 

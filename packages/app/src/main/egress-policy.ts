@@ -1,4 +1,4 @@
-import { ANTHROPIC_ORIGIN, OLLAMA_ORIGIN } from "@epoch-dev/scorers/origins";
+import { OLLAMA_ORIGIN, SUMMARY_ORIGINS } from "@epoch-dev/scorers/origins";
 
 /*
  * The egress session's own filter (ADR-016), a second layer behind the
@@ -15,5 +15,7 @@ export function egressAllows(url: string, offline: boolean): boolean {
     return false;
   }
   if (origin === OLLAMA_ORIGIN) return true;
-  return origin === ANTHROPIC_ORIGIN && !offline;
+  return (
+    !offline && (Object.values(SUMMARY_ORIGINS) as string[]).includes(origin)
+  );
 }

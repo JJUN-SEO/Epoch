@@ -10,7 +10,34 @@ import { z } from "zod";
 /** The default Claude model for model features: the current small model (the M6 scorer, M7 summaries). */
 export const DEFAULT_CLAUDE_MODEL = "claude-haiku-5-5";
 
-/** A model name: a Claude model id, or an Ollama tag such as "qwen3:4b". */
+/**
+ * Providers that summarize with the user's own key, off this machine
+ * (ADR-016, ADR-019). Each key goes only to its own provider.
+ */
+export const REMOTE_PROVIDERS = ["anthropic", "openai", "gemini"] as const;
+export type RemoteProvider = (typeof REMOTE_PROVIDERS)[number];
+
+/** Who writes summaries: a remote provider, or the model on this machine. */
+export const SummaryProvider = z.enum([...REMOTE_PROVIDERS, "local"]);
+export type SummaryProvider = z.infer<typeof SummaryProvider>;
+
+export const isRemoteProvider = (p: string): p is RemoteProvider =>
+  (REMOTE_PROVIDERS as readonly string[]).includes(p);
+
+/**
+ * Each remote provider's default summary model: its current small,
+ * low-cost text model, from its own models page on 2026-10-17
+ * (https://developers.openai.com/api/docs/models,
+ * https://ai.google.dev/gemini-api/docs/models).
+ */
+export const DEFAULT_MODELS: Readonly<Record<RemoteProvider, string>> =
+  Object.freeze({
+    anthropic: DEFAULT_CLAUDE_MODEL,
+    openai: "gpt-6-luna",
+    gemini: "gemini-3.1-flash-lite",
+  });
+
+/** A model name: a provider's model id, or an Ollama tag such as "qwen3:4b". */
 const ModelName = z
   .string()
   .regex(/^[A-Za-z0-9._:/-]{1,200}$/, "not a model name");
@@ -25,25 +52,49 @@ export const ModelPrice = z.strictObject({
 export type ModelPrice = z.infer<typeof ModelPrice>;
 
 /**
- * Prices that ship with Epoch, so a key is all a user needs: the default
- * model's, copied from the provider's pricing page on the date below (never
+ * Prices that ship with Epoch, so a key is all a user needs: each default
+ * model's, copied from its provider's pricing page on the date below (never
  * from memory). The user's own price for a model replaces it. Summary
- * prompts stay far under the 100,000 tokens above which Claude Haiku 5.5
- * costs more.
+ * prompts stay far under the lengths above which these models cost more
+ * (100,000 tokens for Claude Haiku 5.5, 272,000 for GPT-6 Luna); Gemini's
+ * price is its paid tier, standard processing.
  */
 export const SHIPPED_PRICES: Readonly<Record<string, ModelPrice>> =
   Object.freeze({
-    [`anthropic:${DEFAULT_CLAUDE_MODEL}`]: {
+    [`anthropic:${DEFAULT_MODELS.anthropic}`]: {
       inputPerMTok: 0.1,
       outputPerMTok: 0.5,
     },
+    [`openai:${DEFAULT_MODELS.openai}`]: {
+      inputPerMTok: 0.1,
+      outputPerMTok: 0.5,
+    },
+    [`gemini:${DEFAULT_MODELS.gemini}`]: {
+      inputPerMTok: 0.25,
+      outputPerMTok: 1.5,
+    },
   });
 
-/** Where the shipped prices come from, and when they were read. */
-export const SHIPPED_PRICES_SOURCE = {
-  url: "https://platform.claude.com/docs/en/about-claude/pricing",
-  readOn: "2026-10-17",
-} as const;
+/** Each provider's pricing page, its name for the UI, and when its shipped price was read. */
+export const PROVIDER_INFO: Readonly<
+  Record<RemoteProvider, { label: string; pricingUrl: string; readOn: string }>
+> = Object.freeze({
+  anthropic: {
+    label: "Anthropic",
+    pricingUrl: "https://platform.claude.com/docs/en/about-claude/pricing",
+    readOn: "2026-10-17",
+  },
+  openai: {
+    label: "OpenAI",
+    pricingUrl: "https://developers.openai.com/api/docs/pricing",
+    readOn: "2026-10-17",
+  },
+  gemini: {
+    label: "Google Gemini",
+    pricingUrl: "https://ai.google.dev/gemini-api/docs/pricing",
+    readOn: "2026-10-17",
+  },
+});
 
 /** The monthly cap until the user sets another; a default to tune with use, not a claim. */
 export const DEFAULT_MONTHLY_CAP_USD = 5;
@@ -51,7 +102,10 @@ export const DEFAULT_MONTHLY_CAP_USD = 5;
 /** "provider:model". Only paid providers have prices; a model on this machine costs nothing. */
 const PriceKey = z
   .string()
-  .regex(/^anthropic:[A-Za-z0-9._-]{1,100}$/, "must be anthropic:<model>");
+  .regex(
+    /^(anthropic|openai|gemini):[A-Za-z0-9._-]{1,100}$/,
+    "must be <anthropic|openai|gemini>:<model>",
+  );
 
 const MAX_PRICES = 100;
 const Prices = z
@@ -62,9 +116,13 @@ const Prices = z
 const summaryFields = {
   /** Model features are off until the user turns them on (CLAUDE.md). */
   enabled: z.boolean(),
-  provider: z.enum(["anthropic", "local"]),
+  provider: SummaryProvider,
   /** The Claude model, for provider "anthropic". */
   model: ModelName,
+  /** The OpenAI model, for provider "openai". */
+  openaiModel: ModelName,
+  /** The Gemini model, for provider "gemini". */
+  geminiModel: ModelName,
   /** The Ollama model on this machine, for provider "local"; none until chosen. */
   localModel: ModelName.optional(),
   /** Summarize a file on open (after consent, within the limits below). */
@@ -91,6 +149,8 @@ const sections = {
       enabled: summaryFields.enabled.default(false),
       provider: summaryFields.provider.default("anthropic"),
       model: summaryFields.model.default(DEFAULT_CLAUDE_MODEL),
+      openaiModel: summaryFields.openaiModel.default(DEFAULT_MODELS.openai),
+      geminiModel: summaryFields.geminiModel.default(DEFAULT_MODELS.gemini),
       auto: summaryFields.auto.default(true),
     })
     .prefault({}),
@@ -256,3 +316,11 @@ export const priceOf = (
   model: string,
 ): ModelPrice | undefined =>
   s.prices[`${provider}:${model}`] ?? SHIPPED_PRICES[`${provider}:${model}`];
+
+/** The model a remote provider would summarize with, as the settings name it. */
+export const remoteModelOf = (s: Settings, provider: RemoteProvider): string =>
+  provider === "openai"
+    ? s.summaries.openaiModel
+    : provider === "gemini"
+      ? s.summaries.geminiModel
+      : s.summaries.model;

@@ -7,6 +7,7 @@ import {
   type GraphDelta,
   type Progress,
   type StoredSummary,
+  type SummaryProvider,
   type WatchStatus,
 } from "@epoch-dev/core";
 import {
@@ -30,7 +31,7 @@ export interface HostListeners {
 
 /** A summary's model, as the host plans and stores it. */
 export interface SummaryModel {
-  readonly provider: "anthropic" | "local";
+  readonly provider: SummaryProvider;
   readonly model: string;
 }
 

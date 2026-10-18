@@ -1,7 +1,12 @@
 import path from "node:path";
 import type { BrowserWindow } from "electron";
 import { z } from "zod";
-import { Confidence, FindingKind, SettingsPatch } from "@epoch-dev/core";
+import {
+  Confidence,
+  FindingKind,
+  REMOTE_PROVIDERS,
+  SettingsPatch,
+} from "@epoch-dev/core";
 import { DismissalId, DismissalNote } from "@epoch-dev/engine/dismissals";
 import { CHANNELS } from "../shared/channels";
 import {
@@ -40,8 +45,8 @@ const PreviewArgs = z
     `a range of 1 to ${String(MAX_PREVIEW_LINES)} lines`,
   );
 
-/** A model provider whose key the user can set (Jev is CLI-only: the app has no relation scorer, ADR-017). */
-const Provider = z.enum(["anthropic"], { error: "unknown provider" });
+/** A model provider whose key the user can set: the summary providers (ADR-019). Jev is CLI-only: the app has no relation scorer (ADR-017). */
+const Provider = z.enum(REMOTE_PROVIDERS, { error: "unknown provider" });
 
 /**
  * A key as the renderer may send it. Rejected without repeating it: the

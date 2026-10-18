@@ -130,14 +130,12 @@ test("the key is entered in Settings, refused once, then used", async () => {
   );
   await epoch.page.getByRole("button", { name: "Settings" }).click();
   const settings = epoch.page.getByRole("dialog", { name: "Settings" });
-  const field = settings.getByLabel("Anthropic API key");
+  const anthropicKey = settings.getByRole("group", { name: "Anthropic key" });
+  const field = anthropicKey.getByLabel("Anthropic API key", { exact: true });
   await field.fill(KEY);
-  await settings
-    .getByRole("region", { name: "Keys" })
-    .getByRole("button", { name: "Save" })
-    .click();
+  await anthropicKey.getByRole("button", { name: "Save" }).click();
   await expect(field).toHaveValue("");
-  await expect(settings.getByRole("region", { name: "Keys" })).toContainText(
+  await expect(anthropicKey).toContainText(
     /Set, encrypted by your system|Set, weakly protected/,
   );
   await epoch.page.keyboard.press("Escape");
@@ -155,7 +153,7 @@ test("the key is entered in Settings, refused once, then used", async () => {
     .getByTestId("summary-approval")
     .getByRole("button", { name: "Summarize" })
     .click();
-  await expect(summary()).toContainText("Anthropic refused the key.");
+  await expect(summary()).toContainText("The provider refused the key.");
   // Consent is given now and the estimate is under the ask-first amount.
   await select("src/b.ts");
   await expect(summary().getByTestId("summary-text")).toHaveText(PROSE);

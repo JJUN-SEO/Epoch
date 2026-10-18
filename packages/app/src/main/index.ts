@@ -10,7 +10,11 @@ import {
   session,
   type WebContents,
 } from "electron";
-import type { ProjectInfo } from "@epoch-dev/core";
+import {
+  PROVIDER_INFO,
+  isRemoteProvider,
+  type ProjectInfo,
+} from "@epoch-dev/core";
 import { installTripwire } from "@epoch-dev/scorers/tripwire";
 import { EVENTS } from "../shared/channels";
 import { hardenSession, hardenWebContents, openExternally } from "./harden";
@@ -174,12 +178,21 @@ async function start(): Promise<void> {
         buttons: ["Cancel", "Send"],
         defaultId: 0,
         cancelId: 0,
-        message: `Send code from ${path.basename(ctx.root)} to Anthropic?`,
+        message: `Send code from ${path.basename(ctx.root)} to ${
+          isRemoteProvider(plan.provider)
+            ? PROVIDER_INFO[plan.provider].label
+            : plan.destination
+        }?`,
         detail: [
           `To write summaries, Epoch will send the content of these files to ${plan.destination} with your key (model ${plan.model}):`,
           listed + (more > 0 ? `\n…and ${String(more)} more` : ""),
           plan.excluded.length > 0
             ? `Never sent (they look like secrets): ${plan.excluded.join(", ")}`
+            : "",
+          // From Google's pricing page: its free tier may use content to
+          // improve its products, its paid tier does not (ADR-019).
+          plan.provider === "gemini"
+            ? "With a free-tier Gemini key, Google may use what is sent to improve its products; with a paid-tier key it does not."
             : "",
           `At most $${plan.estimate.worstCaseUsd.toFixed(4)} at your prices. This applies to this project only; summaries can be turned off in Settings.`,
         ]

@@ -14,6 +14,7 @@ import {
   type DerivedStore,
   type Graph,
   type SummaryKeyInputs,
+  type SummaryProvider,
   type SummaryRef,
   type SummaryStatus,
 } from "@epoch-dev/core";
@@ -42,7 +43,7 @@ const sha256 = (text: string): string =>
   createHash("sha256").update(text).digest("hex");
 
 export interface SummaryModelId {
-  readonly provider: "anthropic" | "local";
+  readonly provider: SummaryProvider;
   readonly model: string;
 }
 

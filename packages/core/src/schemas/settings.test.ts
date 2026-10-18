@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_CLAUDE_MODEL,
+  DEFAULT_MODELS,
   DEFAULT_MONTHLY_CAP_USD,
   DEFAULT_SETTINGS,
   SHIPPED_PRICES,
@@ -8,6 +9,7 @@ import {
   applySettingsPatch,
   parseSettings,
   priceOf,
+  remoteModelOf,
   spendRaises,
   updateChecksAllowed,
 } from "./settings.js";
@@ -28,6 +30,8 @@ describe("parseSettings", () => {
     expect(DEFAULT_SETTINGS.summaries.enabled).toBe(false);
     expect(DEFAULT_SETTINGS.summaries.provider).toBe("anthropic");
     expect(DEFAULT_SETTINGS.summaries.model).toBe(DEFAULT_CLAUDE_MODEL);
+    expect(DEFAULT_SETTINGS.summaries.openaiModel).toBe(DEFAULT_MODELS.openai);
+    expect(DEFAULT_SETTINGS.summaries.geminiModel).toBe(DEFAULT_MODELS.gemini);
     expect(DEFAULT_SETTINGS.spend.monthlyCapUsd).toBe(DEFAULT_MONTHLY_CAP_USD);
     expect(DEFAULT_SETTINGS.prices).toEqual({});
   });
@@ -49,6 +53,28 @@ describe("parseSettings", () => {
     expect(warnings[0]).toMatch(/^spend: .*; using defaults$/);
   });
 
+  it("keeps settings stored before OpenAI and Gemini, and picks each provider's model", () => {
+    const { settings, warnings } = parseSettings({
+      summaries: { enabled: true, provider: "anthropic", model: "claude-x" },
+    });
+    expect(warnings).toEqual([]);
+    expect(settings.summaries.openaiModel).toBe(DEFAULT_MODELS.openai);
+    expect(remoteModelOf(settings, "anthropic")).toBe("claude-x");
+    const other = applySettingsPatch(settings, {
+      summaries: {
+        provider: "gemini",
+        geminiModel: "gemini-y",
+        openaiModel: "gpt-z",
+      },
+    });
+    expect(other.summaries.provider).toBe("gemini");
+    expect(remoteModelOf(other, "gemini")).toBe("gemini-y");
+    expect(remoteModelOf(other, "openai")).toBe("gpt-z");
+    expect(
+      parseSettings({ summaries: { provider: "mistral" } }).warnings[0],
+    ).toMatch(/^summaries: provider/);
+  });
+
   it("drops unknown settings, and anything that is not an object", () => {
     let r = parseSettings({ offline: true, telemetry: true });
     expect(r.settings.offline).toBe(true);
@@ -67,8 +93,21 @@ describe("parseSettings", () => {
       parseSettings({ prices: { "anthropic:claude-haiku-5-5": price } })
         .settings.prices,
     ).toEqual({ "anthropic:claude-haiku-5-5": price });
+    expect(
+      parseSettings({
+        prices: {
+          "openai:gpt-6-luna": price,
+          "gemini:gemini-3.1-flash-lite": price,
+        },
+      }).settings.prices,
+    ).toEqual({
+      "openai:gpt-6-luna": price,
+      "gemini:gemini-3.1-flash-lite": price,
+    });
     for (const prices of [
       { "claude-haiku-5-5": price },
+      { "local:qwen3": price },
+      { "mistral:m": price },
       { "anthropic:claude haiku": price },
       { "anthropic:m": { inputPerMTok: -1, outputPerMTok: 5 } },
       { "anthropic:m": { inputPerMTok: 1 } },
@@ -115,7 +154,7 @@ describe("applySettingsPatch", () => {
       { summaries: { enabled: "yes" } },
       { summaries: { surprise: 1 } },
       { spend: { sessionBudgetUsd: Number.POSITIVE_INFINITY } },
-      { prices: { "openai:m": { inputPerMTok: 1, outputPerMTok: 1 } } },
+      { prices: { "mistral:m": { inputPerMTok: 1, outputPerMTok: 1 } } },
     ]) {
       expect(SettingsPatch.safeParse(patch).success).toBe(false);
       expect(() => applySettingsPatch(DEFAULT_SETTINGS, patch)).toThrow();
@@ -215,6 +254,15 @@ describe("helpers", () => {
     expect(SHIPPED_PRICES[`anthropic:${DEFAULT_CLAUDE_MODEL}`]).toEqual({
       inputPerMTok: 0.1,
       outputPerMTok: 0.5,
+    });
+    // Each read from its provider's pricing page on 2026-10-17 (ADR-019).
+    expect(priceOf(DEFAULT_SETTINGS, "openai", DEFAULT_MODELS.openai)).toEqual({
+      inputPerMTok: 0.1,
+      outputPerMTok: 0.5,
+    });
+    expect(priceOf(DEFAULT_SETTINGS, "gemini", DEFAULT_MODELS.gemini)).toEqual({
+      inputPerMTok: 0.25,
+      outputPerMTok: 1.5,
     });
   });
 });

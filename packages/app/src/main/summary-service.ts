@@ -11,9 +11,9 @@ import type {
   SummaryState,
   SummaryUnavailableReason,
 } from "@epoch-dev/core";
-import { priceOf } from "@epoch-dev/core";
+import { isRemoteProvider, priceOf, remoteModelOf } from "@epoch-dev/core";
 import { costOf } from "@epoch-dev/scorers/cost";
-import { ANTHROPIC_ORIGIN, OLLAMA_ORIGIN } from "@epoch-dev/scorers/origins";
+import { SUMMARY_ORIGINS } from "@epoch-dev/scorers/origins";
 import { SUMMARY_MAX_OUTPUT_TOKENS } from "@epoch-dev/scorers/summary";
 import type { TextRequest, TextResult } from "@epoch-dev/scorers";
 import type {
@@ -127,7 +127,7 @@ function modelOf(settings: Settings): SummaryModel | undefined {
     return s.localModel === undefined
       ? undefined
       : { provider: "local", model: s.localModel };
-  return { provider: "anthropic", model: s.model };
+  return { provider: s.provider, model: remoteModelOf(settings, s.provider) };
 }
 
 function metaOf(s: StoredSummary) {
@@ -242,8 +242,9 @@ export class SummaryService {
     const current = modelOf(settings);
     if (!current) return this.unavailable(subject, "no-local-model", cached);
     const jobPlan = this.jobPlan(current, [plan], settings);
-    const remote = current.provider === "anthropic";
-    const consented = !remote || this.deps.consent.has(ctx.root, "anthropic");
+    const remote = isRemoteProvider(current.provider);
+    const consented =
+      !remote || this.deps.consent.has(ctx.root, current.provider);
     const cheap =
       jobPlan.estimate.worstCaseUsd <= settings.spend.confirmAboveUsd + EPSILON;
     const soft =
@@ -311,9 +312,10 @@ export class SummaryService {
         subject: approved.subject,
         reason: "plan-changed",
       };
+    // Consent is per provider: agreeing to one does not send to another.
     if (
-      current.provider === "anthropic" &&
-      !this.deps.consent.has(ctx.root, "anthropic")
+      isRemoteProvider(current.provider) &&
+      !this.deps.consent.has(ctx.root, current.provider)
     ) {
       if (!(await this.deps.askConsent(ctx, approved.plan)))
         return {
@@ -321,7 +323,7 @@ export class SummaryService {
           subject: approved.subject,
           reason: "cancelled",
         };
-      this.deps.consent.grant(ctx.root, "anthropic");
+      this.deps.consent.grant(ctx.root, current.provider);
     }
     return approved.items
       ? this.runFolder(ctx, approved)
@@ -346,8 +348,9 @@ export class SummaryService {
     if (!model) return "no-local-model";
     if (model.provider === "local") return undefined;
     if (settings.offline) return "offline";
-    if (!(await this.deps.keys.status("anthropic")).configured) return "no-key";
-    if (!priceOf(settings, "anthropic", model.model)) return "no-price";
+    if (!(await this.deps.keys.status(model.provider)).configured)
+      return "no-key";
+    if (!priceOf(settings, model.provider, model.model)) return "no-price";
     const spend = this.deps.ledger.status(this.limits(settings));
     if (spend.monthUsd >= settings.spend.monthlyCapUsd - EPSILON)
       return "cap-reached";
@@ -369,7 +372,7 @@ export class SummaryService {
     settings: Settings,
   ): number {
     if (model.provider === "local") return 0;
-    const price = priceOf(settings, "anthropic", model.model);
+    const price = priceOf(settings, model.provider, model.model);
     if (!price) return Number.POSITIVE_INFINITY;
     return costOf(
       { inputTokens, outputTokens: requests * SUMMARY_MAX_OUTPUT_TOKENS },
@@ -391,9 +394,8 @@ export class SummaryService {
     return {
       provider: model.provider,
       model: model.model,
-      destination:
-        model.provider === "anthropic" ? ANTHROPIC_ORIGIN : OLLAMA_ORIGIN,
-      remote: model.provider === "anthropic",
+      destination: SUMMARY_ORIGINS[model.provider],
+      remote: isRemoteProvider(model.provider),
       requests: items.length,
       sends: sends.slice(0, MAX_LISTED),
       sendsMore: Math.max(0, sends.length - MAX_LISTED),
@@ -562,8 +564,9 @@ export class SummaryService {
       );
     if (!plan.prompt)
       return this.unavailable(a.subject, "not-supported", cached);
-    const remote = a.model.provider === "anthropic";
-    const apiKey = remote ? await this.deps.keys.get("anthropic") : undefined;
+    const provider = a.model.provider;
+    const remote = isRemoteProvider(provider);
+    const apiKey = remote ? await this.deps.keys.get(provider) : undefined;
     if (remote && apiKey === undefined)
       return this.unavailable(a.subject, "no-key", cached);
     const hold = this.deps.ledger.reserve(worst, this.limits(settings), remote);
@@ -603,7 +606,7 @@ export class SummaryService {
     } finally {
       set.delete(controller);
     }
-    const price = priceOf(settings, "anthropic", a.model.model);
+    const price = priceOf(settings, a.model.provider, a.model.model);
     const costUsd = remote && price ? costOf(result.usage, price) : 0;
     hold.settle(costUsd, result.usage);
     const failed = (reason: SummaryFailureReason): SummaryState => ({

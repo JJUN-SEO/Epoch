@@ -7,12 +7,27 @@ describe("egressAllows (the egress session's own filter)", () => {
       true,
     );
     expect(egressAllows("http://127.0.0.1:11434/api/chat", false)).toBe(true);
+    expect(egressAllows("https://api.openai.com/v1/responses", false)).toBe(
+      true,
+    );
+    expect(
+      egressAllows(
+        "https://generativelanguage.googleapis.com/v1beta/models/m:generateContent",
+        false,
+      ),
+    ).toBe(true);
   });
 
   it("keeps only the model on this machine offline", () => {
     expect(egressAllows("https://api.anthropic.com/v1/messages", true)).toBe(
       false,
     );
+    expect(egressAllows("https://api.openai.com/v1/responses", true)).toBe(
+      false,
+    );
+    expect(
+      egressAllows("https://generativelanguage.googleapis.com/v1beta/", true),
+    ).toBe(false);
     expect(egressAllows("http://127.0.0.1:11434/api/chat", true)).toBe(true);
   });
 
@@ -20,6 +35,10 @@ describe("egressAllows (the egress session's own filter)", () => {
     "https://example.com/",
     "http://api.anthropic.com/v1/messages",
     "https://api.anthropic.com.evil.test/",
+    "https://api.openai.com:8443/",
+    "https://openai.com/",
+    "https://googleapis.com/",
+    "https://storage.googleapis.com/",
     "http://localhost:11434/api/chat",
     "http://127.0.0.1:11435/",
     "file:///etc/passwd",

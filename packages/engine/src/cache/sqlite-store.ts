@@ -334,7 +334,10 @@ export class SqliteCacheStore implements CacheStore {
       manifestEntries: count("manifest"),
       derived: count("derived"),
       summaries: {
-        paid: this.countNamespace(SUMMARY_NAMESPACES.anthropic),
+        paid:
+          this.countNamespace(SUMMARY_NAMESPACES.anthropic) +
+          this.countNamespace(SUMMARY_NAMESPACES.openai) +
+          this.countNamespace(SUMMARY_NAMESPACES.gemini),
         local: this.countNamespace(SUMMARY_NAMESPACES.local),
       },
     };

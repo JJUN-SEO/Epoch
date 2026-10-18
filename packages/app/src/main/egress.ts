@@ -1,6 +1,6 @@
 import { session, type Session } from "electron";
 import { createNet, type Net } from "@epoch-dev/scorers/net";
-import { ANTHROPIC_ORIGIN, OLLAMA_ORIGIN } from "@epoch-dev/scorers/origins";
+import { OLLAMA_ORIGIN, SUMMARY_ORIGINS } from "@epoch-dev/scorers/origins";
 import { egressAllows } from "./egress-policy";
 
 /*
@@ -32,7 +32,7 @@ export function createEgress(offline: () => boolean): Egress {
   });
   const net = createNet({
     offline,
-    allow: [ANTHROPIC_ORIGIN, OLLAMA_ORIGIN],
+    allow: Object.values(SUMMARY_ORIGINS),
     offlineAllow: [OLLAMA_ORIGIN],
     fetch: (input, init) =>
       egress.fetch(input instanceof URL ? input.href : input, init),

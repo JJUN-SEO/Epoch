@@ -12,7 +12,7 @@ export const UNAVAILABLE_TEXT: Readonly<
 > = {
   disabled: "Summaries are off.",
   offline: "Offline mode is on.",
-  "no-key": "Add your Anthropic key in Settings.",
+  "no-key": "Add a key for the chosen provider in Settings.",
   "no-price": "Enter this model's prices in Settings.",
   "no-cap": "Set a monthly spending cap in Settings.",
   "cap-reached": "This month's spending cap is reached.",
@@ -28,7 +28,7 @@ export const UNAVAILABLE_TEXT: Readonly<
 };
 
 export const FAILED_TEXT: Readonly<Record<SummaryFailureReason, string>> = {
-  auth: "Anthropic refused the key.",
+  auth: "The provider refused the key.",
   "rate-limited": "Rate limited by the provider; try again later.",
   unreachable: "Couldn't reach the provider.",
   server: "The provider had an error.",
@@ -46,7 +46,7 @@ export const FAILED_TEXT: Readonly<Record<SummaryFailureReason, string>> = {
 
 export const APPROVAL_TEXT: Readonly<Record<SummaryApprovalReason, string>> = {
   consent:
-    "The first summary in this project: Epoch asks before sending anything.",
+    "The first summary in this project from this provider: Epoch asks before sending anything.",
   "over-threshold": "Estimated above your ask-first amount.",
   "folder-job":
     "A folder is summarized from its files and subfolders, bottom-up.",

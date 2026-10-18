@@ -9,6 +9,7 @@ import type {
   GraphNode,
   Settings,
   SettingsPatch,
+  SummaryProvider,
   UnresolvedImport,
 } from "../schemas/index.js";
 
@@ -129,7 +130,7 @@ export interface CodePreview {
 
 /** How a summary was made, for the "model-generated" label and the cost. */
 export interface SummaryMeta {
-  readonly provider: "anthropic" | "local";
+  readonly provider: SummaryProvider;
   readonly model: string;
   readonly createdAt: string;
   readonly inputTokens: number;
@@ -148,7 +149,7 @@ export interface CachedSummary {
 
 /** What approving a summary request would send and may cost (ADR-016). */
 export interface SummaryJobPlan {
-  readonly provider: "anthropic" | "local";
+  readonly provider: SummaryProvider;
   readonly model: string;
   /** Where requests go, e.g. "https://api.anthropic.com". */
   readonly destination: string;

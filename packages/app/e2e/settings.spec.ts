@@ -135,23 +135,19 @@ test("a key goes in once, turns summaries on, and only its status shows", async 
     exact: true,
   });
   await summaries.uncheck();
-  const field = settings().getByLabel("Anthropic API key");
+  const anthropicKey = settings().getByRole("group", { name: "Anthropic key" });
+  const field = anthropicKey.getByLabel("Anthropic API key", { exact: true });
   await field.fill(SENTINEL);
-  await settings()
-    .getByRole("region", { name: "Keys" })
-    .getByRole("button", { name: "Save" })
-    .click();
+  await anthropicKey.getByRole("button", { name: "Save" }).click();
   await expect(field).toHaveValue("");
   // A key is all it takes: summaries turn on with it.
   await expect(summaries).toBeChecked();
-  await expect(settings().getByRole("region", { name: "Keys" })).toContainText(
+  await expect(anthropicKey).toContainText(
     /Set until Epoch quits|Set, encrypted by your system|Set, weakly protected/,
   );
   expect(await epoch.page.content()).not.toContain(SENTINEL);
-  await settings().getByRole("button", { name: "Remove" }).click();
-  await expect(settings().getByRole("region", { name: "Keys" })).toContainText(
-    "Not set",
-  );
+  await anthropicKey.getByRole("button", { name: "Remove" }).click();
+  await expect(anthropicKey).toContainText("Not set");
 });
 
 test("the cache shows its size, and Clear says how many paid summaries it deletes", async () => {

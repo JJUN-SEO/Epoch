@@ -2,17 +2,20 @@ import { describe, expect, it } from "vitest";
 import { ANTHROPIC_ORIGIN } from "./anthropic.js";
 import { createNet } from "./net.js";
 import { OLLAMA_ORIGIN } from "./ollama.js";
+import { GEMINI_ORIGIN, OPENAI_ORIGIN } from "./origins.js";
 import {
   TextModelError,
   anthropicTextModel,
+  geminiTextModel,
   ollamaTextModel,
+  openaiTextModel,
   type TextModel,
 } from "./text-model.js";
 
 /*
  * Plain-text generation for summaries (M7), through Epoch's network module
- * only. Anthropic through the SDK, Ollama by its documented HTTP API; both
- * against fake fetches here.
+ * only. Anthropic through the SDK; OpenAI, Gemini and Ollama by their
+ * documented HTTP APIs; all against fake fetches here.
  */
 
 interface Seen {
@@ -213,6 +216,339 @@ describe("anthropicTextModel", () => {
       .catch((e: unknown) => e);
     expect((err as TextModelError).code).toBe("aborted");
     expect(seen).toHaveLength(1);
+  });
+});
+
+const generateErr = (model: TextModel, signal?: AbortSignal) =>
+  model
+    .generate({
+      system: "",
+      user: "u",
+      maxOutputTokens: 10,
+      ...(signal ? { signal } : {}),
+    })
+    .catch((e: unknown) => e);
+
+const openaiResponse = (over: Record<string, unknown> = {}) =>
+  json({
+    id: "resp_test",
+    object: "response",
+    status: "completed",
+    incomplete_details: null,
+    output: [
+      { type: "reasoning", id: "rs_test", summary: [] },
+      {
+        type: "message",
+        id: "msg_test",
+        status: "completed",
+        role: "assistant",
+        content: [
+          { type: "output_text", text: "Starts ", annotations: [] },
+          { type: "output_text", text: "the server.", annotations: [] },
+        ],
+      },
+    ],
+    usage: {
+      input_tokens: 1000,
+      input_tokens_details: { cached_tokens: 200, cache_write_tokens: 0 },
+      output_tokens: 90,
+      output_tokens_details: { reasoning_tokens: 30 },
+      total_tokens: 1090,
+    },
+    ...over,
+  });
+
+const openai = (
+  respond: (seen: Seen) => Response | Promise<Response>,
+  offline = false,
+): { model: TextModel; seen: Seen[] } => {
+  const r = recorder(respond);
+  return {
+    seen: r.seen,
+    model: openaiTextModel({
+      apiKey: "test-key",
+      model: "gpt-6-luna",
+      net: createNet({ offline, allow: [OPENAI_ORIGIN], fetch: r.fetch }),
+    }),
+  };
+};
+
+describe("openaiTextModel", () => {
+  it("sends one Responses request at low effort, unstored, with the key only to api.openai.com", async () => {
+    const { model, seen } = openai(() => openaiResponse());
+    const out = await model.generate({
+      system: "sys",
+      user: "usr",
+      maxOutputTokens: 1024,
+    });
+    expect(out).toEqual({
+      text: "Starts the server.",
+      stop: "end",
+      usage: { inputTokens: 1000, outputTokens: 90 },
+    });
+    expect(model).toMatchObject({
+      provider: "openai",
+      model: "gpt-6-luna",
+      destination: OPENAI_ORIGIN,
+      remote: true,
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.url).toBe(`${OPENAI_ORIGIN}/v1/responses`);
+    expect(seen[0]?.headers.get("authorization")).toBe("Bearer test-key");
+    expect(seen[0]?.headers.get("x-api-key")).toBeNull();
+    expect(seen[0]?.body).toEqual({
+      model: "gpt-6-luna",
+      instructions: "sys",
+      input: "usr",
+      max_output_tokens: 1024,
+      reasoning: { effort: "low" },
+      store: false,
+    });
+  });
+
+  it.each([
+    [
+      {
+        status: "incomplete",
+        incomplete_details: { reason: "max_output_tokens" },
+      },
+      "max-tokens",
+    ],
+    [
+      {
+        status: "incomplete",
+        incomplete_details: { reason: "content_filter" },
+      },
+      "refusal",
+    ],
+    [{ status: "failed" }, "other"],
+  ])("reports %j as %s", async (over, stop) => {
+    const { model } = openai(() => openaiResponse(over));
+    const out = await model.generate({
+      system: "",
+      user: "u",
+      maxOutputTokens: 10,
+    });
+    expect(out.stop).toBe(stop);
+  });
+
+  it("calls a refusal part a refusal", async () => {
+    const { model } = openai(() =>
+      openaiResponse({
+        output: [
+          {
+            type: "message",
+            role: "assistant",
+            content: [{ type: "refusal", refusal: "I can't help with that." }],
+          },
+        ],
+      }),
+    );
+    const out = await model.generate({
+      system: "",
+      user: "u",
+      maxOutputTokens: 10,
+    });
+    expect(out).toMatchObject({ text: "", stop: "refusal" });
+  });
+
+  it.each([
+    [401, "auth"],
+    [403, "auth"],
+    [404, "no-model"],
+    [429, "rate-limited"],
+    [400, "bad-request"],
+    [500, "server"],
+  ])(
+    "turns HTTP %i into the reason %s, without the provider's text",
+    async (status, code) => {
+      const { model } = openai(() =>
+        json(
+          {
+            error: {
+              message: "Incorrect API key provided: test-key",
+              type: "x",
+            },
+          },
+          status,
+        ),
+      );
+      const err = await generateErr(model);
+      expect(err).toBeInstanceOf(TextModelError);
+      expect((err as TextModelError).code).toBe(code);
+      expect((err as Error).message).not.toContain("test-key");
+    },
+  );
+
+  it("calls an answer it cannot read a bad response", async () => {
+    const { model } = openai(() => json({ unexpected: true }));
+    expect(((await generateErr(model)) as TextModelError).code).toBe(
+      "bad-response",
+    );
+  });
+
+  it("sends nothing offline", async () => {
+    const { model, seen } = openai(() => openaiResponse(), true);
+    expect(((await generateErr(model)) as TextModelError).code).toBe("offline");
+    expect(seen).toEqual([]);
+  });
+
+  it("stops when the caller aborts", async () => {
+    const controller = new AbortController();
+    const { model } = openai(
+      (s) =>
+        new Promise<Response>((_, reject) => {
+          s.signal?.addEventListener("abort", () => {
+            reject(new DOMException("aborted", "AbortError"));
+          });
+          controller.abort();
+        }),
+    );
+    expect(
+      ((await generateErr(model, controller.signal)) as TextModelError).code,
+    ).toBe("aborted");
+  });
+});
+
+const geminiResponse = (over: Record<string, unknown> = {}) =>
+  json({
+    candidates: [
+      {
+        content: {
+          role: "model",
+          parts: [
+            { text: "thinking about it", thought: true },
+            { text: "Starts " },
+            { text: "the server." },
+          ],
+        },
+        finishReason: "STOP",
+      },
+    ],
+    usageMetadata: {
+      promptTokenCount: 1000,
+      candidatesTokenCount: 60,
+      thoughtsTokenCount: 40,
+      totalTokenCount: 1100,
+    },
+    ...over,
+  });
+
+const gemini = (
+  respond: (seen: Seen) => Response | Promise<Response>,
+  offline = false,
+): { model: TextModel; seen: Seen[] } => {
+  const r = recorder(respond);
+  return {
+    seen: r.seen,
+    model: geminiTextModel({
+      apiKey: "test-key",
+      model: "gemini-3.1-flash-lite",
+      net: createNet({ offline, allow: [GEMINI_ORIGIN], fetch: r.fetch }),
+    }),
+  };
+};
+
+describe("geminiTextModel", () => {
+  it("sends one generateContent request, unstored, with the key in a header and never in the URL", async () => {
+    const { model, seen } = gemini(() => geminiResponse());
+    const out = await model.generate({
+      system: "sys",
+      user: "usr",
+      maxOutputTokens: 1024,
+    });
+    expect(out).toEqual({
+      text: "Starts the server.",
+      stop: "end",
+      // Thinking is billed as output.
+      usage: { inputTokens: 1000, outputTokens: 100 },
+    });
+    expect(model).toMatchObject({
+      provider: "gemini",
+      model: "gemini-3.1-flash-lite",
+      destination: GEMINI_ORIGIN,
+      remote: true,
+    });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]?.url).toBe(
+      `${GEMINI_ORIGIN}/v1beta/models/gemini-3.1-flash-lite:generateContent`,
+    );
+    expect(seen[0]?.url).not.toContain("test-key");
+    expect(seen[0]?.headers.get("x-goog-api-key")).toBe("test-key");
+    expect(seen[0]?.headers.get("authorization")).toBeNull();
+    expect(seen[0]?.body).toEqual({
+      systemInstruction: { parts: [{ text: "sys" }] },
+      contents: [{ role: "user", parts: [{ text: "usr" }] }],
+      generationConfig: { maxOutputTokens: 1024 },
+      store: false,
+    });
+  });
+
+  it.each([
+    ["MAX_TOKENS", "max-tokens"],
+    ["SAFETY", "refusal"],
+    ["PROHIBITED_CONTENT", "refusal"],
+    ["OTHER", "other"],
+  ])("reports finish reason %s as %s", async (finishReason, stop) => {
+    const { model } = gemini(() =>
+      geminiResponse({
+        candidates: [{ content: { parts: [{ text: "x" }] }, finishReason }],
+      }),
+    );
+    const out = await model.generate({
+      system: "",
+      user: "u",
+      maxOutputTokens: 10,
+    });
+    expect(out.stop).toBe(stop);
+  });
+
+  it("calls a blocked prompt a refusal", async () => {
+    const { model } = gemini(() =>
+      json({
+        promptFeedback: { blockReason: "SAFETY" },
+        usageMetadata: { promptTokenCount: 12 },
+      }),
+    );
+    const out = await model.generate({
+      system: "",
+      user: "u",
+      maxOutputTokens: 10,
+    });
+    expect(out).toEqual({
+      text: "",
+      stop: "refusal",
+      usage: { inputTokens: 12, outputTokens: 0 },
+    });
+  });
+
+  it.each([
+    [400, "bad-request"],
+    [403, "auth"],
+    [404, "no-model"],
+    [429, "rate-limited"],
+    [503, "server"],
+  ])(
+    "turns HTTP %i into the reason %s, without the provider's text",
+    async (status, code) => {
+      const { model } = gemini(() =>
+        json(
+          {
+            error: { code: status, message: "API key not valid", status: "X" },
+          },
+          status,
+        ),
+      );
+      const err = await generateErr(model);
+      expect((err as TextModelError).code).toBe(code);
+      expect((err as Error).message).not.toContain("API key not valid");
+    },
+  );
+
+  it("sends nothing offline", async () => {
+    const { model, seen } = gemini(() => geminiResponse(), true);
+    expect(((await generateErr(model)) as TextModelError).code).toBe("offline");
+    expect(seen).toEqual([]);
   });
 });
 

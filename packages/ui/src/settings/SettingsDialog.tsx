@@ -1,12 +1,16 @@
 import { X } from "lucide-react";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import {
+  PROVIDER_INFO,
+  REMOTE_PROVIDERS,
   SHIPPED_PRICES,
-  SHIPPED_PRICES_SOURCE,
   applySettingsPatch,
+  isRemoteProvider,
   priceOf,
+  remoteModelOf,
   type EpochApi,
   type KeyStatus,
+  type RemoteProvider,
   type Settings,
   type SettingsPatch,
   type SpendStatus,
@@ -96,6 +100,72 @@ function CommitField(props: {
   );
 }
 
+/** Where each remote provider's model is set. */
+const MODEL_FIELD = {
+  anthropic: { field: "model", label: "Claude model" },
+  openai: { field: "openaiModel", label: "OpenAI model" },
+  gemini: { field: "geminiModel", label: "Gemini model" },
+} as const satisfies Record<RemoteProvider, { field: string; label: string }>;
+
+/** One provider's key: sent once to main, then only its status comes back. */
+function KeyRow(props: {
+  readonly provider: RemoteProvider;
+  readonly status: KeyStatus | undefined;
+  readonly onSave: (provider: RemoteProvider, value: string) => void;
+  readonly onRemove: (provider: RemoteProvider) => void;
+}) {
+  const [input, setInput] = useState("");
+  const label = `${PROVIDER_INFO[props.provider].label} API key`;
+  const save = () => {
+    const value = input.trim();
+    // The field never keeps the key once it has been sent.
+    setInput("");
+    if (value !== "") props.onSave(props.provider, value);
+  };
+  return (
+    <div role="group" aria-label={`${PROVIDER_INFO[props.provider].label} key`}>
+      <Row
+        label={label}
+        hint={props.status ? keyStatusText(props.status) : "…"}
+      >
+        <input
+          type="password"
+          aria-label={label}
+          autoComplete="off"
+          spellCheck={false}
+          placeholder={props.status?.configured ? "Replace key" : "Paste key"}
+          className={`${fieldClass} w-44`}
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") save();
+          }}
+        />
+        <Button
+          aria-label={`Save ${label}`}
+          disabled={input.trim() === ""}
+          onClick={save}
+        >
+          Save
+        </Button>
+        {props.status?.configured === true && (
+          <Button
+            variant="ghost"
+            aria-label={`Remove ${label}`}
+            onClick={() => {
+              props.onRemove(props.provider);
+            }}
+          >
+            Remove
+          </Button>
+        )}
+      </Row>
+    </div>
+  );
+}
+
 export interface SettingsDialogProps {
   readonly api: EpochApi;
   readonly shell: Shell;
@@ -104,11 +174,12 @@ export interface SettingsDialogProps {
 
 export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
   const [settings, setSettings] = useState<Settings>();
-  const [keyStatus, setKeyStatus] = useState<KeyStatus>();
+  const [keyStatus, setKeyStatus] = useState<
+    Partial<Record<RemoteProvider, KeyStatus>>
+  >({});
   const [spend, setSpend] = useState<SpendStatus>();
   const [cache, setCache] = useState<CacheSummary>();
   const [error, setError] = useState<string>();
-  const [keyInput, setKeyInput] = useState("");
   const [prices, setPrices] = useState({ input: "", output: "" });
   const [limits, setLimits] = useState({ cap: "", session: "", ask: "" });
   const [confirmClear, setConfirmClear] = useState(false);
@@ -118,7 +189,10 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
   }, []);
 
   const refresh = useCallback(() => {
-    api.getKeyStatus("anthropic").then(setKeyStatus, fail);
+    for (const provider of REMOTE_PROVIDERS)
+      api.getKeyStatus(provider).then((status) => {
+        setKeyStatus((k) => ({ ...k, [provider]: status }));
+      }, fail);
     api.getSpend().then(setSpend, fail);
     shell.getCacheStats().then(setCache, fail);
   }, [api, shell, fail]);
@@ -129,11 +203,17 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
     return shell.onSettingsChanged(setSettings);
   }, [api, shell, refresh, fail]);
 
-  const model = settings?.summaries.model ?? "";
+  // Prices are for the chosen provider's model (Anthropic's while the
+  // model on this machine is chosen, which costs nothing).
+  const chosen = settings?.summaries.provider ?? "anthropic";
+  const paid: RemoteProvider = isRemoteProvider(chosen) ? chosen : "anthropic";
+  const info = PROVIDER_INFO[paid];
+  const model = settings ? remoteModelOf(settings, paid) : "";
+  const priceKey = `${paid}:${model}`;
   // The price in effect: the user's own, else the one Epoch ships.
-  const price = settings ? priceOf(settings, "anthropic", model) : undefined;
-  const ownPrice = settings?.prices[`anthropic:${model}`];
-  const shippedPrice = SHIPPED_PRICES[`anthropic:${model}`];
+  const price = settings ? priceOf(settings, paid, model) : undefined;
+  const ownPrice = settings?.prices[priceKey];
+  const shippedPrice = SHIPPED_PRICES[priceKey];
   useEffect(() => {
     setPrices({
       input: price ? String(price.inputPerMTok) : "",
@@ -188,20 +268,20 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
     );
   };
 
-  const saveKey = () => {
-    const value = keyInput.trim();
-    // The field never keeps the key once it has been sent.
-    setKeyInput("");
-    if (value === "") return;
+  const saveKey = (provider: RemoteProvider, value: string) => {
     setError(undefined);
-    api.setKey("anthropic", value).then(refresh, fail);
+    api.setKey(provider, value).then(refresh, fail);
+  };
+
+  const removeKey = (provider: RemoteProvider) => {
+    api.removeKey(provider).then(refresh, fail);
   };
 
   const savePrices = () => {
     const input = parseUsd(prices.input);
     const output = parseUsd(prices.output);
     if (input === null && output === null) {
-      update({ prices: { [`anthropic:${model}`]: null } }, false);
+      update({ prices: { [priceKey]: null } }, false);
       return;
     }
     if (
@@ -216,7 +296,7 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
     update(
       {
         prices: {
-          [`anthropic:${model}`]: {
+          [priceKey]: {
             inputPerMTok: input,
             outputPerMTok: output,
           },
@@ -319,7 +399,7 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
             <Section title="Summaries">
               <Row
                 label="Summaries"
-                hint="Model-written summaries of files and folders. They turn on when you save an Anthropic key; nothing is sent before you agree, once per project."
+                hint="Model-written summaries of files and folders. They turn on when you save a key; nothing is sent before you agree, once per project and provider."
               >
                 <Toggle
                   hideLabel
@@ -338,21 +418,28 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                     update({ summaries: { provider } });
                   }}
                   options={[
-                    { value: "anthropic", label: "Anthropic (your key)" },
+                    { value: "anthropic", label: "Anthropic" },
+                    { value: "openai", label: "OpenAI" },
+                    { value: "gemini", label: "Gemini" },
                     { value: "local", label: "On this machine" },
                   ]}
                 />
               </Row>
-              {summaries.provider === "anthropic" ? (
+              {isRemoteProvider(summaries.provider) ? (
                 <Row
-                  label="Claude model"
-                  hint="Sent with your key to Anthropic's API."
+                  label={MODEL_FIELD[summaries.provider].label}
+                  hint={`Sent with your key to ${PROVIDER_INFO[summaries.provider].label}'s API.`}
                 >
                   <CommitField
-                    label="Claude model"
-                    value={summaries.model}
+                    label={MODEL_FIELD[summaries.provider].label}
+                    value={remoteModelOf(settings, summaries.provider)}
                     onCommit={(m) => {
-                      if (m !== "") update({ summaries: { model: m } });
+                      if (m !== "" && isRemoteProvider(summaries.provider))
+                        update({
+                          summaries: {
+                            [MODEL_FIELD[summaries.provider].field]: m,
+                          },
+                        });
                     }}
                   />
                 </Row>
@@ -387,41 +474,15 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
             </Section>
 
             <Section title="Keys">
-              <Row
-                label="Anthropic API key"
-                hint={keyStatus ? keyStatusText(keyStatus) : "…"}
-              >
-                <input
-                  type="password"
-                  aria-label="Anthropic API key"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder={
-                    keyStatus?.configured ? "Replace key" : "Paste key"
-                  }
-                  className={`${fieldClass} w-44`}
-                  value={keyInput}
-                  onChange={(e) => {
-                    setKeyInput(e.target.value);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") saveKey();
-                  }}
+              {REMOTE_PROVIDERS.map((provider) => (
+                <KeyRow
+                  key={provider}
+                  provider={provider}
+                  status={keyStatus[provider]}
+                  onSave={saveKey}
+                  onRemove={removeKey}
                 />
-                <Button disabled={keyInput.trim() === ""} onClick={saveKey}>
-                  Save
-                </Button>
-                {keyStatus?.configured === true && (
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      api.removeKey("anthropic").then(refresh, fail);
-                    }}
-                  >
-                    Remove
-                  </Button>
-                )}
-              </Row>
+              ))}
               <Row
                 label="Jev (TypeSafe AI)"
                 hint="Not in the app; the CLI's --scorer jev reads JEV_API_KEY."
@@ -435,8 +496,8 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                 {ownPrice
                   ? `Your prices for ${model}, in dollars per million tokens.`
                   : shippedPrice
-                    ? `From Anthropic's pricing page (${SHIPPED_PRICES_SOURCE.url}), read ${SHIPPED_PRICES_SOURCE.readOn}, in dollars per million tokens. Nothing to do unless the page has changed.`
-                    : `Enter ${model}'s prices from Anthropic's pricing page (${SHIPPED_PRICES_SOURCE.url}), in dollars per million tokens. Without them, paid summaries stay off.`}
+                    ? `From ${info.label}'s pricing page (${info.pricingUrl}), read ${info.readOn}, in dollars per million tokens. Nothing to do unless the page has changed.`
+                    : `Enter ${model}'s prices from ${info.label}'s pricing page (${info.pricingUrl}), in dollars per million tokens. Without them, paid summaries stay off.`}
               </p>
               <Row label={`${model}: input / output`}>
                 <input
@@ -464,10 +525,7 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                   <Button
                     variant="ghost"
                     onClick={() => {
-                      update(
-                        { prices: { [`anthropic:${model}`]: null } },
-                        false,
-                      );
+                      update({ prices: { [priceKey]: null } }, false);
                     }}
                   >
                     Use Epoch&apos;s

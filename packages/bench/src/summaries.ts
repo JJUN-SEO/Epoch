@@ -1,5 +1,6 @@
 /**
- * pnpm bench:summaries <repo> [--from <rev>] [--to <rev>] [--model <id>]
+ * pnpm bench:summaries <repo> [--from <rev>] [--to <rev>]
+ *                     [--provider anthropic|openai|gemini] [--model <id>]
  *                     [--out docs/benchmarks/summaries.md]
  *                     [--price-in <usd> --price-out <usd> --price-source <url>]
  *                     [--send --max-spend <usd> [--key-env <NAME>]]
@@ -12,10 +13,11 @@
  *
  * Without --send nothing leaves the machine: every request is Epoch's own
  * upper estimate (see summary-run.ts). With --send, every request goes to
- * Anthropic with the key in the environment variable --key-env names
- * (ANTHROPIC_API_KEY by default; never read from the command line), each
- * holding its worst case against --max-spend before it is
- * sent; the run stops when the next request could pass the cap. Prices are
+ * the --provider (Anthropic by default; OpenAI and Gemini per ADR-019)
+ * with the key in the environment variable --key-env names (by default
+ * ANTHROPIC_API_KEY, OPENAI_API_KEY or GEMINI_API_KEY; never read from the
+ * command line), each holding its worst case against --max-spend before it
+ * is sent; the run stops when the next request could pass the cap. Prices are
  * the user's, with the page they came from. Files that look like secrets
  * are never sent. Every number in the report comes from this script.
  */
@@ -24,7 +26,11 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { parseArgs } from "node:util";
-import { DEFAULT_CLAUDE_MODEL } from "@epoch-dev/core";
+import {
+  DEFAULT_MODELS,
+  PROVIDER_INFO,
+  isRemoteProvider,
+} from "@epoch-dev/core";
 import {
   FsReader,
   MemoryCacheStore,
@@ -34,13 +40,15 @@ import {
   type SummarySource,
 } from "@epoch-dev/engine";
 import {
-  ANTHROPIC_ORIGIN,
   SpendCap,
   anthropicTextModel,
   createNet,
   estimateTokens,
+  geminiTextModel,
+  openaiTextModel,
   type Prices,
 } from "@epoch-dev/scorers";
+import { SUMMARY_ORIGINS } from "@epoch-dev/scorers/origins";
 import { SUMMARY_MAX_OUTPUT_TOKENS } from "@epoch-dev/scorers/summary";
 import { hostInfo, repoInfo, table, writeReport } from "./report.js";
 import {
@@ -62,7 +70,8 @@ const { values, positionals } = parseArgs({
   options: {
     from: { type: "string", default: "HEAD~1" },
     to: { type: "string", default: "HEAD" },
-    model: { type: "string", default: DEFAULT_CLAUDE_MODEL },
+    provider: { type: "string", default: "anthropic" },
+    model: { type: "string" },
     out: { type: "string", default: "docs/benchmarks/summaries.md" },
     "price-in": { type: "string" },
     "price-out": { type: "string" },
@@ -71,7 +80,7 @@ const { values, positionals } = parseArgs({
     "max-spend": { type: "string" },
     // Another name keeps tools that also read ANTHROPIC_API_KEY (Claude
     // Code among them) from picking the key up.
-    "key-env": { type: "string", default: "ANTHROPIC_API_KEY" },
+    "key-env": { type: "string" },
   },
 });
 
@@ -100,7 +109,12 @@ const prices: Prices | undefined =
     : undefined;
 if (prices && values["price-source"] === undefined)
   fail("--price-source must name the page the prices came from");
-const keyEnv = values["key-env"];
+const provider = values.provider;
+if (!isRemoteProvider(provider))
+  fail("--provider must be anthropic, openai or gemini");
+const modelId = values.model ?? DEFAULT_MODELS[provider];
+const origin = SUMMARY_ORIGINS[provider];
+const keyEnv = values["key-env"] ?? `${provider.toUpperCase()}_API_KEY`;
 if (!/^[A-Z_][A-Z0-9_]*$/.test(keyEnv))
   fail("--key-env must be an environment variable name");
 const apiKey = process.env[keyEnv];
@@ -116,19 +130,25 @@ const fromCommit = git(repo.root, "rev-parse", values.from).trim();
 const toCommit = git(repo.root, "rev-parse", values.to).trim();
 const short = (c: string) => c.slice(0, 10);
 
-const MODEL = { provider: "anthropic", model: values.model } as const;
+const MODEL = { provider, model: modelId } as const;
 const worstCase = (prompt: { system: string; user: string }) => ({
   inputTokens: estimateTokens(prompt.system + prompt.user),
   outputTokens: SUMMARY_MAX_OUTPUT_TOKENS,
 });
 
-/** Anthropic, each request held against the cap first. */
+/** The provider, each request held against the cap first. */
 function sending(cap: SpendCap): Generate {
-  const model = anthropicTextModel({
+  const opts = {
     apiKey: apiKey ?? "",
-    model: values.model,
-    net: createNet({ offline: false, allow: [ANTHROPIC_ORIGIN] }),
-  });
+    model: modelId,
+    net: createNet({ offline: false, allow: [origin] }),
+  };
+  const model =
+    provider === "openai"
+      ? openaiTextModel(opts)
+      : provider === "gemini"
+        ? geminiTextModel(opts)
+        : anthropicTextModel(opts);
   return async (plan) => {
     const hold = cap.reserve(worstCase(plan.prompt));
     try {
@@ -187,7 +207,7 @@ async function measure(): Promise<{
   if (cap) {
     const files = full.sent.filter((r) => r.kind !== "dir").length;
     process.stderr.write(
-      `Sending ${String(files)} files of ${repo.name} at ${short(fromCommit)}, then what changed by ${short(toCommit)}, to ${ANTHROPIC_ORIGIN} (${values.model}) with the key in ${keyEnv}. Cap $${cap.capUsd.toFixed(2)}.\n`,
+      `Sending ${String(files)} files of ${repo.name} at ${short(fromCommit)}, then what changed by ${short(toCommit)}, to ${origin} (${modelId}) with the key in ${keyEnv}. Cap $${cap.capUsd.toFixed(2)}.\n`,
     );
   }
   phases.push({
@@ -305,7 +325,7 @@ const estimateRows = runs((p) => p.estimate).map(({ name, job, rows }) => {
 
 const measuredSection = phases.every((p) => p.measured)
   ? [
-      `Sent to ${ANTHROPIC_ORIGIN}, model \`${values.model}\`, one request at a time. Tokens and dollars are what the API reported, priced at ${dollars(prices?.inputPerMTok ?? 0)} per million input tokens and ${dollars(prices?.outputPerMTok ?? 0)} per million output tokens (${values["price-source"] ?? ""}). Cap: ${dollars(maxSpend ?? 0)}.`,
+      `Sent to ${origin}, model \`${modelId}\`, one request at a time. Tokens and dollars are what the API reported, priced at ${dollars(prices?.inputPerMTok ?? 0)} per million input tokens and ${dollars(prices?.outputPerMTok ?? 0)} per million output tokens (${values["price-source"] ?? ""}). Cap: ${dollars(maxSpend ?? 0)}.`,
       "",
       table(
         [
@@ -333,7 +353,7 @@ const measuredSection = phases.every((p) => p.measured)
       ),
     ]
   : [
-      "**Not measured.** No run with `--send` has been made: it needs an Anthropic key in an environment variable (`ANTHROPIC_API_KEY`, or the one `--key-env` names), prices from Anthropic's pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.",
+      `**Not measured.** No run with \`--send\` has been made: it needs a ${PROVIDER_INFO[provider].label} key in an environment variable (\`${keyEnv}\`, or the one \`--key-env\` names), prices from ${PROVIDER_INFO[provider].label}'s pricing page, and a spending cap. Only Epoch's own estimate is shown above; no number on this page is a measured token count or cost.`,
     ];
 
 const skipped = phases.flatMap((p) => p.estimate.skipped);

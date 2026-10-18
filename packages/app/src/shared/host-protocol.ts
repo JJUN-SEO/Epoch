@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AnalysisMeta, StoredSummary } from "@epoch-dev/core";
+import { AnalysisMeta, StoredSummary, SummaryProvider } from "@epoch-dev/core";
 
 /*
  * Messages between main and the analysis host (a utilityProcess). Both sides
@@ -67,7 +67,7 @@ export const SummarySubject = z
   }, "must be a file, pkg: or dir: subject");
 
 export const SummaryModelMessage = z.strictObject({
-  provider: z.enum(["anthropic", "local"]),
+  provider: SummaryProvider,
   model: z.string().regex(/^[A-Za-z0-9._:/-]{1,200}$/),
 });
 

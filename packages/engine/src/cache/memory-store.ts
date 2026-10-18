@@ -90,7 +90,10 @@ export class MemoryCacheStore implements CacheStore {
       manifestEntries,
       derived: this.derived.size,
       summaries: {
-        paid: this.countNamespace(SUMMARY_NAMESPACES.anthropic),
+        paid:
+          this.countNamespace(SUMMARY_NAMESPACES.anthropic) +
+          this.countNamespace(SUMMARY_NAMESPACES.openai) +
+          this.countNamespace(SUMMARY_NAMESPACES.gemini),
         local: this.countNamespace(SUMMARY_NAMESPACES.local),
       },
     };

@@ -542,7 +542,7 @@ Rules, first match wins:
 - **Git**: `simple-git` plus direct `git` invocations where needed. **Watching**: `chokidar`.
 - **Cache**: SQLite via `better-sqlite3`, rebuilt for Electron.
 - **Frontend (renderer)**: React + Vite + Cytoscape.js + Tailwind.
-- **Integrations**: Jev API (when access is granted), Anthropic API for summaries and the fallback scorer, optional Ollama.
+- **Integrations**: Jev API (when access is granted), Anthropic, OpenAI or Gemini API for summaries (the user's choice and key; ADR-019), Anthropic API for the fallback scorer, optional Ollama.
 - **Testing**: Vitest for unit tests; Playwright (Electron support) for end-to-end.
 - **Why Electron, not Tauri (for now):** the engine depends on Node (TS compiler API, native modules, worker threads), which runs as-is in Electron. Tauri would need a Node sidecar or a Rust rewrite of the engine. Electron also ships a consistent Chromium for Cytoscape/WebGL across OSes. Cost: larger installers and memory use. Recorded in an ADR; revisit in v2.
 

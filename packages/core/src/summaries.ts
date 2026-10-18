@@ -4,7 +4,7 @@ import { compareCodeUnits } from "./canonical.js";
 import { nodeFolder } from "./graph/folders.js";
 import { stronglyConnectedComponents } from "./graph/scc.js";
 import { CERTAIN_EDGE_KINDS } from "./policy.js";
-import type { Graph } from "./schemas/index.js";
+import { SummaryProvider, type Graph } from "./schemas/index.js";
 
 /*
  * Prose summaries (M7; CLAUDE.md "Local cache": hierarchical, bottom-up,
@@ -25,14 +25,14 @@ import type { Graph } from "./schemas/index.js";
  */
 export const SUMMARY_NAMESPACES = {
   anthropic: "summary:anthropic",
+  openai: "summary:openai",
+  gemini: "summary:gemini",
   local: "summary:local",
   latest: "summary-latest",
 } as const;
 
 export const isSummaryNamespace = (namespace: string): boolean =>
-  namespace === SUMMARY_NAMESPACES.anthropic ||
-  namespace === SUMMARY_NAMESPACES.local ||
-  namespace === SUMMARY_NAMESPACES.latest;
+  (Object.values(SUMMARY_NAMESPACES) as string[]).includes(namespace);
 
 /** Bump when the prompt changes: every summary is then made again. */
 export const SUMMARY_PROMPT_VERSION = 1;
@@ -55,7 +55,7 @@ export type SummaryRef = z.infer<typeof SummaryRef>;
 export const StoredSummary = z.strictObject({
   /** A node id, or "dir:<path>" for a folder ("dir:" is the project root). */
   subject: z.string().min(1).max(4096),
-  provider: z.enum(["anthropic", "local"]),
+  provider: SummaryProvider,
   model: z.string().min(1).max(200),
   promptVersion: z.number().int().positive(),
   /** sha256 of the content sent. */

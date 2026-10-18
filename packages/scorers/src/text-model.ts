@@ -3,6 +3,7 @@ import { z } from "zod";
 import { ANTHROPIC_ORIGIN, anthropicClient } from "./anthropic.js";
 import { NetworkBlockedError, type Net } from "./net.js";
 import { OLLAMA_ORIGIN } from "./ollama.js";
+import { GEMINI_ORIGIN, OPENAI_ORIGIN } from "./origins.js";
 
 /*
  * Plain-text generation for summaries (M7; CLAUDE.md RelationScorer: prose
@@ -15,6 +16,21 @@ import { OLLAMA_ORIGIN } from "./ollama.js";
  * parameters (the current models reject non-default ones) and no
  * `thinking` field (whether it may be disabled differs by model; low
  * effort keeps it short). Stop reasons: end_turn, max_tokens, refusal.
+ *
+ * OpenAI and Gemini (ADR-019): plain fetch over their REST APIs, read on
+ * 2026-10-17, with no SDK. Neither stores the request (`store: false`).
+ * - OpenAI: POST /v1/responses with `instructions`, `input`,
+ *   `max_output_tokens` (visible plus reasoning tokens) and
+ *   `reasoning.effort: "low"`; the key as a Bearer token. Stop from `status`
+ *   and `incomplete_details.reason`; a `refusal` content part is a refusal.
+ *   https://developers.openai.com/api/reference/resources/responses/methods/create
+ * - Gemini: POST /v1beta/models/{model}:generateContent with
+ *   `systemInstruction`, `contents` and `generationConfig.maxOutputTokens`
+ *   (which covers thinking and output); the key in the `x-goog-api-key`
+ *   header, never in the URL. Output tokens are the candidates' plus the
+ *   thoughts', as both are billed as output.
+ *   https://ai.google.dev/api/generate-content,
+ *   https://ai.google.dev/gemini-api/docs/thinking
  *
  * Ollama: POST /api/chat with `stream: false` and `options.num_predict`,
  * per its API docs at v0.40.5
@@ -43,7 +59,7 @@ export interface TextResult {
 }
 
 export interface TextModel {
-  readonly provider: "anthropic" | "local";
+  readonly provider: "anthropic" | "openai" | "gemini" | "local";
   readonly model: string;
   /** The origin requests go to. */
   readonly destination: string;
@@ -246,6 +262,226 @@ export function ollamaTextModel(opts: {
         usage: {
           inputTokens: parsed.data.prompt_eval_count ?? 0,
           outputTokens,
+        },
+      };
+    },
+  };
+}
+
+/** A REST provider's HTTP status as a reason code; the body is never shown. */
+function statusCode(status: number): TextModelErrorCode {
+  if (status === 401 || status === 403) return "auth";
+  if (status === 429) return "rate-limited";
+  if (status === 404) return "no-model";
+  if (status === 400 || status === 422) return "bad-request";
+  return "server";
+}
+
+/** POSTs JSON through Epoch's network module and returns the parsed answer. */
+async function postJson(
+  net: Net,
+  url: string,
+  headers: Record<string, string>,
+  body: unknown,
+  signal: AbortSignal | undefined,
+  timeoutMs: number,
+): Promise<unknown> {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  let res: Response;
+  try {
+    res = await net.fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", ...headers },
+      body: JSON.stringify(body),
+      signal: signal ? AbortSignal.any([signal, timeout]) : timeout,
+    });
+  } catch (err) {
+    throw new TextModelError(
+      blockedCode(err) ?? (signal?.aborted ? "aborted" : "unreachable"),
+    );
+  }
+  if (!res.ok) throw new TextModelError(statusCode(res.status));
+  try {
+    return await res.json();
+  } catch {
+    throw new TextModelError(
+      signal?.aborted
+        ? "aborted"
+        : timeout.aborted
+          ? "unreachable"
+          : "bad-response",
+    );
+  }
+}
+
+const DEFAULT_TIMEOUT_MS = 120_000;
+
+const OpenAIResponse = z.object({
+  status: z.string().optional(),
+  incomplete_details: z
+    .object({ reason: z.string().optional() })
+    .nullable()
+    .optional(),
+  output: z.array(
+    z.object({
+      type: z.string(),
+      content: z
+        .array(
+          z.object({
+            type: z.string(),
+            text: z.string().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
+  usage: z.object({ input_tokens: z.number(), output_tokens: z.number() }),
+});
+
+export function openaiTextModel(opts: {
+  readonly apiKey: string;
+  readonly model: string;
+  readonly net: Net;
+  readonly timeoutMs?: number;
+}): TextModel {
+  return {
+    provider: "openai",
+    model: opts.model,
+    destination: OPENAI_ORIGIN,
+    remote: true,
+    async generate(req) {
+      const body = await postJson(
+        opts.net,
+        `${OPENAI_ORIGIN}/v1/responses`,
+        { authorization: `Bearer ${opts.apiKey}` },
+        {
+          model: opts.model,
+          instructions: req.system,
+          input: req.user,
+          max_output_tokens: req.maxOutputTokens,
+          reasoning: { effort: "low" },
+          store: false,
+        },
+        req.signal,
+        opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      );
+      const parsed = OpenAIResponse.safeParse(body);
+      if (!parsed.success) throw new TextModelError("bad-response");
+      const r = parsed.data;
+      const parts = r.output.flatMap((o) =>
+        o.type === "message" ? (o.content ?? []) : [],
+      );
+      const reason = r.incomplete_details?.reason;
+      return {
+        text: parts
+          .map((p) => (p.type === "output_text" ? (p.text ?? "") : ""))
+          .join(""),
+        stop: parts.some((p) => p.type === "refusal")
+          ? "refusal"
+          : r.status === "completed"
+            ? "end"
+            : reason === "max_output_tokens"
+              ? "max-tokens"
+              : reason === "content_filter"
+                ? "refusal"
+                : "other",
+        // input_tokens includes cached input; output_tokens includes reasoning.
+        usage: {
+          inputTokens: r.usage.input_tokens,
+          outputTokens: r.usage.output_tokens,
+        },
+      };
+    },
+  };
+}
+
+const GeminiResponse = z.object({
+  candidates: z
+    .array(
+      z.object({
+        content: z
+          .object({
+            parts: z
+              .array(
+                z.object({
+                  text: z.string().optional(),
+                  thought: z.boolean().optional(),
+                }),
+              )
+              .optional(),
+          })
+          .optional(),
+        finishReason: z.string().optional(),
+      }),
+    )
+    .optional(),
+  promptFeedback: z.object({ blockReason: z.string().optional() }).optional(),
+  usageMetadata: z
+    .object({
+      promptTokenCount: z.number().optional(),
+      candidatesTokenCount: z.number().optional(),
+      thoughtsTokenCount: z.number().optional(),
+    })
+    .optional(),
+});
+
+/** Gemini's finish reasons that mean the content was withheld. */
+const GEMINI_BLOCKED = new Set([
+  "SAFETY",
+  "RECITATION",
+  "BLOCKLIST",
+  "PROHIBITED_CONTENT",
+  "SPII",
+]);
+
+export function geminiTextModel(opts: {
+  readonly apiKey: string;
+  readonly model: string;
+  readonly net: Net;
+  readonly timeoutMs?: number;
+}): TextModel {
+  return {
+    provider: "gemini",
+    model: opts.model,
+    destination: GEMINI_ORIGIN,
+    remote: true,
+    async generate(req) {
+      const body = await postJson(
+        opts.net,
+        `${GEMINI_ORIGIN}/v1beta/models/${encodeURIComponent(opts.model)}:generateContent`,
+        { "x-goog-api-key": opts.apiKey },
+        {
+          systemInstruction: { parts: [{ text: req.system }] },
+          contents: [{ role: "user", parts: [{ text: req.user }] }],
+          generationConfig: { maxOutputTokens: req.maxOutputTokens },
+          store: false,
+        },
+        req.signal,
+        opts.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      );
+      const parsed = GeminiResponse.safeParse(body);
+      if (!parsed.success) throw new TextModelError("bad-response");
+      const r = parsed.data;
+      const candidate = r.candidates?.[0];
+      const finish = candidate?.finishReason;
+      const u = r.usageMetadata;
+      return {
+        text: (candidate?.content?.parts ?? [])
+          .map((p) => (p.thought === true ? "" : (p.text ?? "")))
+          .join(""),
+        stop:
+          r.promptFeedback?.blockReason !== undefined ||
+          (finish !== undefined && GEMINI_BLOCKED.has(finish))
+            ? "refusal"
+            : finish === "STOP"
+              ? "end"
+              : finish === "MAX_TOKENS"
+                ? "max-tokens"
+                : "other",
+        usage: {
+          inputTokens: u?.promptTokenCount ?? 0,
+          outputTokens:
+            (u?.candidatesTokenCount ?? 0) + (u?.thoughtsTokenCount ?? 0),
         },
       };
     },

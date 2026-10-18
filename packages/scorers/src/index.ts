@@ -11,3 +11,4 @@ export * from "./options.js";
 export * from "./text-model.js";
 export * from "./summary/prompt.js";
 export * from "./summary/sanitize.js";
+export { GEMINI_ORIGIN, OPENAI_ORIGIN } from "./origins.js";

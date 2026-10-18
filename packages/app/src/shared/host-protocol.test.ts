@@ -38,7 +38,7 @@ describe("summary requests", () => {
     expect(
       HostRequest.safeParse({
         ...plan,
-        model: { provider: "openai", model: "x" },
+        model: { provider: "mistral", model: "x" },
       }).success,
     ).toBe(false);
     const store = {

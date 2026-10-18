@@ -1,4 +1,10 @@
-import { anthropicTextModel, ollamaTextModel } from "@epoch-dev/scorers";
+import {
+  anthropicTextModel,
+  geminiTextModel,
+  ollamaTextModel,
+  openaiTextModel,
+  type TextModel,
+} from "@epoch-dev/scorers";
 import { createEgress } from "./egress";
 import type { SenderLike } from "./summary-service";
 
@@ -13,14 +19,19 @@ export function createSender(offline: () => boolean): SenderLike {
   const egress = createEgress(offline);
   return {
     generate(model, apiKey, req) {
-      const client =
+      const opts = {
+        apiKey: apiKey ?? "",
+        model: model.model,
+        net: egress.net,
+      };
+      const client: TextModel =
         model.provider === "anthropic"
-          ? anthropicTextModel({
-              apiKey: apiKey ?? "",
-              model: model.model,
-              net: egress.net,
-            })
-          : ollamaTextModel({ model: model.model, net: egress.net });
+          ? anthropicTextModel(opts)
+          : model.provider === "openai"
+            ? openaiTextModel(opts)
+            : model.provider === "gemini"
+              ? geminiTextModel(opts)
+              : ollamaTextModel({ model: model.model, net: egress.net });
       return client.generate(req);
     },
     abortAll() {

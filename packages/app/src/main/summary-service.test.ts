@@ -190,6 +190,8 @@ function setup(
     settings?: Settings;
     key?: string | undefined;
     consent?: boolean;
+    /** Providers with a key; every provider when absent. */
+    keyed?: readonly string[];
   } = {},
 ) {
   let settings = opts.settings ?? ready;
@@ -205,14 +207,22 @@ function setup(
     () => new Date("2026-10-17T00:00:00Z"),
   );
   const key = "key" in opts ? opts.key : "test-key";
+  const keyOf = (provider: string) =>
+    opts.keyed && !opts.keyed.includes(provider) ? undefined : key;
+  const keysAsked: string[] = [];
   const service = new SummaryService({
     settings: () => settings,
     keys: {
-      status: () =>
+      status: (provider) =>
         Promise.resolve(
-          key === undefined ? { configured: false } : { configured: true },
+          keyOf(provider) === undefined
+            ? { configured: false }
+            : { configured: true },
         ),
-      get: () => Promise.resolve(key),
+      get: (provider) => {
+        keysAsked.push(provider);
+        return Promise.resolve(keyOf(provider));
+      },
     },
     ledger,
     consent,
@@ -241,6 +251,7 @@ function setup(
     ledger,
     consent,
     ctx,
+    keysAsked,
     senderLoads: () => senderLoads,
     setSettings: (s: Settings) => {
       const prev = settings;
@@ -290,6 +301,60 @@ describe("SummaryService", () => {
       "source of b.ts",
     ]);
     expect(t2.sender.calls.every((c) => c.key === "test-key")).toBe(true);
+  });
+
+  it.each([
+    ["openai", "https://api.openai.com", "gpt-6-luna"],
+    [
+      "gemini",
+      "https://generativelanguage.googleapis.com",
+      "gemini-3.1-flash-lite",
+    ],
+  ] as const)(
+    "asks again before the first send to %s, and uses only its key",
+    async (provider, destination, model) => {
+      // Consent to Anthropic does not cover another provider.
+      const t = setup({
+        consent: true,
+        settings: applySettingsPatch(ready, { summaries: { provider } }),
+      });
+      t.host.plans.set("a.ts", okPlan("a.ts"));
+      const first = await t.service.get(t.ctx(), "a.ts", { auto: true });
+      expect(first).toMatchObject({
+        state: "needs-approval",
+        reason: "consent",
+        plan: { provider, model, destination, remote: true },
+      });
+      expect(t.senderLoads()).toBe(0);
+      const done = await t.service.generate(
+        t.ctx(),
+        first.state === "needs-approval" ? first.planId : "",
+      );
+      expect(done.state).toBe("ready");
+      expect(t.asked).toEqual([1]);
+      expect(t.consent.has("/p", provider)).toBe(true);
+      expect(t.keysAsked).toEqual([provider]);
+      expect(t.sender.calls).toEqual([
+        { user: "source of a.ts", key: "test-key", provider },
+      ]);
+      // Priced at the shipped default, with no price entered.
+      expect(
+        t.ledger.status({ capUsd: 5, sessionBudgetUsd: 1 }).monthUsd,
+      ).toBeGreaterThan(0);
+    },
+  );
+
+  it("needs the chosen provider's own key", async () => {
+    const t = setup({
+      consent: true,
+      keyed: ["anthropic"],
+      settings: applySettingsPatch(ready, {
+        summaries: { provider: "openai" },
+      }),
+    });
+    t.host.plans.set("a.ts", okPlan("a.ts"));
+    const state = await t.service.get(t.ctx(), "a.ts", { auto: true });
+    expect(state).toMatchObject({ state: "unavailable", reason: "no-key" });
   });
 
   it("serves a fresh summary without loading the sender", async () => {
