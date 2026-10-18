@@ -18,13 +18,17 @@ const chunk = (prefix, ext) => {
 };
 
 // Measured gzip baselines, in bytes: landing 133157 (including the screenshot), demo JS 287704,
-// CSS 6594, zod data 64582, Flask data 12832, cli data 146470.
+// 3D view 139841, 2D layout worker 177617, 3D layout worker 8761, CSS 6594,
+// zod data 64582, Flask data 12832, cli data 146470.
 const measured = {
   landing: ["index.html", "site.css", "icon.svg", "demo.png"].reduce(
     (sum, file) => sum + bytes(path.join(dir, file)),
     0,
   ),
   app: chunk("demo-", ".js"),
+  graph3d: chunk("Graph3DView-", ".js"),
+  layout2d: chunk("layout.worker-", ".js"),
+  layout3d: chunk("layout3d.worker-", ".js"),
   styles: chunk("demo-", ".css"),
   zod: chunk("zod.graph-", ".js"),
   flask: chunk("flask.graph-", ".js"),
@@ -33,6 +37,9 @@ const measured = {
 const limits = {
   landing: 154000,
   app: 331000,
+  graph3d: 161000,
+  layout2d: 205000,
+  layout3d: 10100,
   styles: 7600,
   zod: 74500,
   flask: 14800,
