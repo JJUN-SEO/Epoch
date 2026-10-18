@@ -12,9 +12,9 @@ export function openExternally(url: string): void {
 }
 
 /**
- * Denies every permission request (camera, notifications, ...) and cancels
- * every request that is not the bundled UI, the dev server in development, or
- * DevTools. The app has no remote content.
+ * Denies every permission request (camera, notifications, ...), turns the
+ * spellchecker off, and cancels every request that is not the bundled UI, the
+ * dev server in development, or DevTools. The app has no remote content.
  */
 export function hardenSession(
   ses: Session,
@@ -25,6 +25,12 @@ export function hardenSession(
   });
   ses.setPermissionCheckHandler(() => false);
   ses.setDevicePermissionHandler(() => false);
+  // Chromium's spellchecker downloads a dictionary for the OS language from
+  // Google's servers when a window first opens, outside this session's
+  // request filter (no-network.spec.ts caught it). Epoch's text fields need
+  // no spellchecking: off, and with no language there is nothing to fetch.
+  ses.setSpellCheckerEnabled(false);
+  ses.setSpellCheckerLanguages([]);
   ses.webRequest.onBeforeRequest((details, callback) => {
     callback({ cancel: !isAllowedRequest(details.url, devOrigin) });
   });
