@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { E2E_FUSES, INSTALLER_FUSES } from "../e2e/packaging";
+import { E2E_FUSES, INSTALLER_FUSES, INSTALLER_NAMES } from "../e2e/packaging";
 
 // The packaging configs (ADR-018): installers are built from
 // electron-builder.yml alone; the e2e build extends it and changes one fuse.
@@ -20,6 +20,41 @@ describe("electron-builder.yml", () => {
 
   it("publishes nothing itself (the release workflow uploads)", () => {
     expect(base.publish).toBeNull();
+  });
+
+  it("builds a dmg for Apple Silicon, NSIS for Windows x64, AppImage and deb for Linux x64", () => {
+    const targets = (os: string) =>
+      (base[os] as { target: { target: string; arch: string[] }[] }).target;
+    expect(targets("mac")).toEqual([{ target: "dmg", arch: ["arm64"] }]);
+    expect(targets("win")).toEqual([{ target: "nsis", arch: ["x64"] }]);
+    expect(targets("linux")).toEqual([
+      { target: "AppImage", arch: ["x64"] },
+      { target: "deb", arch: ["x64"] },
+    ]);
+  });
+
+  it("names each installer without a version", () => {
+    const name = (section: string) =>
+      (base[section] as { artifactName: string }).artifactName;
+    const built = {
+      darwin: [name("dmg").replace("${ext}", "dmg")],
+      win32: [name("nsis").replace("${ext}", "exe")],
+      linux: [
+        name("appImage").replace("${ext}", "AppImage"),
+        name("deb").replace("${ext}", "deb"),
+      ],
+    };
+    expect(built).toEqual(INSTALLER_NAMES);
+    for (const files of Object.values(INSTALLER_NAMES))
+      for (const file of files) expect(file).not.toMatch(/\d+\.\d+/);
+  });
+
+  it("installs per user on Windows, keeping the user's data on uninstall", () => {
+    expect(base.nsis).toMatchObject({
+      oneClick: true,
+      perMachine: false,
+      deleteAppDataOnUninstall: false,
+    });
   });
 });
 

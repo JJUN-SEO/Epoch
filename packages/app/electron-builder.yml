@@ -1,7 +1,8 @@
-# electron-builder configuration. M3 builds an unpacked, unsigned app for the
-# current OS (`pnpm --filter @epoch-dev/app package:dir`) so packaging problems
-# surface early; installers, signing and publishing are M8 (CLAUDE.md
-# "Distribution").
+# electron-builder configuration (ADR-018). `pnpm package` builds this OS's
+# installers from this file alone; `pnpm package:dir` builds the unpacked app
+# the e2e suite drives (electron-builder.e2e.yml). Nothing is signed beyond
+# macOS's ad-hoc signature, and nothing is published from here: the release
+# workflow uploads the installers to a draft GitHub Release.
 appId: dev.epoch.app
 productName: Epoch
 executableName: epoch
@@ -79,19 +80,55 @@ npmRebuild: false
 nodeGypRebuild: false
 buildDependenciesFromSource: false
 
+# Installer names carry no version, so the site can link to
+# releases/latest/download/<name> (e2e/packaging.ts lists them).
 mac:
   category: public.app-category.developer-tools
-  target: dmg
-  # Ad-hoc signature only (no certificate) until the signing decision in M8:
-  # Apple Silicon refuses to run native code without at least that.
-  # Hardened runtime matters for notarization, which is also M8.
+  # Apple Silicon only: onnxruntime-node 1.30 (the local embedding model,
+  # ADR-008) ships no Intel macOS runtime.
+  target:
+    - target: dmg
+      arch: [arm64]
+  # Ad-hoc signature only (no certificate; see the signing status in the
+  # README): Apple Silicon refuses to run native code without at least that.
+  # Hardened runtime matters for notarization, which needs a certificate.
   identity: "-"
   hardenedRuntime: false
+dmg:
+  artifactName: Epoch-mac-arm64.${ext}
 win:
-  target: nsis
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  artifactName: Epoch-win-x64-setup.${ext}
+  # Installs for the current user, without asking for administrator rights.
+  oneClick: true
+  perMachine: false
+  # Uninstalling keeps settings, keys and the cache; Settings can clear the
+  # cache, and the README says where the rest lives.
+  deleteAppDataOnUninstall: false
+  # Differential packages serve electron-updater, which Epoch does not use:
+  # it checks for a newer version and leaves installing to the user (ADR-018).
+  differentialPackage: false
 linux:
-  target: AppImage
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
   category: Development
+  synopsis: Codebase dependency graph, blast radius and dead-feature alerts
+  # For package managers and the desktop entry (package.json's describes the
+  # workspace package).
+  description: >-
+    Epoch turns a codebase into an interactive dependency graph: what each
+    file depends on, what a change would affect, how risky each file is, and
+    which features are likely dead. Your code never leaves your machine.
+appImage:
+  artifactName: Epoch-linux-x64.${ext}
+deb:
+  artifactName: Epoch-linux-x64.${ext}
 
 # Electron fuses, flipped in the binary at package time (ADR-018).
 electronFuses:

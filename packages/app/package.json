@@ -5,6 +5,10 @@
   "description": "Epoch desktop app: Electron main process, preload bridge and analysis host.",
   "license": "MIT",
   "homepage": "https://github.com/JJUN-SEO/Epoch",
+  "author": {
+    "name": "Junhyuk Seo",
+    "email": "98858713+JJUN-SEO@users.noreply.github.com"
+  },
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
@@ -12,6 +16,7 @@
     "build": "pnpm run clean && electron-vite build",
     "dev": "electron-vite dev",
     "package:dir": "electron-builder --dir --config electron-builder.e2e.yml",
+    "package:installer": "electron-builder --publish never",
     "icon": "node scripts/render-icon.mjs",
     "e2e": "playwright test",
     "typecheck": "tsc -p tsconfig.json",

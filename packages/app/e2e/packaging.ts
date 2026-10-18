@@ -63,3 +63,13 @@ export async function readFuses(executable: string): Promise<Fuses> {
     ),
   };
 }
+
+/**
+ * The installers each OS builds (electron-builder.yml's artifact names): no
+ * version in the name, so releases/latest/download/<name> always works.
+ */
+export const INSTALLER_NAMES = {
+  darwin: ["Epoch-mac-arm64.dmg"],
+  win32: ["Epoch-win-x64-setup.exe"],
+  linux: ["Epoch-linux-x64.AppImage", "Epoch-linux-x64.deb"],
+} as const;

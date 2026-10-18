@@ -80,12 +80,13 @@ Electron 43 has no install script; its binary comes from a separate step, run on
 
 ```sh
 pnpm --filter @epoch-dev/app exec install-electron
-pnpm dev       # the app with hot reload
-pnpm package   # an unpacked, unsigned app in packages/app/release/ (installers come in M8)
-pnpm e2e       # Playwright end-to-end and security tests against the built app
+pnpm dev           # the app with hot reload
+pnpm package       # this OS's installers in packages/app/release/ (unsigned)
+pnpm package:dir   # the unpacked app the e2e tests drive
+pnpm e2e           # Playwright end-to-end and security tests against the built app
 ```
 
-`pnpm e2e` runs against `pnpm build` output; set `EPOCH_E2E_TARGET=packaged` to test the `pnpm package` output instead. On Linux, run it under `xvfb-run` as a non-root user: the tests keep Chromium's sandbox on, which refuses root. Ubuntu 24.04 also needs `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` for that sandbox, as CI does.
+`pnpm e2e` runs against `pnpm build` output; set `EPOCH_E2E_TARGET=packaged` to test the `pnpm package:dir` output instead (the installers' fuses, except that Playwright needs Node's inspector; ADR-018). On Linux, run it under `xvfb-run` as a non-root user: the tests keep Chromium's sandbox on, which refuses root. Ubuntu 24.04 also needs `sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0` for that sandbox, as CI does.
 
 The headless CLI shares the engine: `node packages/cli/dist/bin.js analyze <folder> [--json] [--coverage <report>]` after `pnpm build`.
 
@@ -95,7 +96,8 @@ Similarity hints need the local embedding model, which is not in the repository.
 | ---------------------------- | ------------------------------------------------------------------- |
 | `pnpm build`                 | Compile every package (`dist/`, and the app's `out/`)               |
 | `pnpm dev`                   | Run the desktop app with hot reload                                 |
-| `pnpm package`               | Build an unpacked, unsigned app for this OS                         |
+| `pnpm package`               | Build this OS's installers (unsigned)                               |
+| `pnpm package:dir`           | Build the unpacked app the packaged e2e tests drive                 |
 | `pnpm e2e`                   | Playwright end-to-end and security tests                            |
 | `pnpm bench`                 | Analysis timings on pinned repositories                             |
 | `pnpm bench:accuracy`        | TS/JS edge accuracy against dependency-cruiser                      |
