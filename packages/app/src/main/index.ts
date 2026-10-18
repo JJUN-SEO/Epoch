@@ -36,6 +36,7 @@ import { ConsentStore } from "./consent-store";
 import { SettingsStore } from "./settings-store";
 import { SpendLedger } from "./spend-ledger";
 import { SummaryService, type SenderLike } from "./summary-service";
+import type { Egress } from "./egress";
 import { createProjectWindow } from "./window";
 import { isReachable, loadWindowState, saveWindowState } from "./window-state";
 
@@ -155,6 +156,13 @@ async function start(): Promise<void> {
     safeStorage,
     process.platform,
   );
+  // Main's one way out (ADR-016), created when something first sends: a
+  // summary, or (ADR-018) the update check. One session, one request filter.
+  let egress: Promise<Egress> | undefined;
+  const getEgress = () =>
+    (egress ??= import("./egress").then((m) =>
+      m.createEgress(() => settings.get().offline),
+    ));
   let sender: Promise<SenderLike> | undefined;
   let cache: SqliteCacheStore | undefined;
   app.on("will-quit", () => {
@@ -203,8 +211,8 @@ async function start(): Promise<void> {
     },
     // The model client, in a lazy chunk, loaded when a summary is first sent.
     sender: () =>
-      (sender ??= import("./sender").then((m) =>
-        m.createSender(() => settings.get().offline),
+      (sender ??= Promise.all([import("./sender"), getEgress()]).then(
+        ([m, out]) => m.createSender(out),
       )),
   });
   let previous = settings.get();
