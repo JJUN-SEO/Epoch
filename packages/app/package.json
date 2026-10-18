@@ -1,5 +1,6 @@
 {
   "name": "@epoch-dev/app",
+  "productName": "Epoch",
   "version": "0.0.0",
   "private": true,
   "description": "Epoch desktop app: Electron main process, preload bridge and analysis host.",

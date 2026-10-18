@@ -6,6 +6,12 @@
 appId: dev.epoch.app
 productName: Epoch
 executableName: epoch
+# The packaged app's package name. A per-user Windows install goes to
+# %LOCALAPPDATA%\Programs\<name>, which would otherwise be the workspace name
+# (@epoch-dev/app). The app's own name, and so its data folder, comes from
+# package.json's productName ("Epoch").
+extraMetadata:
+  name: epoch
 copyright: Copyright © 2026 Junhyuk Seo
 
 directories:

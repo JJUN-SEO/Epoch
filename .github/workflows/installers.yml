@@ -200,8 +200,12 @@ jobs:
         shell: pwsh
         run: |
           Start-Process -FilePath installer\Epoch-win-x64-setup.exe -ArgumentList '/S' -Wait
-          $exe = Join-Path $env:LOCALAPPDATA 'Programs\Epoch\Epoch.exe'
-          if (-not (Test-Path $exe)) { throw "not installed at $exe" }
+          # A per-user install goes to Programs\<package name> (electron-builder.yml).
+          $exe = Join-Path $env:LOCALAPPDATA 'Programs\epoch\epoch.exe'
+          if (-not (Test-Path $exe)) {
+            Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -Recurse -Depth 1 -ErrorAction SilentlyContinue | Select-Object FullName
+            throw "not installed at $exe"
+          }
           # A one-click installer may start the app; the test starts its own.
           Stop-Process -Name Epoch -ErrorAction SilentlyContinue
           "EPOCH_SMOKE_EXE=$exe" >> $env:GITHUB_ENV
@@ -238,11 +242,11 @@ jobs:
         if: matrix.platform == 'win32'
         shell: pwsh
         run: |
-          $dir = Join-Path $env:LOCALAPPDATA 'Programs\Epoch'
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\epoch'
           Start-Process -FilePath (Join-Path $dir 'Uninstall Epoch.exe') -ArgumentList '/S' -Wait
           # The uninstaller hands off to a copy of itself; wait for it.
-          for ($i = 0; $i -lt 60 -and (Test-Path (Join-Path $dir 'Epoch.exe')); $i++) { Start-Sleep 1 }
-          if (Test-Path (Join-Path $dir 'Epoch.exe')) { throw "still installed in $dir" }
+          for ($i = 0; $i -lt 60 -and (Test-Path (Join-Path $dir 'epoch.exe')); $i++) { Start-Sleep 1 }
+          if (Test-Path (Join-Path $dir 'epoch.exe')) { throw "still installed in $dir" }
 
       - name: Uninstall (deb)
         if: matrix.kind == 'deb'

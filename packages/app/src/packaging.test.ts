@@ -49,6 +49,15 @@ describe("electron-builder.yml", () => {
       for (const file of files) expect(file).not.toMatch(/\d+\.\d+/);
   });
 
+  it("names the packaged app epoch, so Windows installs to Programs\\epoch", () => {
+    expect(base.extraMetadata).toEqual({ name: "epoch" });
+    const pkg = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { productName?: string };
+    // Electron's app name (and the data folder under it) is the productName.
+    expect(pkg.productName).toBe("Epoch");
+  });
+
   it("installs per user on Windows, keeping the user's data on uninstall", () => {
     expect(base.nsis).toMatchObject({
       oneClick: true,
