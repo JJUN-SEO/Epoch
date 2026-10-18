@@ -1,0 +1,8 @@
+# The unpacked build the e2e suite runs (`pnpm package:dir`), in CI and
+# locally. Playwright's Electron launcher passes --inspect, so this build keeps
+# the Node inspector fuse on; everything else is electron-builder.yml. Never
+# uploaded or shipped: installers are built from electron-builder.yml alone
+# (ADR-018).
+extends: ./electron-builder.yml
+electronFuses:
+  enableNodeCliInspectArguments: true

@@ -93,4 +93,26 @@ linux:
   target: AppImage
   category: Development
 
+# Electron fuses, flipped in the binary at package time (ADR-018).
+electronFuses:
+  # Nothing uses ELECTRON_RUN_AS_NODE (the host is a utilityProcess, parsing
+  # runs in worker threads); left on, any local process could run its own
+  # JavaScript as Epoch, with Epoch's keychain access on macOS.
+  runAsNode: false
+  # Main never uses Node's networking (the tripwire), so NODE_OPTIONS and
+  # NODE_EXTRA_CA_CERTS would only let the environment change Node.
+  enableNodeOptionsEnvironmentVariable: false
+  # --inspect would let anything attach a debugger to main, where keys are
+  # decrypted. The CI-only e2e build turns it back on for Playwright
+  # (electron-builder.e2e.yml); installers never have it.
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  # The UI is served from epoch:// (ADR-005), never file://.
+  grantFileProtocolExtraPrivileges: false
+  # Epoch keeps no cookies; turning this on would make Chromium read the OS
+  # keychain at startup, which on ad-hoc-signed macOS builds can prompt
+  # again after every update.
+  enableCookieEncryption: false
+
 publish: null

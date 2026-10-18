@@ -3,6 +3,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { GRAMMARS } from "@epoch-dev/engine";
 import { packagedExecutable, packagedResources, target } from "./launch";
+import { E2E_FUSES, readFuses } from "./packaging";
 
 // What the packaged app carries (electron-builder.yml): only this platform's
 // native builds, only the grammars the adapters load, TypeScript without its
@@ -12,6 +13,10 @@ import { packagedExecutable, packagedResources, target } from "./launch";
 test.skip(target !== "packaged", "inspects the electron-builder --dir output");
 
 const resources = () => packagedResources();
+
+test("the fuses of the e2e build: the installers' plus the inspector", async () => {
+  expect(await readFuses(packagedExecutable())).toEqual(E2E_FUSES);
+});
 
 /** The paths of the files in app.asar, read from the archive's JSON header. */
 function asarPaths(file: string): string[] {
