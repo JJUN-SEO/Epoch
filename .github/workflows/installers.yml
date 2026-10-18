@@ -25,9 +25,11 @@ on:
       - "scripts/package-size.mjs"
       - "scripts/fetch-model.mjs"
 
+# A started run finishes (its smoke test is the signal); a newer push waits,
+# and replaces any run still waiting.
 concurrency:
   group: installers-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: read
