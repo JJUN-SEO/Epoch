@@ -1,4 +1,11 @@
-import { mkdtempSync, readdirSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -123,6 +130,14 @@ export async function launch(
   chromiumArgs: readonly string[] = [],
 ): Promise<Launched> {
   const home = reuse?.home ?? mkdtempSync(path.join(os.tmpdir(), "epoch-e2e-"));
+  // Update checks are on by default and would ask GitHub from every test
+  // run; a fresh home starts with them off (update-check.spec.ts turns them
+  // on against a stub). A home that already has settings keeps them.
+  const settingsFile = path.join(home, "user-data", "settings.json");
+  if (!existsSync(settingsFile)) {
+    mkdirSync(path.dirname(settingsFile), { recursive: true });
+    writeFileSync(settingsFile, JSON.stringify({ updateChecks: false }));
+  }
   const options = {
     // Keep Chromium's OS-level sandbox on under Playwright (it adds
     // --no-sandbox on Linux otherwise); CI runs as a non-root user.

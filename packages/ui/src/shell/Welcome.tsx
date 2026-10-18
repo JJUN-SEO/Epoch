@@ -150,7 +150,9 @@ export function Welcome({ shell, onOpen, openRecent, error }: WelcomeProps) {
                 Your code stays on this computer. Epoch reads the folder you
                 open, never changes it, and never runs its code. There is no
                 account and no telemetry. Features that use AI models are off
-                until you turn them on with your own key.
+                until you turn them on with your own key. Once a day Epoch asks
+                GitHub whether a newer version is out; Settings can turn that
+                off.
               </p>
               <Button
                 variant="ghost"

@@ -21,6 +21,7 @@ import type { KeyStore } from "./key-store";
 import type { Projects } from "./projects";
 import type { SettingsStore } from "./settings-store";
 import type { SummaryContext, SummaryService } from "./summary-service";
+import type { AvailableUpdate } from "./update-check";
 
 /** An absolute path as the renderer may send it. Granting is checked separately. */
 const FolderPath = z
@@ -84,6 +85,8 @@ export interface SettingsRoutes {
   readonly cache: () => SqliteCacheStore;
   /** The window's open project as a summary context; undefined when none is open. */
   readonly summaryContext: (win: BrowserWindow) => SummaryContext | undefined;
+  /** A newer release the update check found, if any (ADR-018). */
+  readonly updateStatus: () => AvailableUpdate | undefined;
 }
 
 /** Registers every IPC channel main answers, each with its payload schema. */
@@ -257,6 +260,10 @@ export function registerRoutes(
         summaries: s.summaries,
       });
     },
+  });
+  handle(CHANNELS.getUpdateStatus, {
+    args: z.tuple([]),
+    handle: () => Promise.resolve(settings.updateStatus() ?? null),
   });
   handle(CHANNELS.showAppMenu, {
     args: z.tuple([WindowCoordinate, WindowCoordinate]),

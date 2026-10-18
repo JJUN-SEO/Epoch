@@ -72,7 +72,7 @@ Electron app with three processes. There is no HTTP server; the UI talks to the 
 ```
 Epoch (Electron)
  ├─ Renderer (React + Cytoscape)   sandboxed, no Node access; talks to main only via a typed preload API
- ├─ Main process                   windows, menus, native dialogs, IPC router, secrets, auto-update
+ ├─ Main process                   windows, menus, native dialogs, IPC router, secrets, update check
  └─ Analysis host (utilityProcess) pipeline + worker threads (piscina, web-tree-sitter),
                                    SQLite cache, file watcher, git, scorers
 Optional outbound: opt-in model providers, update check
@@ -526,7 +526,7 @@ Rules, first match wins:
 ## Distribution
 
 - **Installers:** macOS (dmg), Windows (NSIS), Linux (AppImage/deb), built in a GitHub Actions matrix (one runner per OS) and published on GitHub Releases.
-- **Auto-update:** via the release host (e.g. `electron-updater`), opt-out, listed in the data-flow table.
+- **Update check:** once a day main asks the release host (GitHub Releases) for the latest version through its egress and shows a notice linking to the release page; the user downloads and installs it. Opt-out, never in offline mode, listed in the data-flow table (ADR-018).
 - **Code signing:** macOS notarization needs a paid Apple Developer account and Windows signing needs a certificate. Ship early builds unsigned with documented first-run steps, and decide on signing before a public launch. Be upfront about this in the README.
 - **Static site:** landing page, download links, and an in-browser demo viewer with precomputed graphs and findings of well-known public OSS repos (reuses the UI via the static `EpochApi`). No backend, no user code, no model features.
 - **CLI:** also published to npm for headless and CI use (`epoch analyze --json`, `epoch findings`). We host nothing.

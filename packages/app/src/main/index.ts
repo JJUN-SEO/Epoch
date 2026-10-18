@@ -13,6 +13,7 @@ import {
 import {
   PROVIDER_INFO,
   isRemoteProvider,
+  updateChecksAllowed,
   type ProjectInfo,
 } from "@epoch-dev/core";
 import { installTripwire } from "@epoch-dev/scorers/tripwire";
@@ -36,6 +37,8 @@ import { ConsentStore } from "./consent-store";
 import { SettingsStore } from "./settings-store";
 import { SpendLedger } from "./spend-ledger";
 import { SummaryService, type SenderLike } from "./summary-service";
+import { UpdateChecker } from "./update-check";
+import { UpdateStore } from "./update-store";
 import type { Egress } from "./egress";
 import { createProjectWindow } from "./window";
 import { isReachable, loadWindowState, saveWindowState } from "./window-state";
@@ -226,6 +229,33 @@ async function start(): Promise<void> {
         win.webContents.send(EVENTS.settingsChanged, next);
   });
 
+  // The update check (ADR-018): at most once a day, one GET to the release
+  // host through the egress; a newer release becomes a notice in the window.
+  // Never with update checks off or in offline mode.
+  const updates = new UpdateChecker({
+    now: () => Date.now(),
+    allowed: () => updateChecksAllowed(settings.get()),
+    currentVersion: app.getVersion(),
+    latestTag: async () => (await getEgress()).latestReleaseTag(),
+    abort: () => {
+      void egress?.then((out) => {
+        out.abortUpdateCheck();
+      });
+    },
+    store: new UpdateStore(path.join(userData, "update-check.json")),
+    notify: (update) => {
+      for (const win of BrowserWindow.getAllWindows())
+        if (!win.isDestroyed())
+          win.webContents.send(EVENTS.updateAvailable, update);
+    },
+  });
+  let checksAllowed = updateChecksAllowed(settings.get());
+  settings.onChange((next) => {
+    const was = checksAllowed;
+    checksAllowed = updateChecksAllowed(next);
+    updates.settingsChanged(was);
+  });
+
   /** Tells a window's UI about a project opened from the menu. */
   const announce = (win: BrowserWindow, project: ProjectInfo | null) => {
     if (project !== null && !win.isDestroyed()) {
@@ -334,6 +364,7 @@ async function start(): Promise<void> {
         return response === 1;
       },
       cache: () => (cache ??= openCache()),
+      updateStatus: () => updates.status(),
       summaryContext: (win) => {
         const target = sessions.get(win.webContents)?.summaryTarget();
         if (!target) return undefined;
@@ -352,6 +383,14 @@ async function start(): Promise<void> {
   );
 
   await openWindow(stateFile);
+  // The first check waits until the window has settled; later ticks ask
+  // only once the last answer is a day old.
+  const firstCheck = setTimeout(() => void updates.tick(), 10_000);
+  const hourly = setInterval(() => void updates.tick(), 60 * 60 * 1000);
+  app.on("will-quit", () => {
+    clearTimeout(firstCheck);
+    clearInterval(hourly);
+  });
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) void openWindow(stateFile);
   });

@@ -10,7 +10,7 @@ import {
   type SpendStatus,
   type WatchStatus,
 } from "@epoch-dev/core";
-import type { CacheSummary, DesktopBridge } from "./bridge";
+import type { CacheSummary, DesktopBridge, UpdateNotice } from "./bridge";
 
 /**
  * App-only functions that grant access to a folder. The static demo site has
@@ -37,6 +37,9 @@ export interface Shell {
   resetSpend(): Promise<SpendStatus>;
   getCacheStats(): Promise<CacheSummary>;
   clearCache(): Promise<CacheSummary>;
+  /** A newer release, if the update check found one (ADR-018). */
+  getUpdateStatus(): Promise<UpdateNotice | null>;
+  onUpdateAvailable(cb: (update: UpdateNotice) => void): () => void;
 }
 
 const unavailable = (what: string) => (): Promise<never> =>
@@ -100,6 +103,8 @@ export function createIpcApi(bridge: DesktopBridge): {
       resetSpend: () => bridge.resetSpend(),
       getCacheStats: () => bridge.getCacheStats(),
       clearCache: () => bridge.clearCache(),
+      getUpdateStatus: () => bridge.getUpdateStatus(),
+      onUpdateAvailable: (cb) => bridge.onUpdateAvailable(cb),
     },
   };
 }

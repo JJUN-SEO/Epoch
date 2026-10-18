@@ -140,7 +140,7 @@ const spendFields = {
 
 const sections = {
   offline: z.boolean().default(false),
-  /** The update check itself arrives in M8; offline mode always turns it off. */
+  /** The daily update check (ADR-018); offline mode always turns it off. */
   updateChecks: z.boolean().default(true),
   theme: z.enum(["system", "light", "dark"]).default("system"),
   summaries: z

@@ -382,7 +382,7 @@ export function SettingsDialog({ api, shell, onClose }: SettingsDialogProps) {
                 hint={
                   settings.offline
                     ? "Never while offline."
-                    : "Once installers ship, asks the release host for the latest version; sends no project data."
+                    : "At most once a day, asks GitHub for the latest version number and shows a notice when a newer one is out. Sends no project data."
                 }
               >
                 <Toggle

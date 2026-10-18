@@ -25,6 +25,14 @@ export interface CacheSummary {
   readonly summaries: { readonly paid: number; readonly local: number };
 }
 
+/** A newer release the update check found (ADR-018). */
+export interface UpdateNotice {
+  readonly current: string;
+  readonly latest: string;
+  /** The release page on GitHub, built by main. */
+  readonly url: string;
+}
+
 /**
  * What the desktop app's preload script exposes as `window.epoch`: the M3
  * subset of EpochApi over IPC, plus the shell functions that grant access to
@@ -86,4 +94,7 @@ export interface DesktopBridge {
   resetSpend(): Promise<SpendStatus>;
   getCacheStats(): Promise<CacheSummary>;
   clearCache(): Promise<CacheSummary>;
+  /** A newer release, if the update check found one; null otherwise. */
+  getUpdateStatus(): Promise<UpdateNotice | null>;
+  onUpdateAvailable(cb: (update: UpdateNotice) => void): Unsubscribe;
 }

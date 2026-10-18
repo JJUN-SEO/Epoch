@@ -94,6 +94,8 @@ function fakeBridge() {
         summaries: { paid: 0, local: 0 },
       }),
     ),
+    getUpdateStatus: vi.fn(() => Promise.resolve(null)),
+    onUpdateAvailable: vi.fn(() => () => undefined),
     onSummaryProgress: vi.fn(() => () => undefined),
     getSpend: vi.fn(() =>
       Promise.resolve({

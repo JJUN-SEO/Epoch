@@ -46,6 +46,8 @@ export const CHANNELS = {
   getCacheStats: "epoch:get-cache-stats",
   /** Deletes the cache (derived data); no payload. */
   clearCache: "epoch:clear-cache",
+  /** A newer release, if the update check found one (ADR-018); no payload. */
+  getUpdateStatus: "epoch:get-update-status",
 } as const;
 
 /** Main-to-renderer events. */
@@ -65,6 +67,8 @@ export const EVENTS = {
   settingsChanged: "epoch:settings-changed",
   /** A summary job in this window advanced; payload: SummaryProgress. */
   summaryProgress: "epoch:summary-progress",
+  /** The update check found a newer release; payload: UpdateNotice. */
+  updateAvailable: "epoch:update-available",
 } as const;
 
 /**
