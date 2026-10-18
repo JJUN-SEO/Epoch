@@ -42,7 +42,7 @@ Fuses are switches in the Electron binary, flipped by electron-builder when it p
 
 **Testing installers without the inspector (spike, 2026-10-18).** A Linux package with the installer fuses was started with `--remote-debugging-port=0`, a Chromium switch the fuse does not affect, and driven with Playwright's `chromium.connectOverCDP`: it opened a project from a seeded recent list, showed the graph, and `--inspect` was refused (no debugger started). On SIGTERM it quit cleanly with exit code 0, so Chromium's network log (`--log-net-log`) was complete. The installer smoke test (M8) works this way, so installers ship with the inspector off.
 
-**Found by that spike.** The network log of the run held one request: Chromium's spellchecker downloading a dictionary from Google when the window opened. It bypassed the default session's request filter and broke CLAUDE.md's "no keys, no requests". Epoch now turns the spellchecker off (`harden.ts`), and `no-network.spec.ts` records the log from launch to quit.
+**Found by that spike and the smoke test.** The network log of the run held one request: Chromium's spellchecker downloading a dictionary from Google when the window opened. It bypassed the default session's request filter and broke CLAUDE.md's "no keys, no requests". Epoch now turns the spellchecker off (`harden.ts`), and `no-network.spec.ts` records the log from launch to quit. The smoke test then found the same download when the first summary (here from a local model) opened main's egress session; that session turns it off too (`egress.ts`), and `offline.spec.ts` now also checks its whole run's log, from launch.
 
 ## Consequences
 

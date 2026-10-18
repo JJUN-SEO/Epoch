@@ -31,7 +31,10 @@ function copyFixture(rel: string): string {
 }
 
 let epoch: Launched;
+let quit = false;
 let small: string;
+/** Chromium's network log for the whole run, from launch to quit. */
+let wholeRun = "";
 let output = "";
 let ollama: http.Server;
 let ollamaCalls = 0;
@@ -65,27 +68,35 @@ function startOllama(): Promise<http.Server> {
 test.beforeAll(async () => {
   ollama = await startOllama();
   small = copyFixture("typescript/conformance/relative");
-  epoch = await launch();
+  const home = fs.realpathSync.native(
+    fs.mkdtempSync(path.join(os.tmpdir(), "epoch-e2e-offline-home-")),
+  );
+  temps.push(home);
+  wholeRun = path.join(home, "netlog-whole-run.json");
+  epoch = await launch({}, { home }, [`--log-net-log=${wholeRun}`]);
   const keep = (chunk: Buffer) => {
     output += chunk.toString("utf8");
   };
   epoch.app.process().stdout?.on("data", keep);
   epoch.app.process().stderr?.on("data", keep);
-  await epoch.app.evaluate(({ session }) => {
+  // The stub goes on main's egress session as the app creates it, so the
+  // session is the app's own (made the app's way), not one the test made.
+  await epoch.app.evaluate(({ app, session }) => {
     let count = 0;
     (globalThis as { anthropicCalls?: () => number }).anthropicCalls = () =>
       count;
-    session
-      .fromPartition("epoch-egress", { cache: false })
-      .protocol.handle("https", () => {
+    app.on("session-created", (ses) => {
+      if (ses === session.defaultSession) return;
+      ses.protocol.handle("https", () => {
         count++;
         return new Response("{}", { status: 500 });
       });
+    });
   });
 });
 
 test.afterAll(async () => {
-  await epoch.close();
+  if (!quit) await epoch.quit();
   await new Promise((resolve) => ollama.close(resolve));
   for (const dir of temps) fs.rmSync(dir, { recursive: true, force: true });
 });
@@ -97,6 +108,17 @@ const anthropicCalls = () =>
       -1,
   );
 
+/** The URLs of every request in a Chromium network log file. */
+function urlsIn(file: string): string[] {
+  const log = JSON.parse(fs.readFileSync(file, "utf8")) as {
+    events?: { params?: { url?: unknown } }[];
+  };
+  const urls = new Set<string>();
+  for (const e of log.events ?? [])
+    if (typeof e.params?.url === "string") urls.add(e.params.url);
+  return [...urls].sort();
+}
+
 /** The URLs of every request Chromium's network stack made while `run` ran. */
 async function netLogDuring(run: () => Promise<void>): Promise<string[]> {
   const file = path.join(epoch.home, `netlog-${String(Date.now())}.json`);
@@ -106,13 +128,7 @@ async function netLogDuring(run: () => Promise<void>): Promise<string[]> {
   } finally {
     await epoch.app.evaluate(({ netLog }) => netLog.stopLogging());
   }
-  const log = JSON.parse(fs.readFileSync(file, "utf8")) as {
-    events?: { params?: { url?: unknown } }[];
-  };
-  const urls = new Set<string>();
-  for (const e of log.events ?? [])
-    if (typeof e.params?.url === "string") urls.add(e.params.url);
-  return [...urls].sort();
+  return urlsIn(file);
 }
 
 async function open(folder: string, files: string): Promise<void> {
@@ -213,4 +229,14 @@ test("offline: a model on this machine still works", async () => {
   expect(ollamaCalls).toBe(before + 1);
   expect(await anthropicCalls()).toBe(0);
   expect(output).not.toContain("tried to use the network");
+});
+
+test("the whole run, from launch to quit, reached only the local model", async () => {
+  // The windows above each logged a part of the run; Chromium's own log,
+  // started with the app, covers the rest: startup, and the moment main's
+  // egress session first opened (it once fetched a spellchecker dictionary
+  // from Google, which the smoke test caught).
+  await epoch.quit();
+  quit = true;
+  expect(urlsIn(wholeRun)).toEqual([`${OLLAMA}/api/chat`]);
 });

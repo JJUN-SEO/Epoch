@@ -24,6 +24,10 @@ export interface Egress {
 
 export function createEgress(offline: () => boolean): Egress {
   const egress = session.fromPartition(EGRESS_PARTITION, { cache: false });
+  // As for the window's session (harden.ts): Chromium's spellchecker would
+  // fetch a dictionary from Google for every new session.
+  egress.setSpellCheckerEnabled(false);
+  egress.setSpellCheckerLanguages([]);
   egress.webRequest.onBeforeRequest((details, callback) => {
     callback({ cancel: !egressAllows(details.url, offline()) });
   });
