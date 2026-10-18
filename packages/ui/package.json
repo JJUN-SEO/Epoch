@@ -6,9 +6,18 @@
   "license": "MIT",
   "type": "module",
   "exports": {
+    "./app": {
+      "types": "./src/App.tsx",
+      "default": "./src/App.tsx"
+    },
+    "./api": {
+      "types": "./src/api.ts",
+      "default": "./src/api.ts"
+    },
     "./bridge": {
       "types": "./src/bridge.ts"
-    }
+    },
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",

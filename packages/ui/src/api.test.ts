@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   DEFAULT_SETTINGS,
+  blastRadius,
+  filterFindings,
   type Graph,
   type GraphDelta,
   type ProjectInfo,
@@ -180,6 +182,42 @@ describe("createIpcApi", () => {
 });
 
 describe("createStaticApi", () => {
+  it("computes blast radius with core's function, as the app does", async () => {
+    const api = createStaticApi(project, graph);
+    const opts = { mode: "certain", includeTypeOnly: true } as const;
+    await expect(api.getBlastRadius("b.ts", opts)).resolves.toEqual(
+      blastRadius(graph, "b.ts", opts),
+    );
+  });
+
+  it("filters the precomputed findings like the app", async () => {
+    const api = createStaticApi(project, graph);
+    await expect(
+      api.getFindings({ kinds: ["stale-flag"], minConfidence: "high" }),
+    ).resolves.toEqual(
+      filterFindings(graph.findings, {
+        kinds: ["stale-flag"],
+        minConfidence: "high",
+      }),
+    );
+  });
+
+  it("refuses everything that needs a machine, with fixed messages", async () => {
+    const api = createStaticApi(project, graph);
+    await expect(api.getSettings()).rejects.toThrow(
+      "The demo has no settings.",
+    );
+    await expect(api.getSummary("a.ts")).rejects.toThrow(
+      "The demo has no model features.",
+    );
+    await expect(api.getSpend()).rejects.toThrow(
+      "The demo has no model features.",
+    );
+    await expect(api.undismissFinding("x")).rejects.toThrow(
+      "The demo cannot dismiss findings.",
+    );
+  });
+
   it("serves one precomputed graph and nothing that needs a machine", async () => {
     const api = createStaticApi(project, graph);
     await expect(api.openProject("/anything")).resolves.toBe(project);

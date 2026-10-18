@@ -3,7 +3,6 @@ import {
   applyDelta,
   type AnalysisInfo,
   type EpochApi,
-  type Graph,
   type Progress,
   type ProjectInfo,
   type WatchStatus,
@@ -19,25 +18,19 @@ import { TitleBar } from "./shell/TitleBar";
 import { UpdateNotice } from "./shell/UpdateNotice";
 import { Welcome } from "./shell/Welcome";
 import { Workspace } from "./shell/Workspace";
-
-type View =
-  | { readonly kind: "start"; readonly error?: string }
-  | { readonly kind: "analyzing"; readonly project: ProjectInfo }
-  | {
-      readonly kind: "graph";
-      readonly project: ProjectInfo;
-      readonly graph: Graph;
-    };
+import { initialView, type InitialProject, type View } from "./view";
 
 export interface AppProps {
   readonly api: EpochApi;
   /** The desktop app's folder access; absent in the static demo. */
   readonly shell?: Shell;
+  /** A project to open on (the static demo's precomputed graph). */
+  readonly initial?: InitialProject;
 }
 
 /** Welcome -> streaming progress -> the project workspace (CLAUDE.md "App UX basics"). */
-export function App({ api, shell }: AppProps) {
-  const [view, setView] = useState<View>({ kind: "start" });
+export function App({ api, shell, initial }: AppProps) {
+  const [view, setView] = useState<View>(() => initialView(initial));
   const [progress, setProgress] = useState<Progress | undefined>();
   const [watch, setWatch] = useState<WatchStatus | undefined>();
   const [analysis, setAnalysis] = useState<AnalysisInfo | null>(null);
