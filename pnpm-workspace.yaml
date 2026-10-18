@@ -2,6 +2,7 @@
 packages:
   - packages/*
   - packages/adapters/*
+  - apps/*
 
 # Shared exact versions; packages reference them as "catalog:".
 # https://pnpm.io/catalogs

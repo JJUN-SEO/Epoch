@@ -15,3 +15,6 @@ docs/benchmarks/typescript*.md
 
 # Generated from queries/ by scripts/gen-queries.mjs (checked by pnpm lint).
 **/*.generated.ts
+# The CLI's exact output and the demo repositories' own license texts.
+apps/site/data/*.graph.json
+apps/site/data/*.LICENSE.txt

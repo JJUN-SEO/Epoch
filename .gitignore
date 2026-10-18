@@ -27,3 +27,6 @@ packages/app/test-results/
 
 # Embedding models, downloaded at build time by scripts/fetch-model.mjs
 /models/*/
+
+# Clones of the demo repositories, made by scripts/site-data.mjs
+/.cache/

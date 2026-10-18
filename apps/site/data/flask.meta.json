@@ -1,0 +1,20 @@
+{
+  "id": "flask",
+  "name": "Flask",
+  "language": "Python",
+  "url": "https://github.com/pallets/flask",
+  "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
+  "commitDate": "2026-02-18T19:41:55-08:00",
+  "license": "BSD-3-Clause",
+  "copyright": "Copyright 2010 Pallets",
+  "licenseFile": "flask.LICENSE.txt",
+  "madeWith": {
+    "epochCommit": "02fb5da44cfbbed9eb390a2fcd299a4202c6e443",
+    "command": "epoch --offline analyze <repository> --json"
+  },
+  "counts": {
+    "nodes": 83,
+    "edges": 229,
+    "findings": 0
+  }
+}

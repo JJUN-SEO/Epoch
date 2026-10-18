@@ -1,0 +1,22 @@
+{
+  "name": "@epoch-dev/site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Epoch's static site: landing page, downloads, and a demo viewer over precomputed graphs of public repositories (no backend, no source code).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "dependencies": {
+    "@epoch-dev/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
