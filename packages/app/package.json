@@ -19,6 +19,7 @@
     "package:installer": "electron-builder --publish never",
     "icon": "node scripts/render-icon.mjs",
     "e2e": "playwright test",
+    "smoke": "playwright test --config playwright.smoke.config.ts",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
     "test": "vitest run --dir src"
