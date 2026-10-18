@@ -32,7 +32,7 @@ describe("CONTENT_SECURITY_POLICY", () => {
 
 describe("isAllowedExternalUrl", () => {
   it.each([
-    "https://github.com/jjun-seo/under-construction-",
+    "https://github.com/JJUN-SEO/Epoch/releases/tag/v1.2.3",
     "https://github.com/",
   ])("allows %s", (url) => {
     expect(isAllowedExternalUrl(url)).toBe(true);

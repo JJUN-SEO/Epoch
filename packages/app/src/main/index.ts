@@ -25,6 +25,7 @@ import { ProjectSession } from "./project";
 import { Projects } from "./projects";
 import { registerAppScheme, serveUi } from "./protocol";
 import { RecentProjects } from "./recent";
+import { REPOSITORY_URL } from "./release";
 import { GrantedRoots } from "./roots";
 import { registerRoutes } from "./routes";
 import { ConsentStore } from "./consent-store";
@@ -41,8 +42,6 @@ installTripwire({
     console.error(`[epoch] main tried to use the network (${name}); refused`);
   },
 });
-
-const REPOSITORY_URL = "https://github.com/JJUN-SEO/under-construction-";
 
 // `electron-vite dev` serves the UI from a local dev server and passes its URL
 // in ELECTRON_RENDERER_URL. A packaged app ignores the variable, so nothing in

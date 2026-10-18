@@ -4,6 +4,10 @@
   "private": true,
   "description": "Epoch: a local-first desktop app that turns a codebase into a dependency graph with blast radius, risk tiers and dead-feature alerts.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JJUN-SEO/Epoch.git"
+  },
   "type": "module",
   "packageManager": "pnpm@11.28.2",
   "engines": {

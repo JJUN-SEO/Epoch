@@ -4,6 +4,7 @@
   "private": true,
   "description": "Epoch desktop app: Electron main process, preload bridge and analysis host.",
   "license": "MIT",
+  "homepage": "https://github.com/JJUN-SEO/Epoch",
   "type": "module",
   "main": "out/main/index.js",
   "scripts": {
