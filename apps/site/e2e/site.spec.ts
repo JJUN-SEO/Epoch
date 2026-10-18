@@ -1,4 +1,10 @@
+import { Graph, blastRadius } from "@epoch-dev/core";
 import { expect, test } from "@playwright/test";
+import fs from "node:fs";
+
+const zodData: unknown = JSON.parse(
+  fs.readFileSync(new URL("../data/zod.graph.json", import.meta.url), "utf8"),
+);
 
 const demos = [
   { id: "zod", name: "zod", stats: "526 files" },
@@ -61,4 +67,22 @@ test("zod shows reviewable findings in the static app", async ({ page }) => {
   await expect(
     page.getByText("Candidates for review, not verdicts"),
   ).toBeVisible();
+});
+
+test("zod blast radius matches the core calculation", async ({ page }) => {
+  const nodeId = "packages/zod/src/v4/core/versions.ts";
+  const expected = blastRadius(Graph.parse(zodData), nodeId, {
+    mode: "certain",
+    includeTypeOnly: true,
+  });
+  await page.goto("./demo.html?repo=zod");
+  await page.getByRole("button", { name: "Search files and commands" }).click();
+  await page
+    .getByRole("combobox", { name: "Search files and commands" })
+    .fill("versions.ts");
+  await page.getByRole("option", { name: nodeId, exact: true }).click();
+  await page.getByRole("tab", { name: "Impact" }).click();
+  await expect(page.getByTestId("impact-total")).toHaveText(
+    `${String(expected.total)} files`,
+  );
 });
