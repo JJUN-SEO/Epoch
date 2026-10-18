@@ -19,7 +19,7 @@ import type {
 import type {
   CacheSummary,
   DesktopBridge,
-  UpdateNotice,
+  AvailableUpdate,
 } from "@epoch-dev/ui/bridge";
 import { CHANNELS, EVENTS } from "../shared/channels";
 
@@ -118,7 +118,8 @@ const bridge: DesktopBridge = {
   resetSpend: () => invoke<SpendStatus>(CHANNELS.resetSpend),
   getCacheStats: () => invoke<CacheSummary>(CHANNELS.getCacheStats),
   clearCache: () => invoke<CacheSummary>(CHANNELS.clearCache),
-  getUpdateStatus: () => invoke<UpdateNotice | null>(CHANNELS.getUpdateStatus),
+  getUpdateStatus: () =>
+    invoke<AvailableUpdate | null>(CHANNELS.getUpdateStatus),
   onUpdateAvailable: (cb) => on(EVENTS.updateAvailable, cb),
   onMenuCommand: (cb) => {
     const listener = (_event: IpcRendererEvent, id: string) => {

@@ -67,7 +67,7 @@ export const EVENTS = {
   settingsChanged: "epoch:settings-changed",
   /** A summary job in this window advanced; payload: SummaryProgress. */
   summaryProgress: "epoch:summary-progress",
-  /** The update check found a newer release; payload: UpdateNotice. */
+  /** The update check found a newer release; payload: AvailableUpdate. */
   updateAvailable: "epoch:update-available",
 } as const;
 

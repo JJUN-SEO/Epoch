@@ -26,7 +26,7 @@ export interface CacheSummary {
 }
 
 /** A newer release the update check found (ADR-018). */
-export interface UpdateNotice {
+export interface AvailableUpdate {
   readonly current: string;
   readonly latest: string;
   /** The release page on GitHub, built by main. */
@@ -95,6 +95,6 @@ export interface DesktopBridge {
   getCacheStats(): Promise<CacheSummary>;
   clearCache(): Promise<CacheSummary>;
   /** A newer release, if the update check found one; null otherwise. */
-  getUpdateStatus(): Promise<UpdateNotice | null>;
-  onUpdateAvailable(cb: (update: UpdateNotice) => void): Unsubscribe;
+  getUpdateStatus(): Promise<AvailableUpdate | null>;
+  onUpdateAvailable(cb: (update: AvailableUpdate) => void): Unsubscribe;
 }

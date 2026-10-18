@@ -16,6 +16,7 @@ import { SHORTCUTS } from "./shell/commands";
 import { ProgressPane } from "./shell/ProgressPane";
 import { matches } from "./shell/shortcuts";
 import { TitleBar } from "./shell/TitleBar";
+import { UpdateNotice } from "./shell/UpdateNotice";
 import { Welcome } from "./shell/Welcome";
 import { Workspace } from "./shell/Workspace";
 
@@ -73,6 +74,8 @@ export function App({ api, shell }: AppProps) {
         setSettingsOpen(true);
       }
     : undefined;
+  // A newer release, on every screen of the desktop app (ADR-018).
+  const updateNotice = shell ? <UpdateNotice shell={shell} /> : null;
   const settingsDialog =
     settingsOpen && shell ? (
       <SettingsDialog
@@ -191,6 +194,7 @@ export function App({ api, shell }: AppProps) {
           ) : (
             <main className="p-8">This page needs the Epoch desktop app.</main>
           )}
+          {updateNotice}
           {settingsDialog}
         </div>
       );
@@ -199,6 +203,7 @@ export function App({ api, shell }: AppProps) {
         <div className="flex h-full flex-col">
           {titleBar(view.project.name)}
           <ProgressPane project={view.project} progress={progress} />
+          {updateNotice}
           {settingsDialog}
         </div>
       );
@@ -228,6 +233,7 @@ export function App({ api, shell }: AppProps) {
                 }
               : {})}
           />
+          {updateNotice}
           {settingsDialog}
         </>
       );

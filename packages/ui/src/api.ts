@@ -10,7 +10,7 @@ import {
   type SpendStatus,
   type WatchStatus,
 } from "@epoch-dev/core";
-import type { CacheSummary, DesktopBridge, UpdateNotice } from "./bridge";
+import type { CacheSummary, DesktopBridge, AvailableUpdate } from "./bridge";
 
 /**
  * App-only functions that grant access to a folder. The static demo site has
@@ -38,8 +38,8 @@ export interface Shell {
   getCacheStats(): Promise<CacheSummary>;
   clearCache(): Promise<CacheSummary>;
   /** A newer release, if the update check found one (ADR-018). */
-  getUpdateStatus(): Promise<UpdateNotice | null>;
-  onUpdateAvailable(cb: (update: UpdateNotice) => void): () => void;
+  getUpdateStatus(): Promise<AvailableUpdate | null>;
+  onUpdateAvailable(cb: (update: AvailableUpdate) => void): () => void;
 }
 
 const unavailable = (what: string) => (): Promise<never> =>
