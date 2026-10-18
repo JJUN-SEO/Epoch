@@ -12,6 +12,7 @@
     "build": "pnpm run clean && electron-vite build",
     "dev": "electron-vite dev",
     "package:dir": "electron-builder --dir",
+    "icon": "node scripts/render-icon.mjs",
     "e2e": "playwright test",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint .",
