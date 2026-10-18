@@ -15,7 +15,11 @@ import { startInstalled } from "./drive";
 test.describe.configure({ mode: "serial" });
 
 const exe = process.env.EPOCH_SMOKE_EXE ?? "";
-const repo = process.env.EPOCH_SMOKE_REPO ?? "";
+// Its real path: main lists a stored recent project only when the stored
+// path is the real one (on Windows the workflow's path mixes \ and /).
+const repo = process.env.EPOCH_SMOKE_REPO
+  ? fs.realpathSync.native(process.env.EPOCH_SMOKE_REPO)
+  : "";
 test.skip(
   exe === "" || repo === "",
   "set EPOCH_SMOKE_EXE and EPOCH_SMOKE_REPO",
