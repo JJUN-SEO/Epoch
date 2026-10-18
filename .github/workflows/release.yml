@@ -1,0 +1,87 @@
+name: Release
+
+# A v* tag builds and smoke-tests every installer from the tagged commit,
+# then drafts a GitHub Release with them and their checksums (ADR-018). The
+# maintainer reviews the draft and publishes it; nothing is published here.
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  version:
+    name: version matches the tag
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+      - run: node scripts/release-version.mjs check "$GITHUB_REF_NAME"
+
+  installers:
+    needs: version
+    uses: ./.github/workflows/installers.yml
+
+  publish:
+    name: draft the release
+    needs: installers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    # The only job in any workflow that may write to the repository: it
+    # creates the draft release and uploads its files.
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: installer-*
+          merge-multiple: true
+          path: dist
+
+      - name: Checksums of every installer
+        working-directory: dist
+        run: |
+          cat SHA256SUMS-darwin.txt SHA256SUMS-win32.txt SHA256SUMS-linux.txt > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Release notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          awk -v version="$version" -v tag="$GITHUB_REF_NAME" -v sums="dist/SHA256SUMS.txt" '
+            /\{\{CHECKSUMS\}\}/ { while ((getline line < sums) > 0) print line; next }
+            { gsub(/\{\{VERSION\}\}/, version); gsub(/\{\{TAG\}\}/, tag); print }
+          ' .github/release-notes.md > notes.md
+          cat notes.md
+
+      - name: Draft the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" --draft --verify-tag \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Epoch ${GITHUB_REF_NAME#v}" \
+            --notes-file notes.md \
+            dist/Epoch-mac-arm64.dmg \
+            dist/Epoch-win-x64-setup.exe \
+            dist/Epoch-linux-x64.AppImage \
+            dist/Epoch-linux-x64.deb \
+            dist/SHA256SUMS.txt
