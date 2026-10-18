@@ -29,6 +29,21 @@ files:
   - "!node_modules/onnxruntime-node/bin/napi-v6/${platform}/!(${arch})/**"
   - "!node_modules/onnxruntime-node/bin/napi-v6/darwin/*/libonnxruntime.1.*.*.dylib"
   - "!node_modules/onnxruntime-node/{script,lib}/**"
+  # better-sqlite3 13 loads prebuilds/<platform>-<arch>.node; keep this
+  # build's only (ADR-005 measured eight platforms' worth, 16.9 MB).
+  - "!node_modules/better-sqlite3/prebuilds/!(${platform}-${arch}).node"
+  # Only the grammars the adapters load (GRAMMARS in
+  # packages/engine/src/parse.ts; packaged.spec.ts checks the two agree).
+  # The package's main entry, wasm/tree-sitter.js, stays: the cache key
+  # resolves it to read the package's version.
+  - "!node_modules/@vscode/tree-sitter-wasm/wasm/tree-sitter-!(typescript|tsx|javascript|python|go).wasm"
+  - "!node_modules/web-tree-sitter/debug/**"
+  # Module resolution needs only lib/typescript.js (the package's main): not
+  # the compiler and language-server entry points or their translations.
+  - "!node_modules/typescript/lib/{_tsc,tsc,_tsserver,tsserver,tsserverlibrary,_typingsInstaller,typingsInstaller,watchGuard}.js"
+  - "!node_modules/typescript/lib/*/**"
+  - "!node_modules/typescript/bin/**"
+  - "!node_modules/**/*.map"
 
 # The local embedding model, fetched at build time by scripts/fetch-model.mjs
 # (pinned revision and sha256); the installed app never downloads one. It is
@@ -42,6 +57,14 @@ extraResources:
       - model.onnx
       - tokenizer.json
       - tokenizer_config.json
+
+# Epoch's UI is in English; Chromium's own strings fall back to en-US. On
+# macOS these name the .lproj folders, on Windows and Linux the locales/*.pak
+# files (48.1 MB for all of them, ADR-005).
+electronLanguages:
+  - en
+  - en-US
+  - en-GB
 
 asar: true
 # A native addon cannot be loaded from inside an asar archive, nor can the
