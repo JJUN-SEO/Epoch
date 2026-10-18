@@ -21,7 +21,8 @@
     "e2e": "pnpm --filter @epoch-dev/app e2e",
     "typecheck": "node scripts/turbo.mjs run typecheck",
     "lint": "prettier --check . && eslint eslint.config.mjs scripts && node scripts/gen-queries.mjs --check && node scripts/turbo.mjs run lint",
-    "test": "node scripts/turbo.mjs run test",
+    "test": "node scripts/turbo.mjs run test && pnpm test:scripts",
+    "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "check": "pnpm lint && pnpm typecheck && pnpm test",
     "format": "prettier --write .",
     "telemetry:off": "node scripts/turbo.mjs telemetry disable",
@@ -44,6 +45,7 @@
     "prettier": "3.9.10",
     "turbo": "2.11.7",
     "typescript": "catalog:",
-    "typescript-eslint": "8.71.2"
+    "typescript-eslint": "8.71.2",
+    "yaml": "2.9.1"
   }
 }

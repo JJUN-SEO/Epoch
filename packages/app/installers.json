@@ -1,0 +1,5 @@
+{
+  "darwin": ["Epoch-mac-arm64.dmg"],
+  "win32": ["Epoch-win-x64-setup.exe"],
+  "linux": ["Epoch-linux-x64.AppImage", "Epoch-linux-x64.deb"]
+}

@@ -1,4 +1,5 @@
 import type { FuseV1Options } from "@electron/fuses";
+import installers from "../installers.json" with { type: "json" };
 
 /**
  * What electron-builder.yml promises about the packaged app (ADR-018), shared
@@ -66,10 +67,7 @@ export async function readFuses(executable: string): Promise<Fuses> {
 
 /**
  * The installers each OS builds (electron-builder.yml's artifact names): no
- * version in the name, so releases/latest/download/<name> always works.
+ * version in the name, so releases/latest/download/<name> always works. The
+ * list is installers.json, which the release scripts read too.
  */
-export const INSTALLER_NAMES = {
-  darwin: ["Epoch-mac-arm64.dmg"],
-  win32: ["Epoch-win-x64-setup.exe"],
-  linux: ["Epoch-linux-x64.AppImage", "Epoch-linux-x64.deb"],
-} as const;
+export const INSTALLER_NAMES = installers;
