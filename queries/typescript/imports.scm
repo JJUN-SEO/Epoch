@@ -20,12 +20,20 @@
   (#eq? @callee "require")) @require
 
 ; import.meta.resolve(`./${name}`), require.resolve("./x/" + name): a module
-; path resolved at run time (the adapter keeps only those two objects)
+; path resolved at run time; path.join(__dirname, "w.js"), path.resolve(...):
+; a path built from the module's own folder (the adapter checks the object
+; and the first argument)
 (call_expression
   function: (member_expression
     property: (property_identifier) @method
-    (#eq? @method "resolve")) @resolver
+    (#match? @method "^(resolve|join)$")) @resolver
   arguments: (arguments) @args) @resolve
+
+; join(__dirname, "w.js"), resolve(import.meta.dirname, ...) imported from path
+(call_expression
+  function: (identifier) @pathfn
+  arguments: (arguments) @args
+  (#match? @pathfn "^(resolve|join)$")) @resolve
 
 ; new URL(`./workers/${name}.js`, import.meta.url)
 (new_expression

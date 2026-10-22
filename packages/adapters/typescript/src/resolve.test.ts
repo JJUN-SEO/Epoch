@@ -120,6 +120,19 @@ describe("resolveImport (TS/JS)", () => {
     expect(r("./esm.js")).toEqual({ kind: "file", target: "src/esm.ts" });
   });
 
+  it("maps a relative path into an unbuilt outDir back to its source", () => {
+    // packages/lib's tsconfig: outDir dist, rootDir src
+    const test = "packages/lib/test/run.test.ts";
+    expect(r("../dist/index.js", {}, test)).toEqual({
+      kind: "file",
+      target: "packages/lib/src/index.ts",
+    });
+    expect(r("../dist/missing.js", {}, test)).toEqual({
+      kind: "unresolved",
+      reason: "not-found",
+    });
+  });
+
   it("honours tsconfig paths and baseUrl", () => {
     expect(r("@app/b")).toEqual({ kind: "file", target: "src/b.ts" });
     expect(r("src/b")).toEqual({ kind: "file", target: "src/b.ts" });

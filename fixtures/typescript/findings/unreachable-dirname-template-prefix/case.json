@@ -1,0 +1,10 @@
+{
+  "description": "A file built from the module's own folder by name (path.join(__dirname, 'fixtures', `${name}.ts`)) may be loaded: files under that folder are capped at Low, as an import() prefix does.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

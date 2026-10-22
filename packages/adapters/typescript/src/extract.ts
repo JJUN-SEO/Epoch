@@ -1,3 +1,4 @@
+import path from "node:path";
 import { Query, type Language, type Node, type Tree } from "web-tree-sitter";
 import {
   keyLikeStrings,
@@ -295,26 +296,153 @@ function callImport(
     : { ...base, specifier: null };
 }
 
+/** Source files of the languages Epoch analyzes (TS/JS, Python, Go). */
+const SOURCE_FILE = /\.(?:[cm]?[jt]sx?|py|go)$/;
+
+/**
+ * A relative path naming a source file, so a module loaded at run time
+ * (`./worker.ts`, `../python/edges.py`). Resolution calls may leave the
+ * extension out (`require.resolve("./loader")`); a URL may not. Other files
+ * (`./logo.png`, `../package.json`) are assets, not modules, and absolute
+ * paths and package names are not followed.
+ */
+function isRuntimeModule(spec: string, extensionless: boolean): boolean {
+  return (
+    (spec.startsWith("./") || spec.startsWith("../")) &&
+    !spec.split("/").includes("node_modules") &&
+    (SOURCE_FILE.test(spec) ||
+      (extensionless && path.posix.extname(spec) === ""))
+  );
+}
+
+/**
+ * Whether the computed part of a path names the file itself, not a folder
+ * on the way to it: `${name}.ts` and name do, `${pkg}/src` and
+ * `${dir}/${name}.ts` do not (no "/" after the first computed part).
+ */
+function computesFileName(n: Node): boolean {
+  if (n.type === "template_string") {
+    const text = n.text.slice(1, -1);
+    const start = text.indexOf("${");
+    return (
+      start === -1 ||
+      !text
+        .slice(start)
+        .replace(/\$\{[^}]*\}/g, "")
+        .includes("/")
+    );
+  }
+  if (n.type === "binary_expression" && hasToken(n, "+")) {
+    const left = n.childForFieldName("left");
+    const right = n.childForFieldName("right");
+    const rightText = stringValue(right);
+    if (left && stringValue(left) !== undefined)
+      return right ? computesFileName(right) : true;
+    return (left ? computesFileName(left) : true) && !rightText?.includes("/");
+  }
+  return true;
+}
+
 /**
  * import.meta.resolve(...), require.resolve(...) or new URL(..., import.meta.url)
- * with a computed path: the file it names is loaded at run time, so its literal
- * prefix marks the files under it as possibly loaded, as import(`./x/${n}`)
- * does. A literal path is not recorded: it may name an asset, not a module.
+ * (which `new Worker(...)` wraps): the file it names is loaded at run time. A
+ * literal path to a source file is a dynamic import of it; a computed one
+ * records its literal prefix, which marks the files under it as possibly
+ * loaded, as import(`./x/${n}`) does.
  */
-function runtimePath(call: Node, args: Node): Pending | undefined {
+function runtimePath(
+  call: Node,
+  args: Node,
+  extensionless: boolean,
+): Pending | undefined {
   const arg = args.namedChildren[0];
-  if (!arg || stringValue(arg) !== undefined) return undefined;
-  const prefix = literalPrefix(arg);
-  if (prefix === undefined) return undefined;
-  return {
-    kind: "dynamic",
-    specifier: null,
-    dynamicPrefix: prefix,
+  if (!arg) return undefined;
+  const base = {
+    kind: "dynamic" as const,
     typeOnly: false,
     names: [],
     line: lineOf(call),
     column: call.startPosition.column,
   };
+  const literal = stringValue(arg);
+  if (literal !== undefined)
+    return isRuntimeModule(literal, extensionless)
+      ? { ...base, specifier: literal }
+      : undefined;
+  const prefix = literalPrefix(arg);
+  if (prefix === undefined) return undefined;
+  return { ...base, specifier: null, dynamicPrefix: prefix };
+}
+
+/** Whether a computed path's literal end names a source file: `${name}.ts`, name + ".js". */
+function endsWithSourceFile(n: Node): boolean {
+  if (n.type === "template_string") {
+    const text = n.text.slice(1, -1);
+    return SOURCE_FILE.test(text.slice(text.lastIndexOf("}") + 1));
+  }
+  if (n.type === "binary_expression" && hasToken(n, "+")) {
+    const right = stringValue(n.childForFieldName("right"));
+    return right !== undefined && SOURCE_FILE.test(right);
+  }
+  return false;
+}
+
+/** The current module's folder, as CommonJS and Node's import.meta name it. */
+const MODULE_DIRS = new Set(["__dirname", "import.meta.dirname"]);
+
+/**
+ * path.join(__dirname, "run-once.js") or resolve(import.meta.dirname, ...):
+ * a path built from the module's own folder. Literal parts that name a source
+ * file are a dynamic import of it; a computed file name inside the module's
+ * folder (path.join(__dirname, `${name}.ts`)) records the folder it is in as
+ * a literal prefix, as import(`./${name}.ts`) does.
+ */
+function dirnamePath(call: Node, args: Node): Pending | undefined {
+  const [first, ...rest] = args.namedChildren;
+  if (!first || !MODULE_DIRS.has(first.text) || rest.length === 0)
+    return undefined;
+  const parts: string[] = [];
+  let tail: string | undefined;
+  for (const [i, a] of rest.entries()) {
+    const literal = stringValue(a);
+    if (literal !== undefined && !literal.startsWith("/")) parts.push(literal);
+    else if (literal === undefined && i === rest.length - 1) {
+      // A computed folder (`${pkg}/src`) says nothing about which files of
+      // the folder above are loaded; only a computed file name does.
+      if (!computesFileName(a)) return undefined;
+      tail = literalPrefix(a) ?? "";
+      // And something must say which files: a literal folder before it, a
+      // literal start, or a source extension after it. A bare variable
+      // (path.resolve(__dirname, pkgBase)) could be anything, as import(name).
+      if (parts.length === 0 && tail === "" && !endsWithSourceFile(a))
+        return undefined;
+    } else return undefined;
+  }
+  const relative = (p: string) => {
+    const n = path.posix.normalize(p === "" ? "." : p);
+    return n === "." || n === "./" ? "./" : n.startsWith("../") ? n : `./${n}`;
+  };
+  const base = {
+    kind: "dynamic" as const,
+    typeOnly: false,
+    names: [],
+    line: lineOf(call),
+    column: call.startPosition.column,
+  };
+  if (tail === undefined) {
+    const spec = relative(parts.join("/"));
+    return isRuntimeModule(spec, false)
+      ? { ...base, specifier: spec }
+      : undefined;
+  }
+  const folder = parts.length > 0 ? `${parts.join("/")}/` : "";
+  const prefix = relative(folder + tail);
+  // Only within the module's own folder: a computed path that climbs out
+  // ("../../packages" + name) could be any file of a large tree, so it marks
+  // none of them.
+  return prefix.startsWith("../")
+    ? undefined
+    : { ...base, specifier: null, dynamicPrefix: prefix };
 }
 
 const RESOLVERS = new Set(["import.meta", "require"]);
@@ -393,12 +521,14 @@ export function extract(
       else if (resolveCall) {
         const object = byName.get("resolver")?.childForFieldName("object");
         const found =
-          object && RESOLVERS.has(object.text)
-            ? runtimePath(resolveCall, args)
-            : undefined;
+          object &&
+          byName.get("method")?.text === "resolve" &&
+          RESOLVERS.has(object.text)
+            ? runtimePath(resolveCall, args, true)
+            : dirnamePath(resolveCall, args);
         if (found) pending.push(found);
       } else if (url && args.namedChildren[1]?.text === "import.meta.url") {
-        const found = runtimePath(url, args);
+        const found = runtimePath(url, args, false);
         if (found) pending.push(found);
       }
     }

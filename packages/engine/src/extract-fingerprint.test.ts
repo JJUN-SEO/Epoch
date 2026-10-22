@@ -49,6 +49,7 @@ const ADAPTERS: readonly {
       "6": "9e8bcbe79d0a74b9f7f5cc2366f85c164fe058d3ba86dae2965f5f87a9a75de1",
       "7": "49ed8c3030d1bdea668a8a2ed616d04df1a683e9796fa3e5f1ee450a36481675",
       "8": "238faa421ecaa0b478ad416ed44f29b93c8db6ecb9e1f551b0ba7c63208dcc62",
+      "9": "2ed1bb1fb95b51331e58d476196fabe4914c99178e9b6677ab6c036a73924b4e",
     },
   },
   {

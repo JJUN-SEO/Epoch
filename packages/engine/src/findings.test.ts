@@ -22,7 +22,7 @@ import { analyze } from "./analyze.js";
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
-  typescript: 34,
+  typescript: 36,
   python: 12,
   go: 10,
 };
