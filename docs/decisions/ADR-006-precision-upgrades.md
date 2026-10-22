@@ -79,9 +79,11 @@ So raw precision said more about the reference than about Epoch. Both repos map 
 
 | Repository                                                  | Before: raw precision / recall | After: raw precision / recall | After: adjusted |
 | ----------------------------------------------------------- | ------------------------------ | ----------------------------- | --------------- |
-| zod `680d19f7`                                              | 66.6% / 100.0%                 | 93.4% / 100.0%                | 100.0% / 100.0% |
-| vitest `2899eb3e`                                           | 55.2% / 99.2%                  | 94.3% / 99.3%                 | 100.0% / 100.0% |
+| zod `680d19f7`                                              | 66.6% / 100.0%                 | 92.9% / 100.0%                | 100.0% / 100.0% |
+| vitest `2899eb3e`                                           | 55.2% / 99.2%                  | 94.0% / 99.3%                 | 100.0% / 100.0% |
 | vuejs/core `0ff253bf` (held out: never used to design this) | not measured                   | 100.0% / 100.0%               | 100.0% / 100.0% |
+
+The "after" figures are with TS adapter version 9. Its runtime-path references (`new URL(…, import.meta.url)`, `require.resolve`, `path.join(__dirname, …)`) are edges dependency-cruiser does not model, so they count against Epoch in raw precision. A classifier rule names them only when the call's own lines show one of those APIs.
 
 **Epoch fixes it revealed.** A `/// <reference types="…">` naming a workspace package was skipped, on the assumption that package names are third-party type packages. It now resolves like an import: a type-only edge to the workspace source, or an external package (conformance case `triple-slash-types-workspace`; TS adapter version 8).
 

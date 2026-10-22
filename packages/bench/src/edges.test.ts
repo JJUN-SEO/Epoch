@@ -190,6 +190,26 @@ describe("compareEdges", () => {
     expect(c.disagreements[0]?.reason).toContain("baseUrl");
   });
 
+  it("names a file loaded at run time by a literal path as outside the tool's scope", () => {
+    const c = compareEdges({
+      sources: new Set(["a.ts", "b.ts"]),
+      epochImports: [
+        {
+          ...file("a.ts", "./worker.ts", "worker.ts"),
+          kind: "dynamic",
+          runtimePath: true,
+        },
+        { ...file("b.ts", "./lazy.ts", "lazy.ts"), kind: "dynamic" },
+      ],
+      toolDependencies: [],
+      context: ctx,
+    });
+    expect(c.disagreements.map((d) => `${d.from} ${d.verdict}`)).toEqual([
+      "a.ts tool-wrong",
+      "b.ts unclassified",
+    ]);
+  });
+
   it("only applies a nested alias to files under its tsconfig", () => {
     const c = compareEdges({
       sources: new Set(["other/page.ts"]),

@@ -27,8 +27,8 @@ TypeScript/JavaScript versus dependency-cruiser, from [the TS/JS report](benchma
 
 | Repository                               | Commit       | Files | Epoch edges | Tool edges | Agreed | Raw precision | Raw recall | Adjusted precision | Adjusted recall | Unclassified |
 | ---------------------------------------- | ------------ | ----- | ----------- | ---------- | ------ | ------------- | ---------- | ------------------ | --------------- | ------------ |
-| https://github.com/colinhacks/zod.git    | 680d19f7d1e0 | 523   | 965         | 901        | 901    | 93.4%         | 100.0%     | 100.0%             | 100.0%          | 0            |
-| https://github.com/vitest-dev/vitest.git | 2899eb3e9793 | 2400  | 4636        | 4405       | 4374   | 94.3%         | 99.3%      | 100.0%             | 100.0%          | 0            |
+| https://github.com/colinhacks/zod.git    | 680d19f7d1e0 | 523   | 970         | 901        | 901    | 92.9%         | 100.0%     | 100.0%             | 100.0%          | 0            |
+| https://github.com/vitest-dev/vitest.git | 2899eb3e9793 | 2400  | 4655        | 4405       | 4374   | 94.0%         | 99.3%      | 100.0%             | 100.0%          | 0            |
 | https://github.com/vuejs/core.git        | 0ff253bfba3e | 528   | 1818        | 1818       | 1818   | 100.0%        | 100.0%     | 100.0%             | 100.0%          | 0            |
 
 <!-- END GENERATED:typescript-accuracy -->
@@ -59,16 +59,32 @@ Go versus `go list`, from [the Go report](benchmarks/go.md). Build-tagged test f
 
 ## Findings precision
 
-The reviewed sample was assessed by Claude at the maintainer's request; it is **not** a human precision study. It covers pinned repositories and should not be read as a guarantee on a new codebase. From [the findings report](benchmarks/findings.md):
+Two samples, and the difference matters:
+
+- **Design sample** ([findings report](benchmarks/findings.md)): pinned repositories whose verdicts were assessed by Claude at the maintainer's request (**not** a human precision study). The 2026-10-22 unreachable-file fixes were made against these verdicts, so this sample overstates precision on code Epoch has not seen.
+- **Held-out sample** ([held-out report](benchmarks/findings-heldout.md)): trpc/trpc and fastapi/fastapi, never used to design the detectors, with a review sheet for a person to fill blind. Its precision reads "not measured" until then.
+
+Design sample:
 
 <!-- BEGIN GENERATED:findings-precision -->
 
 | Confidence   | Yes | No  | Unsure | Not reviewed | Precision |
 | ------------ | --- | --- | ------ | ------------ | --------- |
 | Worth a look | 11  | 0   | 0      | 0            | 100.0%    |
-| Maybe        | 8   | 31  | 0      | 0            | 20.5%     |
+| Maybe        | 8   | 11  | 0      | 2            | 42.1%     |
 
 <!-- END GENERATED:findings-precision -->
+
+Held-out sample:
+
+<!-- BEGIN GENERATED:findings-heldout-precision -->
+
+| Confidence   | Yes | No  | Unsure | Not reviewed | Precision    |
+| ------------ | --- | --- | ------ | ------------ | ------------ |
+| Worth a look | 0   | 0   | 0      | 14           | not measured |
+| Maybe        | 0   | 0   | 0      | 16           | not measured |
+
+<!-- END GENERATED:findings-heldout-precision -->
 
 ## Risk tiers
 

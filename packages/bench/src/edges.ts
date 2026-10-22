@@ -12,6 +12,8 @@ export interface EpochImport {
   readonly specifier: string | null;
   readonly kind: RawImport["kind"];
   readonly res: Resolution;
+  /** A file its line loads at run time by path (new URL(..., import.meta.url), require.resolve, path.join(__dirname, ...)), not an import. */
+  readonly runtimePath?: boolean;
 }
 
 /** One dependency as the ground-truth tool reported it. */
@@ -215,6 +217,16 @@ function classifyEpochOnly(
           };
     }
   }
+  const loaded = ours.filter(
+    (i) => i.res.kind === "file" && i.res.target === to,
+  );
+  if (loaded.length > 0 && loaded.every((i) => i.runtimePath === true))
+    return {
+      ...base,
+      verdict: "tool-wrong",
+      reason:
+        "a file loaded at run time by a literal path (new URL(..., import.meta.url), require.resolve, path.join(__dirname, ...)); the tool reads import statements and import() calls only",
+    };
   return {
     ...base,
     verdict: "unclassified",

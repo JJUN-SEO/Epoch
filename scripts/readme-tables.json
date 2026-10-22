@@ -27,6 +27,10 @@
       "file": "docs/benchmarks/findings.md",
       "heading": "Precision on the reviewed sample"
     },
+    "findings-heldout-precision": {
+      "file": "docs/benchmarks/findings-heldout.md",
+      "heading": "Precision on the reviewed sample"
+    },
     "risk": {
       "file": "docs/benchmarks/risk.md",
       "heading": "Check window: share of files fixed later, by tier"
@@ -74,9 +78,14 @@
           "[Go accuracy](docs/benchmarks/go.md)"
         ],
         [
-          "Findings precision on a reviewed sample",
+          "Findings precision, design sample (reviewed by Claude; the fixes were made against it, so it overstates)",
           "Worth a look {findings-precision|Worth a look|Precision} ({findings-precision|Worth a look|Yes} yes, {findings-precision|Worth a look|No} no); Maybe {findings-precision|Maybe|Precision} ({findings-precision|Maybe|Yes} yes, {findings-precision|Maybe|No} no)",
           "[findings](docs/benchmarks/findings.md)"
+        ],
+        [
+          "Findings precision, held-out sample (trpc, fastapi; for a person to review blind)",
+          "Worth a look {findings-heldout-precision|Worth a look|Precision}; Maybe {findings-heldout-precision|Maybe|Precision}",
+          "[held-out findings](docs/benchmarks/findings-heldout.md)"
         ],
         [
           "Risk tiers in hindsight: share of files fixed in a later window",

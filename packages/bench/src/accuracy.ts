@@ -66,6 +66,17 @@ async function measure(dir: string): Promise<RepoResult> {
   const repo = repoInfo(dir);
   const epochImports: EpochImport[] = [];
   let t = performance.now();
+  const lines = new Map<string, readonly string[]>();
+  /** Whether a dynamic import's call loads a file by path rather than import()ing it. */
+  const isRuntimePath = (from: string, line: number): boolean => {
+    let text = lines.get(from);
+    if (text === undefined) {
+      text = fs.readFileSync(path.join(repo.root, from), "utf8").split("\n");
+      lines.set(from, text);
+    }
+    // The call's first lines: `resolve(\n  import.meta.dirname, ...` spans lines.
+    return RUNTIME_PATH.test(text.slice(line - 1, line + 2).join("\n"));
+  };
   const { graph } = await analyze(repo.root, {
     history: false,
     onResolution: (from, imp, res) =>
@@ -74,6 +85,9 @@ async function measure(dir: string): Promise<RepoResult> {
         specifier: imp.specifier,
         kind: imp.kind,
         res,
+        ...(imp.kind === "dynamic" && isRuntimePath(from, imp.line)
+          ? { runtimePath: true }
+          : {}),
       }),
   });
   const epochMs = performance.now() - t;
@@ -203,6 +217,10 @@ async function measure(dir: string): Promise<RepoResult> {
     comparison: applyReviews(repo.name, comparison),
   };
 }
+
+/** APIs that load a file by path at run time, as they appear on its line. */
+const RUNTIME_PATH =
+  /import\.meta\.url|import\.meta\.resolve|require\.resolve|__dirname|import\.meta\.dirname/;
 
 /** Export conditions TypeScript applies besides a tsconfig's customConditions. */
 const DEFAULT_CONDITIONS = ["types", "import", "require", "node", "default"];

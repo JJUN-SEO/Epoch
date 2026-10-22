@@ -112,3 +112,34 @@ Left as known false positives, with the caveat and `entryPoints` as the remedy: 
 - Files loaded by tooling remain the dominant false positive. The caveat says so, `entryPoints` fixes it per project, and the Findings view suggests it when a framework is detected.
 - History-based answers cost one git process per candidate on the first run of a commit; the derived store makes later runs cheap.
 - Adding a flag SDK or a framework means adding data with a cited source, not code.
+
+## Amendment (2026-10-22): more references, and a held-out evaluation
+
+**What changed.** The review sample's "no" rows and a run of Epoch on its own repository showed false-positive classes that static analysis can see. Each fix is a pattern the ecosystem documents (knip's entry-files and source-mapping docs; Vite's worker docs), built test-first with fixtures. None was made to clear one repository's output.
+
+- **Literal runtime paths to source files** are dynamic imports: `new URL(…, import.meta.url)` (so `new Worker(new URL(…))`), `import.meta.resolve`, `require.resolve`, and `path.join/resolve` from `__dirname` or `import.meta.dirname`. Assets, package names and `node_modules` paths stay unrecorded.
+- **A computed file name inside the module's own folder** records that folder as a literal prefix (the existing Low cap). These are not recorded:
+  - a computed folder;
+  - a computed path that climbs out of the folder;
+  - a bare variable.
+
+  vuejs/core showed how broad such prefixes can get: one build-config line capped every candidate in the repository.
+
+- **Package scripts:**
+  - build output maps back to source through the package that owns it;
+  - a folder given to a runner means its index file;
+  - `tsc --project` on a nested tsconfig makes the files it includes roots. A package's own tsconfig is excluded, since it compiles used and unused files alike.
+- **Unbuilt outDir paths.** A relative path into an unbuilt tsconfig `outDir` resolves to its source.
+
+**Effect** on Medium-or-higher unreachable-file candidates:
+
+| Repository | Before | After                                   |
+| ---------- | ------ | --------------------------------------- |
+| Epoch      | 19     | 5 (hand-run scripts no code references) |
+| zod        | 49     | 20                                      |
+| vitest     | 6      | 5                                       |
+| vuejs/core | 27     | 27                                      |
+
+Unresolved imports grew by 3 to 5 per repository: runtime paths to build output that is not in a clone.
+
+**Evaluation.** The reviewed sample now counts as the _design sample_: the fixes were made against its verdicts, so its precision (Maybe 20.5% → 42.1%) overstates what to expect on new code. A _held-out sample_ comes from trpc/trpc and fastapi/fastapi, repositories never used to design the detectors. Its review sheet (`docs/benchmarks/findings-heldout-review.csv`) is for a person to fill blind, and its precision is "not measured" until then. vuejs/core no longer counts as held out for findings, because the over-broad prefix cases were found on it.
