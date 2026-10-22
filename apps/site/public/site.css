@@ -201,55 +201,49 @@ a:hover {
 }
 .downloads {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.downloads a {
+.download {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 153px;
+  min-height: 150px;
   padding: 20px;
   border: 1px solid #37394d;
   border-radius: 11px;
   background: #181a26;
 }
-.downloads a:hover {
-  border-color: #a19aff;
-  text-decoration: none;
-}
-.downloads strong {
+.download strong {
   font-size: 20px;
 }
-.downloads span {
+.download span {
   color: #aeb1c4;
   font-size: 13px;
 }
-.downloads b {
+.download-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-top: auto;
-  color: #b0aaff;
+}
+.download-links a {
+  padding: 7px 14px;
+  border: 1px solid #4a4c66;
+  border-radius: 8px;
+  color: #d6d3ff;
   font-size: 13px;
+  font-weight: 600;
 }
-.install-notes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 42px;
-  margin-top: 28px;
+.download-links a:hover {
+  border-color: #a19aff;
+  background: #23243a;
+  text-decoration: none;
 }
-.install-notes h3 {
-  margin-bottom: 0;
-}
-.install-notes p {
-  font-size: 14px;
-}
-.install-notes a,
+.section-heading a,
 .principles a {
   color: #b5afff;
   text-decoration: underline;
-}
-code {
-  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-  font-size: 0.9em;
 }
 .principles {
   display: grid;
@@ -272,7 +266,7 @@ footer {
     grid-template-columns: 1fr;
   }
   .downloads {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
   }
   .principles {
     grid-template-columns: 1fr;
@@ -294,8 +288,7 @@ footer {
   .hero-copy {
     font-size: 17px;
   }
-  .downloads,
-  .install-notes {
+  .downloads {
     grid-template-columns: 1fr;
   }
   .graph-art {
