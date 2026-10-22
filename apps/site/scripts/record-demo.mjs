@@ -1,6 +1,6 @@
 // Records the README's demo: the shared App UI over the pinned zod graph in
 // the static demo (which has no source code or model features). Writes the
-// landing page's screenshot, apps/site/public/demo.png (as a 256-colour PNG,
+// landing page's screenshot, apps/site/src/demo.png (as a 256-colour PNG,
 // with ffmpeg, which make-gif.mjs needs too), and prints the path of a WebM
 // for scripts/make-gif.mjs. Not run in CI.
 //
@@ -50,7 +50,7 @@ execFileSync("ffmpeg", [
   "split[a][b];[a]palettegen=max_colors=256:stats_mode=full[p];[b][p]paletteuse=dither=none",
   "-pix_fmt",
   "pal8",
-  path.join(site, "public", "demo.png"),
+  path.join(site, "src", "demo.png"),
 ]);
 await page
   .getByTestId("findings-banner")
