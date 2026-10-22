@@ -37,9 +37,12 @@ Python versus grimp, from [the Python report](benchmarks/python-accuracy.md). Th
 
 <!-- BEGIN GENERATED:python-accuracy -->
 
-| Edges          | Epoch | grimp | Agreed | Raw precision | Raw recall | Adjusted precision | Adjusted recall | Unclassified |
-| -------------- | ----- | ----- | ------ | ------------- | ---------- | ------------------ | --------------- | ------------ |
-| Module imports | 95    | 68    | 68     | 71.6%         | 100.0%     | 100.0%             | 100.0%          | 0            |
+| Edges                      | Epoch | Reference | Agreed | Raw precision | Raw recall | Adjusted precision | Adjusted recall | Unclassified |
+| -------------------------- | ----- | --------- | ------ | ------------- | ---------- | ------------------ | --------------- | ------------ |
+| flask vs grimp             | 95    | 68        | 68     | 71.6%         | 100.0%     | 100.0%             | 100.0%          | 0            |
+| flask vs CPython's finders | 95    | 95        | 95     | 100.0%        | 100.0%     | 100.0%             | 100.0%          | 0            |
+| httpx vs grimp             | 87    | 87        | 87     | 100.0%        | 100.0%     | 100.0%             | 100.0%          | 0            |
+| httpx vs CPython's finders | 87    | 87        | 87     | 100.0%        | 100.0%     | 100.0%             | 100.0%          | 0            |
 
 <!-- END GENERATED:python-accuracy -->
 

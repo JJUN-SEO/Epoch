@@ -34,29 +34,29 @@ The headless CLI shares the engine; [cli.md](cli.md) covers it.
 
 ## Commands
 
-| Command                      | What it does                                                         |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `pnpm build`                 | Compile every package (`dist/`, and the app's `out/`)                |
-| `pnpm dev`                   | Run the desktop app with hot reload                                  |
-| `pnpm package`               | Build this OS's installers (unsigned)                                |
-| `pnpm package:dir`           | Build the unpacked app the packaged e2e tests drive                  |
-| `pnpm e2e`                   | Playwright end-to-end and security tests                             |
-| `pnpm bench`                 | Analysis timings on pinned repositories                              |
-| `pnpm bench:accuracy`        | TS/JS edge accuracy against dependency-cruiser                       |
-| `pnpm bench:accuracy-python` | Python edge accuracy against grimp (needs a virtualenv)              |
-| `pnpm bench:accuracy-go`     | Go edge accuracy against `go list` (needs a Go toolchain)            |
-| `pnpm bench:watch`           | Watcher latency and churn cost                                       |
-| `pnpm bench:findings`        | Findings on pinned repositories, the hindsight test and review sheet |
-| `pnpm bench:risk`            | Risk tiers against later fix commits                                 |
-| `pnpm bench:scorers`         | Hint scorers on a temporal holdout (`--embedding-model <dir>`)       |
-| `pnpm bench:summaries`       | Summary cost, full and incremental (needs your provider key)         |
-| `pnpm site:data`             | Regenerate the demo graphs with the CLI at the pinned commits        |
-| `pnpm typecheck`             | Type-check every package                                             |
-| `pnpm lint`                  | Prettier check, then ESLint on every package                         |
-| `pnpm test`                  | Build, then run each package's Vitest suite                          |
-| `pnpm check`                 | `lint`, `typecheck` and `test` in one command                        |
-| `pnpm format`                | Format the repository with Prettier                                  |
-| `pnpm telemetry:off`         | Turn off Turborepo telemetry for direct `turbo` use on this machine  |
+| Command                      | What it does                                                                  |
+| ---------------------------- | ----------------------------------------------------------------------------- |
+| `pnpm build`                 | Compile every package (`dist/`, and the app's `out/`)                         |
+| `pnpm dev`                   | Run the desktop app with hot reload                                           |
+| `pnpm package`               | Build this OS's installers (unsigned)                                         |
+| `pnpm package:dir`           | Build the unpacked app the packaged e2e tests drive                           |
+| `pnpm e2e`                   | Playwright end-to-end and security tests                                      |
+| `pnpm bench`                 | Analysis timings on pinned repositories                                       |
+| `pnpm bench:accuracy`        | TS/JS edge accuracy against dependency-cruiser                                |
+| `pnpm bench:accuracy-python` | Python edge accuracy against grimp and CPython's finders (needs a virtualenv) |
+| `pnpm bench:accuracy-go`     | Go edge accuracy against `go list` (needs a Go toolchain)                     |
+| `pnpm bench:watch`           | Watcher latency and churn cost                                                |
+| `pnpm bench:findings`        | Findings on pinned repositories, the hindsight test and review sheet          |
+| `pnpm bench:risk`            | Risk tiers against later fix commits                                          |
+| `pnpm bench:scorers`         | Hint scorers on a temporal holdout (`--embedding-model <dir>`)                |
+| `pnpm bench:summaries`       | Summary cost, full and incremental (needs your provider key)                  |
+| `pnpm site:data`             | Regenerate the demo graphs with the CLI at the pinned commits                 |
+| `pnpm typecheck`             | Type-check every package                                                      |
+| `pnpm lint`                  | Prettier check, then ESLint on every package                                  |
+| `pnpm test`                  | Build, then run each package's Vitest suite                                   |
+| `pnpm check`                 | `lint`, `typecheck` and `test` in one command                                 |
+| `pnpm format`                | Format the repository with Prettier                                           |
+| `pnpm telemetry:off`         | Turn off Turborepo telemetry for direct `turbo` use on this machine           |
 
 The root scripts already run Turborepo with its telemetry turned off. `pnpm telemetry:off` is only needed if you also run `turbo` directly.
 

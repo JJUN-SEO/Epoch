@@ -64,8 +64,8 @@
           "[TS/JS accuracy](docs/benchmarks/typescript.md)"
         ],
         [
-          "Python edges vs grimp on Flask, precision / recall (adjusted)",
-          "{python-accuracy|Module imports|Adjusted precision} / {python-accuracy|Module imports|Adjusted recall}",
+          "Python edges, raw precision / recall (httpx held out)",
+          "Flask vs CPython's finders {python-accuracy|flask vs CPython's finders|Raw precision} / {python-accuracy|flask vs CPython's finders|Raw recall}, vs grimp {python-accuracy|flask vs grimp|Raw precision} / {python-accuracy|flask vs grimp|Raw recall} (grimp skips namespace folders); httpx {python-accuracy|httpx vs CPython's finders|Raw precision} / {python-accuracy|httpx vs CPython's finders|Raw recall} vs both",
           "[Python accuracy](docs/benchmarks/python-accuracy.md)"
         ],
         [

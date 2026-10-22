@@ -85,6 +85,19 @@ So raw precision said more about the reference than about Epoch. Both repos map 
 
 **Epoch fixes it revealed.** A `/// <reference types="…">` naming a workspace package was skipped, on the assumption that package names are third-party type packages. It now resolves like an import: a type-only edge to the workspace source, or an external package (conformance case `triple-slash-types-workspace`; TS adapter version 8).
 
+**Python: a second reference next to grimp.**
+
+- **Why.** grimp 3.17 does not descend into a folder without `__init__.py` inside a regular package (checked on Flask: it lists 21 modules and none under `flask/sansio/`). Asking it to include `flask.sansio` explicitly imports Flask, which runs project code. So against grimp alone, Flask's raw precision stays at 71.6% however right Epoch is.
+- **The second reference** is `packages/bench/python/pathfinder_edges.py`:
+  - it scans import statements with `ast`, the way grimp does;
+  - it resolves each name with the path-entry finders Python's import system uses (`sys.path_hooks`), combining namespace portions as `PathFinder` does (PEP 420);
+  - it walks each parent's search locations itself, so nothing is imported. `PathFinder` itself is not called: for a namespace package it builds a path that looks the parent up in `sys.modules`.
+
+| Repository                  | vs grimp: raw precision / recall | vs CPython's finders: raw precision / recall |
+| --------------------------- | -------------------------------- | -------------------------------------------- |
+| Flask `22d92470`            | 71.6% / 100.0%                   | 100.0% / 100.0%                              |
+| httpx `b5addb64` (held out) | 100.0% / 100.0%                  | 100.0% / 100.0%                              |
+
 ## Sources
 
 - https://github.com/sourcegraph/scip-typescript (README: installation and usage)
