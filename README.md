@@ -24,7 +24,7 @@ Edges a resolver proved are facts and drawn solid; anything inferred is a hint, 
 | Windows, x64         | [Epoch-win-x64-setup.exe](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-win-x64-setup.exe)                                                                                                            |
 | Linux, x64           | [Epoch-linux-x64.deb](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-linux-x64.deb) or [Epoch-linux-x64.AppImage](https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-linux-x64.AppImage) |
 
-The [latest release](https://github.com/JJUN-SEO/Epoch/releases/latest) has notes and [SHA256SUMS.txt](https://github.com/JJUN-SEO/Epoch/releases/latest/download/SHA256SUMS.txt); compare your download's hash with it (`shasum -a 256 <file>` on macOS, `sha256sum <file>` on Linux, `Get-FileHash <file> -Algorithm SHA256` in PowerShell).
+Each version's notes are on the [releases page](https://github.com/JJUN-SEO/Epoch/releases/latest).
 
 The builds are **unsigned**, a deliberate choice for now ([ADR-018](docs/decisions/ADR-018-distribution.md)), so your system warns once:
 

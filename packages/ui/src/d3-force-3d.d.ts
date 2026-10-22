@@ -1,5 +1,5 @@
 // d3-force-3d 3.0.6 ships no type declarations. These cover what
-// graph3d/layout3d.worker.ts uses; the API mirrors d3-force's, with a third
+// graph3d/layout3d-sim.ts uses; the API mirrors d3-force's, with a third
 // dimension (https://github.com/vasturiano/d3-force-3d, README at 3.0.6).
 declare module "d3-force-3d" {
   export interface SimulationNode {
@@ -21,6 +21,8 @@ declare module "d3-force-3d" {
     force(name: string, force: Force<N> | null): this;
     tick(iterations?: number): this;
     stop(): this;
+    alpha(): number;
+    alpha(alpha: number): this;
     alphaMin(): number;
     alphaDecay(): number;
     alphaDecay(decay: number): this;

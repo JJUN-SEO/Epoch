@@ -1,34 +1,39 @@
 import {
-  AmbientLight,
   BufferAttribute,
   BufferGeometry,
   Color,
-  DirectionalLight,
-  InstancedMesh,
+  DoubleSide,
   LineBasicMaterial,
   LineSegments,
-  Matrix4,
-  MeshLambertMaterial,
+  Mesh,
+  MeshBasicMaterial,
   PerspectiveCamera,
-  Quaternion,
-  Raycaster,
   Scene,
-  SphereGeometry,
-  Vector2,
   Vector3,
   WebGLRenderer,
 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { NodeColors } from "../graph/colors";
 import type { CanvasTheme } from "../graph/theme";
-import { edgesByNode, type Graph3DData } from "./data";
+import { edgesByNode, fitSphere, type Graph3DData } from "./data";
+import { rendererDrawsCorrectly } from "./drawing-check";
+import {
+  createSphereBatch,
+  pickDisc,
+  writeSphereCenters,
+  writeSphereColors,
+  type ScreenDisc,
+  type SphereBatch,
+} from "./spheres";
 
 /*
- * The 3D overview's scene, drawn with three.js: one instanced sphere mesh for
- * the files and one line-segment mesh for the edges, so a few thousand files
- * cost two draw calls. Frames render on demand (while the camera moves or
- * flies), not continuously. Labels are DOM text over the canvas, set with
- * textContent, for the highlighted files only.
+ * The 3D overview's scene, drawn with three.js: one mesh holding a sphere
+ * per file and one line-segment mesh for the edges, both unlit with vertex
+ * colors (spheres.ts says why), so a few thousand files cost two draw calls.
+ * The renderer must pass a drawing check first (drawing-check.ts). Frames
+ * render on demand (while the camera moves or flies), not continuously.
+ * Labels are DOM text over the canvas, set with textContent, for the
+ * highlighted files only.
  */
 
 export interface SceneHandlers {
@@ -36,6 +41,13 @@ export interface SceneHandlers {
   readonly onPick: (index: number | undefined) => void;
   /** A double-click on a file. */
   readonly onActivate: (index: number) => void;
+  /**
+   * The GPU took the drawing context away (a driver reset, the GPU process
+   * restarting): the canvas stays black until the view is rebuilt.
+   */
+  readonly onContextLost?: () => void;
+  /** The browser offers the context back. */
+  readonly onContextRestored?: () => void;
 }
 
 const MAX_LABELS = 40;
@@ -44,12 +56,30 @@ const RESTING_LABELS = 12;
 const FADE = 0.85;
 const FLY_MS = 450;
 const CLICK_SLOP_PX = 5;
+/** Device pixels per CSS pixel, at most: a 3x screen would triple the GPU's work. */
+const MAX_PIXEL_RATIO = 2;
 
-const radiusOf = (fanIn: number): number => 1.5 + 0.9 * Math.log2(1 + fanIn);
+/** A file's sphere radius in world units (links are 30 long): larger for files many import. */
+const radiusOf = (fanIn: number): number => 2.5 + 0.9 * Math.log2(1 + fanIn);
 /** Files outside the highlight shrink, so they neither dominate nor hide it. */
 const FADED_SCALE = 0.45;
-/** Graphs larger than this draw files with the coarse sphere. */
-const COARSE_ABOVE = 600;
+/** Pixels around a small file that still pick it. */
+const PICK_SLOP_PX = 3;
+
+/**
+ * A renderer whose test frames come out right, with multisampling if the
+ * GPU draws it correctly and without it otherwise. Throws when neither
+ * works, so the view says so instead of drawing garbage.
+ */
+function createRenderer(): WebGLRenderer {
+  for (const antialias of [true, false]) {
+    const renderer = new WebGLRenderer({ antialias });
+    if (rendererDrawsCorrectly(renderer)) return renderer;
+    renderer.dispose();
+    renderer.forceContextLoss();
+  }
+  throw new Error("this computer's graphics driver does not draw it correctly");
+}
 
 const ease = (t: number): number => 1 - (1 - t) ** 3;
 
@@ -67,19 +97,19 @@ export class Scene3D {
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(50, 1, 0.5, 100_000);
   private readonly controls: OrbitControls;
-  private readonly raycaster = new Raycaster();
-  private readonly pointer = new Vector2();
-  private readonly sphere = new SphereGeometry(1, 14, 10);
-  /** Fewer triangles per file for large graphs (software rendering pays per triangle). */
-  private readonly coarseSphere = new SphereGeometry(1, 8, 6);
-  private readonly nodeMaterial = new MeshLambertMaterial();
+  private readonly nodeMaterial = new MeshBasicMaterial({
+    vertexColors: true,
+    // No face culling to get wrong: both sides of each triangle draw.
+    side: DoubleSide,
+  });
   private readonly edgeMaterial = new LineBasicMaterial({
     vertexColors: true,
     transparent: true,
     opacity: 0.6,
     depthWrite: false,
   });
-  private mesh: InstancedMesh | undefined;
+  private mesh: Mesh | undefined;
+  private spheres: SphereBatch | undefined;
   private lines: LineSegments | undefined;
   private data: Graph3DData | undefined;
   private positions: Float32Array | undefined;
@@ -94,6 +124,9 @@ export class Scene3D {
   private flight: Flight | undefined;
   private frame = 0;
   private fitted = false;
+  /** Fly to the whole graph when the layout finishes (a fresh layout, not a warm one). */
+  private refitWhenDone = true;
+  private lost = false;
   private down: { x: number; y: number } | undefined;
   private labeled: number[] = [];
   private readonly labelPool: HTMLDivElement[] = [];
@@ -112,16 +145,12 @@ export class Scene3D {
     this.labelLayer = labelLayer;
     this.handlers = handlers;
     this.theme = theme;
-    this.renderer = new WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer = createRenderer();
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO),
+    );
     container.append(this.renderer.domElement);
     this.scene.background = new Color(theme.canvas);
-    this.scene.add(new AmbientLight(0xffffff, 1.6));
-    const key = new DirectionalLight(0xffffff, 2.2);
-    key.position.set(0.5, 1, 1);
-    // A light that moves with the camera: files stay lit from the viewer's side.
-    this.camera.add(key);
-    this.scene.add(this.camera);
     this.camera.position.set(0, 0, 600);
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -137,25 +166,35 @@ export class Scene3D {
     canvas.addEventListener("pointerup", this.onPointerUp);
     canvas.addEventListener("pointerleave", this.onPointerLeave);
     canvas.addEventListener("dblclick", this.onDoubleClick);
+    canvas.addEventListener("webglcontextlost", this.onContextLost);
+    canvas.addEventListener("webglcontextrestored", this.onContextRestored);
     this.resize();
   }
 
-  /** Replaces the drawn graph; positions arrive later from the layout. */
-  setData(data: Graph3DData, colors: NodeColors): void {
+  /**
+   * Replaces the drawn graph. Positions arrive from the layout; `initial`
+   * (from the previous layout) draws the files where they were meanwhile,
+   * and keeps the camera where it is.
+   */
+  setData(data: Graph3DData, colors: NodeColors, initial?: Float32Array): void {
     this.removeMeshes();
     this.data = data;
     this.colors = colors;
     this.adjacency = edgesByNode(data);
     this.hovered = undefined;
     this.selected = undefined;
-    this.positions = new Float32Array(data.ids.length * 3);
-    this.fitted = false;
+    if (initial?.length === data.ids.length * 3) {
+      this.positions = initial.slice();
+      this.fitted = true;
+      this.refitWhenDone = false;
+    } else {
+      this.positions = new Float32Array(data.ids.length * 3);
+      this.fitted = false;
+      this.refitWhenDone = true;
+    }
 
-    this.mesh = new InstancedMesh(
-      data.ids.length > COARSE_ABOVE ? this.coarseSphere : this.sphere,
-      this.nodeMaterial,
-      data.ids.length,
-    );
+    this.spheres = createSphereBatch(data.ids.length);
+    this.mesh = new Mesh(this.spheres.geometry, this.nodeMaterial);
     this.mesh.frustumCulled = false;
     this.scene.add(this.mesh);
 
@@ -182,6 +221,18 @@ export class Scene3D {
     this.writePositions();
   }
 
+  /**
+   * The same files and edges with new details (sizes, which edges are
+   * hints): redraws in place, keeping the positions, the camera and any
+   * layout still running.
+   */
+  redraw(data: Graph3DData, colors: NodeColors): void {
+    const { positions, fitted, refitWhenDone } = this;
+    this.setData(data, colors, positions);
+    this.fitted = fitted;
+    this.refitWhenDone = refitWhenDone;
+  }
+
   /** New positions from the layout (x, y, z per node). */
   setPositions(positions: Float32Array, done: boolean): void {
     if (!this.data || positions.length !== this.data.ids.length * 3) return;
@@ -190,7 +241,7 @@ export class Scene3D {
     if (!this.fitted) {
       this.fit(false);
       this.fitted = true;
-    } else if (done) {
+    } else if (done && this.refitWhenDone) {
       this.fit(true);
     }
     this.requestRender();
@@ -242,28 +293,13 @@ export class Scene3D {
     this.startFlight(p.clone().add(direction.setLength(distance)), p, FLY_MS);
   }
 
-  /** Frames every file. */
+  /** Frames the files (fitSphere: all of a small graph, nearly all of a large one). */
   fit(animate: boolean): void {
     const positions = this.positions;
     if (!positions || positions.length === 0) return;
-    const center = new Vector3();
-    const count = positions.length / 3;
-    for (let i = 0; i < count; i++) {
-      center.x += positions[3 * i] ?? 0;
-      center.y += positions[3 * i + 1] ?? 0;
-      center.z += positions[3 * i + 2] ?? 0;
-    }
-    center.divideScalar(count);
-    let radius = 1;
-    const p = new Vector3();
-    for (let i = 0; i < count; i++) {
-      p.set(
-        positions[3 * i] ?? 0,
-        positions[3 * i + 1] ?? 0,
-        positions[3 * i + 2] ?? 0,
-      );
-      radius = Math.max(radius, p.distanceTo(center));
-    }
+    const sphere = fitSphere(positions);
+    const center = new Vector3(...sphere.center);
+    const radius = sphere.radius;
     const fov = (this.camera.fov * Math.PI) / 180;
     const fitAspect = Math.min(1, this.camera.aspect);
     const distance = (radius / Math.sin(fov / 2) / fitAspect) * 1.05 + 20;
@@ -306,12 +342,13 @@ export class Scene3D {
     canvas.removeEventListener("pointerup", this.onPointerUp);
     canvas.removeEventListener("pointerleave", this.onPointerLeave);
     canvas.removeEventListener("dblclick", this.onDoubleClick);
+    // Before forceContextLoss below, which fires webglcontextlost itself.
+    canvas.removeEventListener("webglcontextlost", this.onContextLost);
+    canvas.removeEventListener("webglcontextrestored", this.onContextRestored);
     this.controls.removeEventListener("change", this.requestRender);
     this.controls.removeEventListener("start", this.clearHover);
     this.controls.dispose();
     this.removeMeshes();
-    this.sphere.dispose();
-    this.coarseSphere.dispose();
     this.nodeMaterial.dispose();
     this.edgeMaterial.dispose();
     this.renderer.dispose();
@@ -324,8 +361,9 @@ export class Scene3D {
   private removeMeshes(): void {
     if (this.mesh) {
       this.scene.remove(this.mesh);
-      this.mesh.dispose();
+      this.mesh.geometry.dispose();
       this.mesh = undefined;
+      this.spheres = undefined;
     }
     if (this.lines) {
       this.scene.remove(this.lines);
@@ -340,26 +378,20 @@ export class Scene3D {
     return new Vector3(p[3 * index], p[3 * index + 1], p[3 * index + 2]);
   }
 
+  /** A file's drawn radius: by how many files import it, smaller when faded. */
+  private radiusAt(i: number): number {
+    const data = this.data;
+    if (!data) return 0;
+    return (
+      radiusOf(data.fanIn[i] ?? 0) *
+      (this.kept === undefined || this.kept.has(i) ? 1 : FADED_SCALE)
+    );
+  }
+
   private writePositions(): void {
-    const { mesh, lines, data, positions } = this;
-    if (!mesh || !lines || !data || !positions) return;
-    const matrix = new Matrix4();
-    const rotation = new Quaternion();
-    const scale = new Vector3();
-    const at = new Vector3();
-    for (let i = 0; i < data.ids.length; i++) {
-      const r =
-        radiusOf(data.fanIn[i] ?? 0) *
-        (this.kept === undefined || this.kept.has(i) ? 1 : FADED_SCALE);
-      at.set(
-        positions[3 * i] ?? 0,
-        positions[3 * i + 1] ?? 0,
-        positions[3 * i + 2] ?? 0,
-      );
-      mesh.setMatrixAt(i, matrix.compose(at, rotation, scale.set(r, r, r)));
-    }
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.computeBoundingSphere();
+    const { spheres, lines, data, positions } = this;
+    if (!spheres || !lines || !data || !positions) return;
+    writeSphereCenters(spheres, positions, (i) => this.radiusAt(i));
 
     const attribute = lines.geometry.getAttribute(
       "position",
@@ -378,8 +410,8 @@ export class Scene3D {
 
   /** Colors for the current highlight (the hovered file, else the selected one). */
   private paint(): void {
-    const { mesh, lines, data } = this;
-    if (!mesh || !lines || !data) return;
+    const { spheres, lines, data } = this;
+    if (!spheres || !lines || !data) return;
     const focus = this.hovered ?? this.selected;
     const background = new Color(this.theme.canvas);
     const keep = new Set<number>();
@@ -399,12 +431,12 @@ export class Scene3D {
     this.kept = focus === undefined ? undefined : keep;
     this.writePositions();
     const faded = new Color();
-    for (let i = 0; i < data.ids.length; i++) {
+    writeSphereColors(spheres, (i) => {
       const base = this.nodeColors[i] ?? background;
-      if (focus === undefined || keep.has(i)) mesh.setColorAt(i, base);
-      else mesh.setColorAt(i, faded.copy(base).lerp(background, FADE));
-    }
-    if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+      return focus === undefined || keep.has(i)
+        ? base
+        : faded.copy(base).lerp(background, FADE);
+    });
 
     const edge = new Color(this.theme.edge);
     const fadedEdge = edge.clone().lerp(background, FADE);
@@ -496,6 +528,7 @@ export class Scene3D {
 
   private readonly renderFrame = (now: number): void => {
     this.frame = 0;
+    if (this.lost) return;
     let again = false;
     const f = this.flight;
     if (f) {
@@ -535,18 +568,40 @@ export class Scene3D {
     this.requestRender();
   }
 
-  /** The file under a point of the canvas, if any. */
+  /**
+   * The file under a point of the canvas, if any: each file's sphere as a
+   * disc on screen, the nearest one under the pointer.
+   */
   private pick(clientX: number, clientY: number): number | undefined {
-    const mesh = this.mesh;
-    if (!mesh) return undefined;
+    const { data, positions } = this;
+    if (!data || !positions) return undefined;
     const rect = this.renderer.domElement.getBoundingClientRect();
-    this.pointer.set(
-      ((clientX - rect.left) / rect.width) * 2 - 1,
-      -((clientY - rect.top) / rect.height) * 2 + 1,
+    const fov = (this.camera.fov * Math.PI) / 180;
+    // Pixels per world unit at distance 1.
+    const focal = rect.height / 2 / Math.tan(fov / 2);
+    const v = new Vector3();
+    const discs: (ScreenDisc | undefined)[] = data.ids.map((_, i) => {
+      v.set(
+        positions[3 * i] ?? 0,
+        positions[3 * i + 1] ?? 0,
+        positions[3 * i + 2] ?? 0,
+      );
+      const distance = v.distanceTo(this.camera.position);
+      v.project(this.camera);
+      if (v.z < -1 || v.z > 1 || distance === 0) return undefined;
+      return {
+        x: ((v.x + 1) / 2) * rect.width,
+        y: ((1 - v.y) / 2) * rect.height,
+        r: (this.radiusAt(i) * focal) / distance,
+        depth: v.z,
+      };
+    });
+    return pickDisc(
+      discs,
+      clientX - rect.left,
+      clientY - rect.top,
+      PICK_SLOP_PX,
     );
-    this.raycaster.setFromCamera(this.pointer, this.camera);
-    const [hit] = this.raycaster.intersectObject(mesh);
-    return hit?.instanceId;
   }
 
   private readonly onPointerMove = (e: PointerEvent): void => {
@@ -580,6 +635,19 @@ export class Scene3D {
       return; // a drag that orbited the camera
     }
     this.handlers.onPick(this.pick(e.clientX, e.clientY));
+  };
+
+  private readonly onContextLost = (e: Event): void => {
+    // Ask for the context back (three.js does too); the view rebuilds then.
+    e.preventDefault();
+    this.lost = true;
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.handlers.onContextLost?.();
+  };
+
+  private readonly onContextRestored = (): void => {
+    this.handlers.onContextRestored?.();
   };
 
   private readonly onDoubleClick = (e: MouseEvent): void => {

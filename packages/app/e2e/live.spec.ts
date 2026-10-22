@@ -100,7 +100,7 @@ test("the graph follows edits, deletions and a branch switch", async () => {
   await expect(page.getByTestId("watch-status")).toHaveText("Watching");
   await expect(page.getByTestId("git-status")).toContainText("Churn: 90 days");
   await expect(page.getByTestId("coverage-status")).toHaveText(
-    "No coverage report",
+    "No test coverage report",
   );
 
   write(dir, "src/c.ts", 'import { a } from "./a";\nexport const c = a;\n');

@@ -33,6 +33,30 @@ async function open(epoch: Launched, folder: string): Promise<void> {
   await expect(epoch.page.getByTestId("graph-stats")).toContainText(" edges");
 }
 
+/**
+ * How many pixels of the 3D canvas are strongly colored: the files' spheres
+ * (folder colors), not the gray edges or the background. Electron decodes
+ * the screenshot, so the check sees what the GPU drew, not the scene's data.
+ */
+async function coloredPixels(epoch: Launched): Promise<number> {
+  const png = await epoch.page.getByTestId("graph3d-canvas").screenshot();
+  return epoch.app.evaluate(({ nativeImage }, base64) => {
+    const bitmap = nativeImage
+      .createFromBuffer(Buffer.from(base64, "base64"))
+      .toBitmap();
+    let colored = 0;
+    for (let i = 0; i + 3 < bitmap.length; i += 4) {
+      const [b, g, r] = [
+        bitmap[i] ?? 0,
+        bitmap[i + 1] ?? 0,
+        bitmap[i + 2] ?? 0,
+      ];
+      if (Math.max(r, g, b) - Math.min(r, g, b) > 60) colored++;
+    }
+    return colored;
+  }, png.toString("base64"));
+}
+
 const dimensions = (page: Page) =>
   page.getByRole("group", { name: "Dimensions" });
 const detailsTitle = (page: Page) =>
@@ -63,6 +87,8 @@ test("the 3D overview draws the files, and clicking picks them", async () => {
       .toBeGreaterThanOrEqual(1);
     await expect(canvas.locator("canvas")).toHaveCount(1);
     await expect(page.getByTestId("graph-canvas")).toBeHidden();
+    // The spheres are on screen, not just in the scene.
+    await expect.poll(() => coloredPixels(epoch)).toBeGreaterThan(50);
 
     // Choosing a file from the accessible list selects it and flies to it.
     const listed = page.locator('button[data-node3d-id="src/app.ts"]');
@@ -115,6 +141,53 @@ test("the 3D overview draws the files, and clicking picks them", async () => {
     await expect(page.getByTestId("graph-canvas")).toBeVisible();
     await expect(page.getByTestId("graph3d-canvas")).toHaveCount(0);
     expect(violations).toEqual([]);
+  } finally {
+    await epoch.close();
+  }
+});
+
+test("when the GPU drops the 3D view's context, it says so and restarts", async () => {
+  const epoch = await launch({}, undefined, SOFTWARE_WEBGL);
+  try {
+    await open(
+      epoch,
+      project({
+        "src/app.ts": 'import "./b";\n',
+        "src/b.ts": "export const b = 1;\n",
+      }),
+    );
+    const page = epoch.page;
+    await dimensions(page).getByRole("button", { name: "3D" }).click();
+    const canvas = page.getByTestId("graph3d-canvas");
+    const layouts = async () =>
+      Number(await canvas.getAttribute("data-layouts"));
+    await expect.poll(layouts).toBeGreaterThanOrEqual(1);
+    const before = await layouts();
+
+    // What a GPU driver reset does to the page: the canvas's WebGL context
+    // is lost, and nothing draws on it again by itself.
+    await page.evaluate(() => {
+      const c = document.querySelector<HTMLCanvasElement>(
+        '[data-testid="graph3d-canvas"] canvas',
+      );
+      c?.getContext("webgl2")
+        ?.getExtension("WEBGL_lose_context")
+        ?.loseContext();
+    });
+    const trouble = page.getByTestId("graph3d-trouble");
+    await expect(trouble).toContainText(
+      "The graphics driver stopped the 3D view",
+    );
+
+    // Restarting builds a new scene, which shows the finished layout at once.
+    await trouble.getByRole("button", { name: "Restart 3D view" }).click();
+    await expect(trouble).toHaveCount(0);
+    await expect(canvas.locator("canvas")).toHaveCount(1);
+    await expect.poll(layouts).toBeGreaterThan(before);
+    const listed = page.locator('button[data-node3d-id="src/app.ts"]');
+    await listed.focus();
+    await listed.press("Enter");
+    await expect(detailsTitle(page)).toHaveText("src/app.ts");
   } finally {
     await epoch.close();
   }
