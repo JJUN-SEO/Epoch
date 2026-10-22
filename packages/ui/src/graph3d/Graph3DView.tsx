@@ -8,7 +8,7 @@ import {
 import type { NodeColors } from "../graph/colors";
 import type { CanvasControls } from "../graph/cy";
 import { onThemeChange, readCanvasTheme } from "../graph/theme";
-import type { Graph3DData } from "./data";
+import { carryPositions, sameLayoutInput, type Graph3DData } from "./data";
 import { Layout3DClient } from "./layout3d";
 import { Scene3D } from "./scene";
 
@@ -29,22 +29,42 @@ export interface Graph3DViewProps {
 /** Finished layouts, so switching back to 3D shows the graph at once. */
 const settled = new WeakMap<Graph3DData, Float32Array>();
 
+/** What the view went through that it cannot draw past. */
+type Trouble =
+  | { readonly kind: "start"; readonly message: string }
+  | { readonly kind: "layout"; readonly message: string }
+  | { readonly kind: "lost" };
+
 /**
  * The optional 3D overview (ADR-012): every file as a sphere, sized by how
  * many files import it, colored like the 2D graph; folders cluster. Orbit by
  * dragging, zoom with the wheel; hover highlights a file's neighbors, click
  * selects, double-click focuses. Loaded as a separate chunk.
+ *
+ * An update that leaves the drawing's files and edges as they were (hint
+ * edges the view hides, a new risk tier) keeps the layout on screen; one
+ * that changes them lays out again from the current positions. When the GPU
+ * drops the drawing context or the layout fails, the view says so and can
+ * be restarted, instead of staying black.
  */
 export function Graph3DView(props: Graph3DViewProps) {
   const container = useRef<HTMLDivElement>(null);
   const labels = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<Scene3D | undefined>(undefined);
   const layoutRef = useRef<Layout3DClient | undefined>(undefined);
+  /** The drawing on screen, the scene it is on, and its latest positions. */
+  const shown = useRef<
+    { scene: Scene3D; data: Graph3DData; positions: Float32Array } | undefined
+  >(undefined);
+  /** The layout in flight; its drawing follows updates that keep the layout. */
+  const running = useRef<{ data: Graph3DData } | undefined>(undefined);
   const handlers = useRef(props);
   handlers.current = props;
   const [layouts, setLayouts] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<string | undefined>();
+  const [trouble, setTrouble] = useState<Trouble | undefined>();
+  /** Bumped to rebuild the scene (after a lost context, or on request). */
+  const [generation, setGeneration] = useState(0);
 
   useImperativeHandle(
     props.controlsRef,
@@ -64,6 +84,7 @@ export function Graph3DView(props: Graph3DViewProps) {
 
   useEffect(() => {
     if (!container.current || !labels.current) return;
+    setTrouble(undefined);
     let scene: Scene3D;
     try {
       scene = new Scene3D(
@@ -79,11 +100,22 @@ export function Graph3DView(props: Graph3DViewProps) {
             const id = data.ids[i];
             if (id !== undefined) onActivate(id);
           },
+          onContextLost: () => {
+            layoutRef.current?.dispose();
+            setBusy(false);
+            setTrouble({ kind: "lost" });
+          },
+          onContextRestored: () => {
+            setGeneration((g) => g + 1);
+          },
         },
         readCanvasTheme(),
       );
     } catch (error) {
-      setFailure(error instanceof Error ? error.message : String(error));
+      setTrouble({
+        kind: "start",
+        message: error instanceof Error ? error.message : String(error),
+      });
       return;
     }
     sceneRef.current = scene;
@@ -99,33 +131,91 @@ export function Graph3DView(props: Graph3DViewProps) {
       stopTheme();
       observer.disconnect();
       layoutRef.current?.dispose();
+      layoutRef.current = undefined;
       scene.dispose();
       sceneRef.current = undefined;
     };
-  }, []);
+  }, [generation]);
 
   useEffect(() => {
     const scene = sceneRef.current;
     const layout = layoutRef.current;
     if (!scene || !layout) return;
     const data = props.data;
-    scene.setData(data, handlers.current.colors);
-    const done = settled.get(data);
-    if (done) {
-      scene.setPositions(done, true);
+    const colors = handlers.current.colors;
+    const previous = shown.current;
+    const sameScene = previous?.scene === scene;
+
+    // The same files and edges on the same scene: keep the layout, finished
+    // or still running (the running one finishes for the new drawing).
+    if (sameScene && sameLayoutInput(previous.data, data)) {
+      scene.redraw(data, colors);
+      shown.current = { ...previous, data };
+      if (running.current) running.current.data = data;
+      const finished = settled.get(previous.data);
+      if (finished) {
+        settled.set(data, finished);
+        setLayouts((n) => n + 1);
+      }
+      return;
+    }
+
+    // A finished layout of this drawing: switching back to 3D, or a scene
+    // rebuilt after the GPU dropped the old one.
+    const finished =
+      settled.get(data) ??
+      (previous && sameLayoutInput(previous.data, data)
+        ? settled.get(previous.data)
+        : undefined);
+    if (finished) {
+      running.current = undefined;
+      scene.setData(data, colors, finished);
+      scene.fit(false);
+      settled.set(data, finished);
+      shown.current = { scene, data, positions: finished };
+      setBusy(false);
       setLayouts((n) => n + 1);
       return;
     }
+
+    // Lay out, starting from where the files already were, if anywhere.
+    const initial = previous
+      ? carryPositions(previous.data, previous.positions, data)
+      : undefined;
+    scene.setData(data, colors, initial);
+    if (initial && !sameScene) scene.fit(false);
+    const target = { data };
+    running.current = target;
+    shown.current = {
+      scene,
+      data,
+      positions: initial ?? new Float32Array(data.ids.length * 3),
+    };
     setBusy(true);
-    layout.run(data, (frame) => {
-      scene.setPositions(frame.positions, frame.done);
-      if (frame.done) {
-        settled.set(data, frame.positions);
+    layout.run(
+      data,
+      initial,
+      (frame) => {
+        scene.setPositions(frame.positions, frame.done);
+        shown.current = {
+          scene,
+          data: target.data,
+          positions: frame.positions,
+        };
+        if (frame.done) {
+          settled.set(target.data, frame.positions);
+          if (running.current === target) running.current = undefined;
+          setBusy(false);
+          setLayouts((n) => n + 1);
+        }
+      },
+      (message) => {
+        if (running.current === target) running.current = undefined;
         setBusy(false);
-        setLayouts((n) => n + 1);
-      }
-    });
-  }, [props.data]);
+        setTrouble({ kind: "layout", message });
+      },
+    );
+  }, [props.data, generation]);
 
   useEffect(() => {
     sceneRef.current?.setColors(props.colors);
@@ -149,6 +239,10 @@ export function Graph3DView(props: Graph3DViewProps) {
     if (props.active) sceneRef.current?.resize();
   }, [props.active]);
 
+  const restart = () => {
+    setGeneration((g) => g + 1);
+  };
+
   return (
     <div className="relative h-full w-full">
       <div
@@ -164,18 +258,32 @@ export function Graph3DView(props: Graph3DViewProps) {
         data-testid="graph3d-labels"
         aria-hidden="true"
       />
-      {busy && (
+      {busy && trouble === undefined && (
         <div className="bg-raised text-muted shadow-pop pointer-events-none absolute top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs">
           Laying out in 3D…
         </div>
       )}
-      {failure !== undefined && (
-        <p
+      {trouble !== undefined && (
+        <div
           role="alert"
-          className="text-muted absolute inset-x-0 top-1/3 text-center"
+          data-testid="graph3d-trouble"
+          className="bg-canvas/80 absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center"
         >
-          The 3D view could not start: {failure}
-        </p>
+          <p className="text-muted max-w-md">
+            {trouble.kind === "lost"
+              ? "The graphics driver stopped the 3D view."
+              : trouble.kind === "layout"
+                ? `The 3D layout stopped: ${trouble.message}`
+                : `The 3D view could not start: ${trouble.message}`}
+          </p>
+          <button
+            type="button"
+            className="bg-raised hover:bg-hover shadow-pop rounded-md px-3 py-1.5 text-sm"
+            onClick={restart}
+          >
+            Restart 3D view
+          </button>
+        </div>
       )}
       <ul className="sr-only" aria-label="3D graph nodes">
         {props.data.ids.map((id, i) => (

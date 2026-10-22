@@ -36,6 +36,13 @@ export interface SceneHandlers {
   readonly onPick: (index: number | undefined) => void;
   /** A double-click on a file. */
   readonly onActivate: (index: number) => void;
+  /**
+   * The GPU took the drawing context away (a driver reset, the GPU process
+   * restarting): the canvas stays black until the view is rebuilt.
+   */
+  readonly onContextLost?: () => void;
+  /** The browser offers the context back. */
+  readonly onContextRestored?: () => void;
 }
 
 const MAX_LABELS = 40;
@@ -44,6 +51,8 @@ const RESTING_LABELS = 12;
 const FADE = 0.85;
 const FLY_MS = 450;
 const CLICK_SLOP_PX = 5;
+/** Device pixels per CSS pixel, at most: a 3x screen would triple the GPU's work. */
+const MAX_PIXEL_RATIO = 2;
 
 const radiusOf = (fanIn: number): number => 1.5 + 0.9 * Math.log2(1 + fanIn);
 /** Files outside the highlight shrink, so they neither dominate nor hide it. */
@@ -94,6 +103,9 @@ export class Scene3D {
   private flight: Flight | undefined;
   private frame = 0;
   private fitted = false;
+  /** Fly to the whole graph when the layout finishes (a fresh layout, not a warm one). */
+  private refitWhenDone = true;
+  private lost = false;
   private down: { x: number; y: number } | undefined;
   private labeled: number[] = [];
   private readonly labelPool: HTMLDivElement[] = [];
@@ -113,7 +125,9 @@ export class Scene3D {
     this.handlers = handlers;
     this.theme = theme;
     this.renderer = new WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(window.devicePixelRatio);
+    this.renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO),
+    );
     container.append(this.renderer.domElement);
     this.scene.background = new Color(theme.canvas);
     this.scene.add(new AmbientLight(0xffffff, 1.6));
@@ -137,19 +151,32 @@ export class Scene3D {
     canvas.addEventListener("pointerup", this.onPointerUp);
     canvas.addEventListener("pointerleave", this.onPointerLeave);
     canvas.addEventListener("dblclick", this.onDoubleClick);
+    canvas.addEventListener("webglcontextlost", this.onContextLost);
+    canvas.addEventListener("webglcontextrestored", this.onContextRestored);
     this.resize();
   }
 
-  /** Replaces the drawn graph; positions arrive later from the layout. */
-  setData(data: Graph3DData, colors: NodeColors): void {
+  /**
+   * Replaces the drawn graph. Positions arrive from the layout; `initial`
+   * (from the previous layout) draws the files where they were meanwhile,
+   * and keeps the camera where it is.
+   */
+  setData(data: Graph3DData, colors: NodeColors, initial?: Float32Array): void {
     this.removeMeshes();
     this.data = data;
     this.colors = colors;
     this.adjacency = edgesByNode(data);
     this.hovered = undefined;
     this.selected = undefined;
-    this.positions = new Float32Array(data.ids.length * 3);
-    this.fitted = false;
+    if (initial?.length === data.ids.length * 3) {
+      this.positions = initial.slice();
+      this.fitted = true;
+      this.refitWhenDone = false;
+    } else {
+      this.positions = new Float32Array(data.ids.length * 3);
+      this.fitted = false;
+      this.refitWhenDone = true;
+    }
 
     this.mesh = new InstancedMesh(
       data.ids.length > COARSE_ABOVE ? this.coarseSphere : this.sphere,
@@ -182,6 +209,18 @@ export class Scene3D {
     this.writePositions();
   }
 
+  /**
+   * The same files and edges with new details (sizes, which edges are
+   * hints): redraws in place, keeping the positions, the camera and any
+   * layout still running.
+   */
+  redraw(data: Graph3DData, colors: NodeColors): void {
+    const { positions, fitted, refitWhenDone } = this;
+    this.setData(data, colors, positions);
+    this.fitted = fitted;
+    this.refitWhenDone = refitWhenDone;
+  }
+
   /** New positions from the layout (x, y, z per node). */
   setPositions(positions: Float32Array, done: boolean): void {
     if (!this.data || positions.length !== this.data.ids.length * 3) return;
@@ -190,7 +229,7 @@ export class Scene3D {
     if (!this.fitted) {
       this.fit(false);
       this.fitted = true;
-    } else if (done) {
+    } else if (done && this.refitWhenDone) {
       this.fit(true);
     }
     this.requestRender();
@@ -306,6 +345,9 @@ export class Scene3D {
     canvas.removeEventListener("pointerup", this.onPointerUp);
     canvas.removeEventListener("pointerleave", this.onPointerLeave);
     canvas.removeEventListener("dblclick", this.onDoubleClick);
+    // Before forceContextLoss below, which fires webglcontextlost itself.
+    canvas.removeEventListener("webglcontextlost", this.onContextLost);
+    canvas.removeEventListener("webglcontextrestored", this.onContextRestored);
     this.controls.removeEventListener("change", this.requestRender);
     this.controls.removeEventListener("start", this.clearHover);
     this.controls.dispose();
@@ -496,6 +538,7 @@ export class Scene3D {
 
   private readonly renderFrame = (now: number): void => {
     this.frame = 0;
+    if (this.lost) return;
     let again = false;
     const f = this.flight;
     if (f) {
@@ -580,6 +623,19 @@ export class Scene3D {
       return; // a drag that orbited the camera
     }
     this.handlers.onPick(this.pick(e.clientX, e.clientY));
+  };
+
+  private readonly onContextLost = (e: Event): void => {
+    // Ask for the context back (three.js does too); the view rebuilds then.
+    e.preventDefault();
+    this.lost = true;
+    cancelAnimationFrame(this.frame);
+    this.frame = 0;
+    this.handlers.onContextLost?.();
+  };
+
+  private readonly onContextRestored = (): void => {
+    this.handlers.onContextRestored?.();
   };
 
   private readonly onDoubleClick = (e: MouseEvent): void => {

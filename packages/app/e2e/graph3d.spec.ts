@@ -120,6 +120,53 @@ test("the 3D overview draws the files, and clicking picks them", async () => {
   }
 });
 
+test("when the GPU drops the 3D view's context, it says so and restarts", async () => {
+  const epoch = await launch({}, undefined, SOFTWARE_WEBGL);
+  try {
+    await open(
+      epoch,
+      project({
+        "src/app.ts": 'import "./b";\n',
+        "src/b.ts": "export const b = 1;\n",
+      }),
+    );
+    const page = epoch.page;
+    await dimensions(page).getByRole("button", { name: "3D" }).click();
+    const canvas = page.getByTestId("graph3d-canvas");
+    const layouts = async () =>
+      Number(await canvas.getAttribute("data-layouts"));
+    await expect.poll(layouts).toBeGreaterThanOrEqual(1);
+    const before = await layouts();
+
+    // What a GPU driver reset does to the page: the canvas's WebGL context
+    // is lost, and nothing draws on it again by itself.
+    await page.evaluate(() => {
+      const c = document.querySelector<HTMLCanvasElement>(
+        '[data-testid="graph3d-canvas"] canvas',
+      );
+      c?.getContext("webgl2")
+        ?.getExtension("WEBGL_lose_context")
+        ?.loseContext();
+    });
+    const trouble = page.getByTestId("graph3d-trouble");
+    await expect(trouble).toContainText(
+      "The graphics driver stopped the 3D view",
+    );
+
+    // Restarting builds a new scene, which shows the finished layout at once.
+    await trouble.getByRole("button", { name: "Restart 3D view" }).click();
+    await expect(trouble).toHaveCount(0);
+    await expect(canvas.locator("canvas")).toHaveCount(1);
+    await expect.poll(layouts).toBeGreaterThan(before);
+    const listed = page.locator('button[data-node3d-id="src/app.ts"]');
+    await listed.focus();
+    await listed.press("Enter");
+    await expect(detailsTitle(page)).toHaveText("src/app.ts");
+  } finally {
+    await epoch.close();
+  }
+});
+
 test("without WebGL the 3D option is off, with the reason", async () => {
   // Software WebGL is on, so only the page-level override below removes it:
   // the page then sees what a computer without WebGL shows it.

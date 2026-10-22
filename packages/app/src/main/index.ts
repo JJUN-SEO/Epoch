@@ -38,6 +38,7 @@ import { SettingsStore } from "./settings-store";
 import { SpendLedger } from "./spend-ledger";
 import { SummaryService, type SenderLike } from "./summary-service";
 import { UpdateChecker } from "./update-check";
+import { recoverWindow } from "./window-recovery";
 import { UpdateStore } from "./update-store";
 import type { Egress } from "./egress";
 import { createProjectWindow } from "./window";
@@ -135,6 +136,30 @@ async function openWindow(stateFile: string): Promise<BrowserWindow> {
   win.on("closed", () => {
     sessions.get(contents)?.dispose();
     sessions.delete(contents);
+  });
+  recoverWindow({
+    onGone: (listener) =>
+      contents.on("render-process-gone", (_event, details) => {
+        listener(details);
+      }),
+    onUnresponsive: (listener) => win.on("unresponsive", listener),
+    onResponsive: (listener) => win.on("responsive", listener),
+    reload: () => {
+      if (!win.isDestroyed()) void win.loadURL(uiUrl);
+    },
+    askReload: async (signal) => {
+      const { response } = await dialog.showMessageBox(win, {
+        type: "warning",
+        message: "Epoch is not responding",
+        detail:
+          "You can wait for it, or reload the window. Reloading returns to the start screen; your project and settings are kept.",
+        buttons: ["Wait", "Reload Window"],
+        defaultId: 0,
+        cancelId: 0,
+        signal,
+      });
+      return response === 1;
+    },
   });
   await win.loadURL(uiUrl);
   return win;
