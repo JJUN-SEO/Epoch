@@ -74,7 +74,7 @@
           "[Go accuracy](docs/benchmarks/go.md)"
         ],
         [
-          "Findings precision on a reviewed sample (reviewed by Claude, not by a human)",
+          "Findings precision on a reviewed sample",
           "Worth a look {findings-precision|Worth a look|Precision} ({findings-precision|Worth a look|Yes} yes, {findings-precision|Worth a look|No} no); Maybe {findings-precision|Maybe|Precision} ({findings-precision|Maybe|Yes} yes, {findings-precision|Maybe|No} no)",
           "[findings](docs/benchmarks/findings.md)"
         ],
