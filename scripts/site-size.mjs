@@ -23,7 +23,8 @@ const chunk = (prefix, ext) => {
 // after the attribution bar named the copyright and the screenshot became a
 // 256-colour PNG (apps/site/scripts/record-demo.mjs): landing 79641, demo JS
 // 287482, CSS 6619; the landing budget follows it. With the landing CSS and
-// screenshot hashed by Vite and the screenshot re-recorded: landing 79236.
+// screenshot hashed by Vite and the screenshot re-recorded: landing 79236;
+// re-recorded after the demo data moved to adapter version 9: 72707.
 // The landing page's stylesheet and screenshot go through Vite (hashed
 // names, so a new deploy never meets an old cached copy); index.html names them.
 const landingAssets = [
