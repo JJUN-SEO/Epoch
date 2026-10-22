@@ -10,7 +10,8 @@
         "$TURBO_ROOT$/packages/core/src/findings.ts",
         "$TURBO_ROOT$/apps/site/src/**",
         "$TURBO_ROOT$/apps/site/index.html",
-        "$TURBO_ROOT$/README.md"
+        "$TURBO_ROOT$/README.md",
+        "$TURBO_ROOT$/docs/cli.md"
       ]
     }
   }

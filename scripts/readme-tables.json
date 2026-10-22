@@ -1,44 +1,104 @@
 {
-  "privacy": {
-    "file": "docs/privacy.md",
-    "heading": "What leaves the machine"
+  "targets": ["README.md", "docs/results.md"],
+  "sources": {
+    "privacy": {
+      "file": "docs/privacy.md",
+      "heading": "At a glance"
+    },
+    "typescript-performance": {
+      "file": "docs/benchmarks/typescript-performance.md",
+      "heading": "zod"
+    },
+    "typescript-accuracy": {
+      "file": "docs/benchmarks/typescript.md",
+      "heading": "Results"
+    },
+    "python-accuracy": {
+      "file": "docs/benchmarks/python-accuracy.md",
+      "heading": "Results",
+      "table": 1
+    },
+    "go-accuracy": {
+      "file": "docs/benchmarks/go.md",
+      "heading": "Results",
+      "table": 1
+    },
+    "findings-precision": {
+      "file": "docs/benchmarks/findings.md",
+      "heading": "Precision on the reviewed sample"
+    },
+    "risk": {
+      "file": "docs/benchmarks/risk.md",
+      "heading": "Check window: share of files fixed later, by tier"
+    },
+    "scorers": {
+      "file": "docs/benchmarks/scorers.md",
+      "heading": "Scorers at T with the model, all repositories"
+    },
+    "summary-cost": {
+      "file": "docs/benchmarks/summaries.md",
+      "heading": "Measured"
+    },
+    "installers": {
+      "file": "docs/benchmarks/installers.md",
+      "heading": "Installer sizes"
+    }
   },
-  "typescript-performance": {
-    "file": "docs/benchmarks/typescript-performance.md",
-    "heading": "zod"
-  },
-  "typescript-accuracy": {
-    "file": "docs/benchmarks/typescript.md",
-    "heading": "Results"
-  },
-  "python-accuracy": {
-    "file": "docs/benchmarks/python-accuracy.md",
-    "heading": "Results",
-    "table": 1
-  },
-  "go-accuracy": {
-    "file": "docs/benchmarks/go.md",
-    "heading": "Results",
-    "table": 1
-  },
-  "findings-precision": {
-    "file": "docs/benchmarks/findings.md",
-    "heading": "Precision on the reviewed sample"
-  },
-  "risk": {
-    "file": "docs/benchmarks/risk.md",
-    "heading": "Check window: share of files fixed later, by tier"
-  },
-  "scorers": {
-    "file": "docs/benchmarks/scorers.md",
-    "heading": "Scorers at T with the model, all repositories"
-  },
-  "summary-cost": {
-    "file": "docs/benchmarks/summaries.md",
-    "heading": "Measured"
-  },
-  "installers": {
-    "file": "docs/benchmarks/installers.md",
-    "heading": "Installer sizes"
+  "composed": {
+    "results-at-a-glance": {
+      "header": ["Measure", "Result", "Report"],
+      "rows": [
+        [
+          "Full analysis of zod ({typescript-performance|cold (empty cache)|Files parsed} files, empty cache)",
+          "{typescript-performance|cold (empty cache)|Wall}",
+          "[performance](docs/benchmarks/typescript-performance.md)"
+        ],
+        [
+          "The same after editing one file",
+          "{typescript-performance|incremental, 1 file edited|Wall}",
+          "[performance](docs/benchmarks/typescript-performance.md)"
+        ],
+        [
+          "TS/JS edges vs dependency-cruiser, precision / recall (adjusted: each disagreement classified)",
+          "zod {typescript-accuracy|https://github.com/colinhacks/zod.git|Adjusted precision} / {typescript-accuracy|https://github.com/colinhacks/zod.git|Adjusted recall}; vitest {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Adjusted precision} / {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Adjusted recall}",
+          "[TS/JS accuracy](docs/benchmarks/typescript.md)"
+        ],
+        [
+          "Python edges vs grimp on Flask, precision / recall (adjusted)",
+          "{python-accuracy|Module imports|Adjusted precision} / {python-accuracy|Module imports|Adjusted recall}",
+          "[Python accuracy](docs/benchmarks/python-accuracy.md)"
+        ],
+        [
+          "Go edges vs `go list` on the GitHub CLI, precision / recall",
+          "production {go-accuracy|Production|Precision} / {go-accuracy|Production|Recall}; tests {go-accuracy|Tests|Precision} / {go-accuracy|Tests|Recall}",
+          "[Go accuracy](docs/benchmarks/go.md)"
+        ],
+        [
+          "Findings precision on a reviewed sample (reviewed by Claude, not by a human)",
+          "Worth a look {findings-precision|Worth a look|Precision} ({findings-precision|Worth a look|Yes} yes, {findings-precision|Worth a look|No} no); Maybe {findings-precision|Maybe|Precision} ({findings-precision|Maybe|Yes} yes, {findings-precision|Maybe|No} no)",
+          "[findings](docs/benchmarks/findings.md)"
+        ],
+        [
+          "Risk tiers in hindsight: share of files fixed in a later window",
+          "critical {risk|critical|All repositories}; low {risk|low|All repositories}",
+          "[risk](docs/benchmarks/risk.md)"
+        ],
+        [
+          "Hint scorer calibration on a temporal holdout (lower ECE and higher ROC AUC are better)",
+          "shipped heuristic: ECE {scorers|Heuristic with a model, shipped coefficients|ECE}, ROC AUC {scorers|Heuristic with a model, shipped coefficients|ROC AUC}; constant baseline: ECE {scorers|Constant (T0 positive rate)|ECE}, ROC AUC {scorers|Constant (T0 positive rate)|ROC AUC}",
+          "[scorers](docs/benchmarks/scorers.md)"
+        ],
+        [
+          "Summary cost on Flask with one provider",
+          "full run {summary-cost|Full run|Cost}; incremental, new and changed files only {summary-cost|Incremental run, new and changed files only|Cost}",
+          "[summaries](docs/benchmarks/summaries.md)"
+        ],
+        [
+          "Installer size",
+          "macOS {installers|Installer=`Epoch-mac-arm64.dmg`|Size}, Windows {installers|Installer=`Epoch-win-x64-setup.exe`|Size}, Linux deb {installers|Installer=`Epoch-linux-x64.deb`|Size}",
+          "[installers](docs/benchmarks/installers.md)"
+        ]
+      ]
+    }
   }
 }

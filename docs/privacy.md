@@ -4,6 +4,21 @@ Epoch is local-first: your source code, the graph and the cache stay on your mac
 
 This page is the data-flow table that [CLAUDE.md](../CLAUDE.md) requires. Any new network call must be added here first.
 
+## At a glance
+
+| Feature                                                       | What leaves the machine                                                             | Default             |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------- |
+| Parsing, graph, blast radius, risk tiers, git analysis        | Nothing                                                                             | On                  |
+| Dead-feature detection (reachability, constants, git history) | Nothing                                                                             | On                  |
+| Heuristic scorer, co-change and shared-string hints           | Nothing                                                                             | On                  |
+| Embeddings similarity                                         | Nothing (a small local model bundled with the app)                                  | On                  |
+| Local-model scorer and summaries (e.g. Ollama)                | Nothing (the model server runs on this machine)                                     | Opt-in              |
+| Jev scorer (CLI only)                                         | File excerpts and their context, sent to TypeSafe AI with your key                  | Opt-in              |
+| LLM summaries and LLM scorer                                  | File source and neighbor summaries, sent with your key to the provider you choose   | Opt-in              |
+| Update check                                                  | One request a day to GitHub Releases for the latest version number; no project data | On; can be disabled |
+
+With no keys configured and update checks off, Epoch makes no network requests. The next section says exactly what each feature sends, to which host, and when.
+
 ## What leaves the machine
 
 | Feature                                                       | What leaves the machine                                                                                                                                                                                                                                                                                                                                                                                                                                            | Default             | Status today                                                                                                                                                                                                                             |

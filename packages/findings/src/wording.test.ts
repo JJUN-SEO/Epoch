@@ -44,6 +44,7 @@ const FILES = [
   ...sources(path.join(ROOT, "apps/site/src")),
   path.join(ROOT, "apps/site/index.html"),
   path.join(ROOT, "README.md"),
+  path.join(ROOT, "docs/cli.md"),
 ];
 
 describe("finding wording", () => {
