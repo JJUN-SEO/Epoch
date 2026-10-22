@@ -15,7 +15,7 @@ import {
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import type { NodeColors } from "../graph/colors";
 import type { CanvasTheme } from "../graph/theme";
-import { edgesByNode, type Graph3DData } from "./data";
+import { edgesByNode, fitSphere, type Graph3DData } from "./data";
 import { rendererDrawsCorrectly } from "./drawing-check";
 import {
   createSphereBatch,
@@ -59,7 +59,8 @@ const CLICK_SLOP_PX = 5;
 /** Device pixels per CSS pixel, at most: a 3x screen would triple the GPU's work. */
 const MAX_PIXEL_RATIO = 2;
 
-const radiusOf = (fanIn: number): number => 1.5 + 0.9 * Math.log2(1 + fanIn);
+/** A file's sphere radius in world units (links are 30 long): larger for files many import. */
+const radiusOf = (fanIn: number): number => 2.5 + 0.9 * Math.log2(1 + fanIn);
 /** Files outside the highlight shrink, so they neither dominate nor hide it. */
 const FADED_SCALE = 0.45;
 /** Pixels around a small file that still pick it. */
@@ -292,28 +293,13 @@ export class Scene3D {
     this.startFlight(p.clone().add(direction.setLength(distance)), p, FLY_MS);
   }
 
-  /** Frames every file. */
+  /** Frames the files (fitSphere: all of a small graph, nearly all of a large one). */
   fit(animate: boolean): void {
     const positions = this.positions;
     if (!positions || positions.length === 0) return;
-    const center = new Vector3();
-    const count = positions.length / 3;
-    for (let i = 0; i < count; i++) {
-      center.x += positions[3 * i] ?? 0;
-      center.y += positions[3 * i + 1] ?? 0;
-      center.z += positions[3 * i + 2] ?? 0;
-    }
-    center.divideScalar(count);
-    let radius = 1;
-    const p = new Vector3();
-    for (let i = 0; i < count; i++) {
-      p.set(
-        positions[3 * i] ?? 0,
-        positions[3 * i + 1] ?? 0,
-        positions[3 * i + 2] ?? 0,
-      );
-      radius = Math.max(radius, p.distanceTo(center));
-    }
+    const sphere = fitSphere(positions);
+    const center = new Vector3(...sphere.center);
+    const radius = sphere.radius;
     const fov = (this.camera.fov * Math.PI) / 180;
     const fitAspect = Math.min(1, this.camera.aspect);
     const distance = (radius / Math.sin(fov / 2) / fitAspect) * 1.05 + 20;

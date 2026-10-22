@@ -31,6 +31,41 @@ const ALPHA_DECAY = 0.0456;
  */
 export const WARM_ALPHA = 0.3;
 
+/**
+ * Starting positions closer together than this (from their center) are not
+ * a layout: started from them, every file repels every other from one point
+ * and the layout blows apart. The simulation starts fresh instead.
+ */
+const MIN_SPREAD = 1;
+
+/** The largest distance of a position from the positions' center. */
+function spread(positions: Float32Array): number {
+  const n = positions.length / 3;
+  if (n === 0) return 0;
+  let cx = 0;
+  let cy = 0;
+  let cz = 0;
+  for (let i = 0; i < n; i++) {
+    cx += positions[3 * i] ?? 0;
+    cy += positions[3 * i + 1] ?? 0;
+    cz += positions[3 * i + 2] ?? 0;
+  }
+  cx /= n;
+  cy /= n;
+  cz /= n;
+  let max = 0;
+  for (let i = 0; i < n; i++)
+    max = Math.max(
+      max,
+      Math.hypot(
+        (positions[3 * i] ?? 0) - cx,
+        (positions[3 * i + 1] ?? 0) - cy,
+        (positions[3 * i + 2] ?? 0) - cz,
+      ),
+    );
+  return max;
+}
+
 export interface Simulation3DInput {
   readonly count: number;
   /** Folder index per node (graph3d/data.ts). */
@@ -93,7 +128,10 @@ export function simulate3d(
   opts: { readonly now: () => number; readonly frameMs: number },
 ): number {
   const { count, groups, links, initial } = input;
-  const start = initial?.length === count * 3 ? initial : undefined;
+  const start =
+    initial?.length === count * 3 && spread(initial) >= MIN_SPREAD
+      ? initial
+      : undefined;
   const warm = start !== undefined;
   // Without starting positions d3 places the nodes on a deterministic
   // spiral, and its seeded random source keeps the layout reproducible.

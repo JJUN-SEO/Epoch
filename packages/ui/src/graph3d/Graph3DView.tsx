@@ -8,7 +8,12 @@ import {
 import type { NodeColors } from "../graph/colors";
 import type { CanvasControls } from "../graph/cy";
 import { onThemeChange, readCanvasTheme } from "../graph/theme";
-import { carryPositions, sameLayoutInput, type Graph3DData } from "./data";
+import {
+  sameLayoutInput,
+  startingPositions,
+  type Graph3DData,
+  type ShownLayout,
+} from "./data";
 import { Layout3DClient } from "./layout3d";
 import { Scene3D } from "./scene";
 
@@ -55,9 +60,9 @@ export function Graph3DView(props: Graph3DViewProps) {
   const sceneRef = useRef<Scene3D | undefined>(undefined);
   const layoutRef = useRef<Layout3DClient | undefined>(undefined);
   /** The drawing on screen, the scene it is on, and its latest positions. */
-  const shown = useRef<
-    { scene: Scene3D; data: Graph3DData; positions: Float32Array } | undefined
-  >(undefined);
+  const shown = useRef<(ShownLayout & { scene: Scene3D }) | undefined>(
+    undefined,
+  );
   /** The layout in flight; its drawing follows updates that keep the layout. */
   const running = useRef<{ data: Graph3DData } | undefined>(undefined);
   const handlers = useRef(props);
@@ -174,16 +179,14 @@ export function Graph3DView(props: Graph3DViewProps) {
       scene.setData(data, colors, finished);
       scene.fit(false);
       settled.set(data, finished);
-      shown.current = { scene, data, positions: finished };
+      shown.current = { scene, data, positions: finished, settled: true };
       setBusy(false);
       setLayouts((n) => n + 1);
       return;
     }
 
     // Lay out, starting from where the files already were, if anywhere.
-    const initial = previous
-      ? carryPositions(previous.data, previous.positions, data)
-      : undefined;
+    const initial = startingPositions(previous, data);
     scene.setData(data, colors, initial);
     if (initial && !sameScene) scene.fit(false);
     const target = { data };
@@ -192,6 +195,7 @@ export function Graph3DView(props: Graph3DViewProps) {
       scene,
       data,
       positions: initial ?? new Float32Array(data.ids.length * 3),
+      settled: false,
     };
     setBusy(true);
     layout.run(
@@ -203,6 +207,7 @@ export function Graph3DView(props: Graph3DViewProps) {
           scene,
           data: target.data,
           positions: frame.positions,
+          settled: frame.done,
         };
         if (frame.done) {
           settled.set(target.data, frame.positions);

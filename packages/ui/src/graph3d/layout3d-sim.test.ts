@@ -83,4 +83,27 @@ describe("simulate3d", () => {
     expect(first?.length).toBe(30);
     expect(first?.some((v) => v !== 0)).toBe(true);
   });
+
+  it("ignores starting positions that put every file in one place", () => {
+    // A layout started that way blows apart: every file repels every other
+    // from the same point (radius 6,542 instead of 605 on a 600-file graph).
+    const input = ring(60);
+    let cold: Float32Array | undefined;
+    let stacked: Float32Array | undefined;
+    simulate3d(
+      input,
+      (p, done) => {
+        if (done) cold = p;
+      },
+      { now: clock(), frameMs: 100 },
+    );
+    simulate3d(
+      { ...input, initial: new Float32Array(60 * 3).fill(4) },
+      (p, done) => {
+        if (done) stacked = p;
+      },
+      { now: clock(), frameMs: 100 },
+    );
+    expect([...(stacked ?? [])]).toEqual([...(cold ?? [])]);
+  });
 });

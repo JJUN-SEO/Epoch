@@ -149,10 +149,82 @@ export function carryPositions(
     }
     return true;
   };
+  let added = 0;
   for (let i = 0; i < after.ids.length; i++) {
     if (placed[i] === 1) continue;
     if (!center(neighbors[i] ?? [], i))
       center(folders.get(after.groups[i] ?? -1) ?? [], i);
+    // A little off that center, each new file in its own direction (a
+    // golden-angle spiral), so new files never start on one point.
+    const k = added++;
+    const y = 1 - 2 * ((k * 0.618034) % 1);
+    const ring = Math.sqrt(Math.max(0, 1 - y * y));
+    const angle = k * 2.399963;
+    out[3 * i] = (out[3 * i] ?? 0) + NEW_OFFSET * ring * Math.cos(angle);
+    out[3 * i + 1] = (out[3 * i + 1] ?? 0) + NEW_OFFSET * y;
+    out[3 * i + 2] =
+      (out[3 * i + 2] ?? 0) + NEW_OFFSET * ring * Math.sin(angle);
   }
   return out;
+}
+
+/** How far from its neighbors' center a new file starts. */
+const NEW_OFFSET = 3;
+
+/** The drawing on screen and how far its layout got. */
+export interface ShownLayout {
+  readonly data: Graph3DData;
+  readonly positions: Float32Array;
+  /**
+   * The layout finished. Positions of a layout still running (or the zeros
+   * it starts with) are no place to start another one from.
+   */
+  readonly settled: boolean;
+}
+
+/**
+ * Where a new layout of `next` starts: from the previous layout when it
+ * finished and holds most of the files; otherwise fresh (undefined), as a
+ * warm start from an unfinished layout, or from too few files, distorts the
+ * result (from all zeros it blows the layout apart).
+ */
+export function startingPositions(
+  previous: ShownLayout | undefined,
+  next: Graph3DData,
+): Float32Array | undefined {
+  if (!previous?.settled) return undefined;
+  const known = new Set(previous.data.ids);
+  const shared = next.ids.filter((id) => known.has(id)).length;
+  if (shared * 2 < next.ids.length) return undefined;
+  return carryPositions(previous.data, previous.positions, next);
+}
+
+/**
+ * The sphere the camera frames: every file of a small graph; the nearest
+ * 95% of a larger one around their median, so the few files that drift far
+ * from everything else neither pull the view off center nor shrink the
+ * rest to dots.
+ */
+export function fitSphere(positions: Float32Array): {
+  readonly center: readonly [number, number, number];
+  readonly radius: number;
+} {
+  const n = positions.length / 3;
+  if (n === 0) return { center: [0, 0, 0], radius: 1 };
+  const axis = (k: number) =>
+    Array.from({ length: n }, (_, i) => positions[3 * i + k] ?? 0);
+  const middle = (values: number[]) =>
+    n >= 20
+      ? (values.sort((a, b) => a - b)[Math.floor(n / 2)] ?? 0)
+      : values.reduce((a, b) => a + b, 0) / n;
+  const center = [middle(axis(0)), middle(axis(1)), middle(axis(2))] as const;
+  const distances = Array.from({ length: n }, (_, i) =>
+    Math.hypot(
+      (positions[3 * i] ?? 0) - center[0],
+      (positions[3 * i + 1] ?? 0) - center[1],
+      (positions[3 * i + 2] ?? 0) - center[2],
+    ),
+  ).sort((a, b) => a - b);
+  const at = n >= 20 ? Math.floor(0.95 * (n - 1)) : n - 1;
+  return { center, radius: Math.max(1, distances[at] ?? 1) };
 }
