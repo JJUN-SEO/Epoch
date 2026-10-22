@@ -1,14 +1,8 @@
-import {
-  ChevronDown,
-  Crosshair,
-  FolderOpen,
-  Lightbulb,
-  Network,
-} from "lucide-react";
+import { ChevronDown, FolderOpen } from "lucide-react";
 import { useState } from "react";
 import type { Graph, ProjectInfo } from "@epoch-dev/core";
 import type { Shell } from "../api";
-import { cx, SectionTitle } from "../components/ui";
+import { SectionTitle } from "../components/ui";
 import { isMac } from "../platform";
 import { SHORTCUTS } from "./commands";
 import { FileTree } from "./FileTree";
@@ -119,38 +113,12 @@ export function Sidebar(props: {
   readonly project: ProjectInfo;
   readonly graph: Graph;
   readonly shell: Shell | undefined;
-  readonly view: View;
-  readonly canFocus: boolean;
-  /** Open findings at the banner's level, shown beside the Findings view. */
-  readonly findingsCount: number;
-  readonly onView: (view: View) => void;
   readonly selected: string | undefined;
   readonly onSelect: (id: string) => void;
   readonly onActivate: (id: string) => void;
   readonly onOpenAnother: (() => void) | undefined;
   readonly onOpenRecent: ((folder: string) => void) | undefined;
 }) {
-  const mac = isMac();
-  const views = [
-    {
-      id: "graph" as const,
-      label: "Graph",
-      icon: Network,
-      shortcut: SHORTCUTS["view.graph"],
-    },
-    {
-      id: "focus" as const,
-      label: "Focus",
-      icon: Crosshair,
-      shortcut: SHORTCUTS["view.focus"],
-    },
-    {
-      id: "findings" as const,
-      label: "Findings",
-      icon: Lightbulb,
-      shortcut: SHORTCUTS["view.findings"],
-    },
-  ];
   return (
     <nav
       aria-label="Sidebar"
@@ -163,43 +131,6 @@ export function Sidebar(props: {
         onOpenAnother={props.onOpenAnother}
         onOpenRecent={props.onOpenRecent}
       />
-      <SectionTitle>Views</SectionTitle>
-      <ul className="px-1.5">
-        {views.map((v) => (
-          <li key={v.id}>
-            <button
-              type="button"
-              aria-current={props.view === v.id ? "page" : undefined}
-              disabled={v.id === "focus" && !props.canFocus}
-              title={
-                v.id === "focus" && !props.canFocus
-                  ? "Select a file first"
-                  : undefined
-              }
-              className={cx(
-                "hover:bg-hover flex h-7 w-full items-center gap-2 rounded-md px-2 text-left disabled:opacity-40 disabled:hover:bg-transparent",
-                props.view === v.id && "bg-active font-medium",
-              )}
-              onClick={() => {
-                props.onView(v.id);
-              }}
-            >
-              <v.icon size={15} strokeWidth={1.75} aria-hidden="true" />
-              <span className="flex-1">{v.label}</span>
-              {v.id === "findings" && props.findingsCount > 0 && (
-                <span className="bg-sunken text-muted rounded-full px-1.5 text-[11px]">
-                  {props.findingsCount}
-                </span>
-              )}
-              {v.shortcut && (
-                <span className="text-faint text-[11px]">
-                  {shortcutLabel(v.shortcut, mac)}
-                </span>
-              )}
-            </button>
-          </li>
-        ))}
-      </ul>
       <SectionTitle>Files</SectionTitle>
       <div className="min-h-0 flex-1 overflow-auto">
         <FileTree

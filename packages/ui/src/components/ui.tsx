@@ -80,6 +80,8 @@ export interface SegmentedOption<T extends string | number> {
   readonly icon?: LucideIcon;
   readonly title?: string;
   readonly disabled?: boolean;
+  /** A count shown after the label (left out when zero). */
+  readonly badge?: number;
 }
 
 /** A row of mutually exclusive buttons (aria-pressed), like a native segmented control. */
@@ -117,6 +119,11 @@ export function Segmented<T extends string | number>(props: {
           >
             {Icon && <Icon size={14} strokeWidth={1.75} aria-hidden="true" />}
             {!props.iconOnly && o.label}
+            {o.badge !== undefined && o.badge > 0 && (
+              <span className="bg-sunken text-muted rounded-full px-1.5 text-[10px] leading-4 tabular-nums">
+                {o.badge}
+              </span>
+            )}
           </button>
         );
       })}

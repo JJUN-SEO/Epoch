@@ -70,7 +70,7 @@ import {
 import { ContextMenu, type ContextMenuItem } from "./ContextMenu";
 import { Inspector } from "./Inspector";
 import { ResizeHandle } from "./ResizeHandle";
-import { isTyping, matches, shortcutLabel } from "./shortcuts";
+import { isTyping, matches, shortcutLabel, type Shortcut } from "./shortcuts";
 import { Sidebar, type View } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
 import { TitleBar } from "./TitleBar";
@@ -138,6 +138,9 @@ export function Workspace({
   onOpenSettings,
 }: WorkspaceProps) {
   const mac = isMac();
+  /** A view's tooltip: its name and keyboard shortcut. */
+  const viewTitle = (name: string, shortcut: Shortcut | undefined) =>
+    shortcut ? `${name} (${shortcutLabel(shortcut, mac)})` : name;
   /** Offline mode and this month's spend, for the status bar (the desktop app). */
   const [modelStatus, setModelStatus] = useState<{
     offline: boolean;
@@ -765,15 +768,28 @@ export function Workspace({
               run(VIEW_COMMANDS[v], "key");
             }}
             options={[
-              { value: "graph", label: "Graph", icon: Network },
+              {
+                value: "graph",
+                label: "Graph",
+                icon: Network,
+                title: viewTitle("Graph", SHORTCUTS["view.graph"]),
+              },
               {
                 value: "focus",
                 label: "Focus",
                 icon: Crosshair,
                 disabled: !canFocus,
-                title: canFocus ? "Focus view" : "Select a file first",
+                title: canFocus
+                  ? viewTitle("Focus", SHORTCUTS["view.focus"])
+                  : "Select a file first",
               },
-              { value: "findings", label: "Findings", icon: Lightbulb },
+              {
+                value: "findings",
+                label: "Findings",
+                icon: Lightbulb,
+                badge: summary.total,
+                title: viewTitle("Findings", SHORTCUTS["view.findings"]),
+              },
             ]}
           />
         </div>
@@ -828,12 +844,6 @@ export function Workspace({
               project={project}
               graph={graph}
               shell={shell}
-              view={view}
-              canFocus={canFocus}
-              findingsCount={summary.total}
-              onView={(v) => {
-                run(VIEW_COMMANDS[v], "key");
-              }}
               selected={selected}
               onSelect={show}
               onActivate={focusOn}
@@ -889,6 +899,9 @@ export function Workspace({
                   onSelect={setSelected}
                   onActivate={focusOn}
                   controlsRef={graph3dControls}
+                  onShow2D={() => {
+                    updatePrefs({ graphMode: "2d" });
+                  }}
                 />
               </Suspense>
             </div>
