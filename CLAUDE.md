@@ -4,8 +4,6 @@ A local-first desktop app (macOS, Windows, Linux) that parses a codebase in most
 
 Open a project folder in the app and it analyzes it. Your code never leaves your machine by default, and Epoch never modifies your project.
 
-This is a portfolio project. Priorities: a working app on real open source repos; an architecture I can explain in an interview; measured results (parse time, incremental update time, edge accuracy, finding precision, token cost, scorer calibration). Never fabricate numbers. Measure them.
-
 ## Document map and precedence
 
 - **CLAUDE.md** (this file): what Epoch is, the rules, and the data contracts. Source of truth.
