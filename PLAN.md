@@ -371,7 +371,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 
 **Acceptance:** CI-built installers for macOS and Windows (Linux if time) from a tag; clean-machine smoke test passes; every README number traces to a script.
 
-**Release gate still open:** push a tag matching the app version to exercise `release.yml`, review and publish its draft, and enable the GitHub Actions source in Pages for the first site deploy. No draft or Pages URL is claimed live before those runs pass.
+**Release gate still open:** push a tag matching the app version to exercise `release.yml`, review and publish its draft, enable the GitHub Actions source in Pages, and merge to `main`, since `site.yml` deploys only from `main`. No draft or Pages URL is claimed live before those runs pass.
 
 ---
 
