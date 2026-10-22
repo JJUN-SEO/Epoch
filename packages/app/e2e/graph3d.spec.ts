@@ -33,6 +33,30 @@ async function open(epoch: Launched, folder: string): Promise<void> {
   await expect(epoch.page.getByTestId("graph-stats")).toContainText(" edges");
 }
 
+/**
+ * How many pixels of the 3D canvas are strongly colored: the files' spheres
+ * (folder colors), not the gray edges or the background. Electron decodes
+ * the screenshot, so the check sees what the GPU drew, not the scene's data.
+ */
+async function coloredPixels(epoch: Launched): Promise<number> {
+  const png = await epoch.page.getByTestId("graph3d-canvas").screenshot();
+  return epoch.app.evaluate(({ nativeImage }, base64) => {
+    const bitmap = nativeImage
+      .createFromBuffer(Buffer.from(base64, "base64"))
+      .toBitmap();
+    let colored = 0;
+    for (let i = 0; i + 3 < bitmap.length; i += 4) {
+      const [b, g, r] = [
+        bitmap[i] ?? 0,
+        bitmap[i + 1] ?? 0,
+        bitmap[i + 2] ?? 0,
+      ];
+      if (Math.max(r, g, b) - Math.min(r, g, b) > 60) colored++;
+    }
+    return colored;
+  }, png.toString("base64"));
+}
+
 const dimensions = (page: Page) =>
   page.getByRole("group", { name: "Dimensions" });
 const detailsTitle = (page: Page) =>
@@ -63,6 +87,8 @@ test("the 3D overview draws the files, and clicking picks them", async () => {
       .toBeGreaterThanOrEqual(1);
     await expect(canvas.locator("canvas")).toHaveCount(1);
     await expect(page.getByTestId("graph-canvas")).toBeHidden();
+    // The spheres are on screen, not just in the scene.
+    await expect.poll(() => coloredPixels(epoch)).toBeGreaterThan(50);
 
     // Choosing a file from the accessible list selects it and flies to it.
     const listed = page.locator('button[data-node3d-id="src/app.ts"]');

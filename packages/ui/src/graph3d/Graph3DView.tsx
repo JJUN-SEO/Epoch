@@ -24,6 +24,8 @@ export interface Graph3DViewProps {
   /** Double-click: open the file in the focus view. */
   readonly onActivate: (id: string) => void;
   readonly controlsRef?: Ref<CanvasControls | undefined>;
+  /** Switches the graph to 2D (offered when the 3D view cannot draw). */
+  readonly onShow2D?: () => void;
 }
 
 /** Finished layouts, so switching back to 3D shows the graph at once. */
@@ -276,13 +278,24 @@ export function Graph3DView(props: Graph3DViewProps) {
                 ? `The 3D layout stopped: ${trouble.message}`
                 : `The 3D view could not start: ${trouble.message}`}
           </p>
-          <button
-            type="button"
-            className="bg-raised hover:bg-hover shadow-pop rounded-md px-3 py-1.5 text-sm"
-            onClick={restart}
-          >
-            Restart 3D view
-          </button>
+          <div className="flex gap-2">
+            {props.onShow2D && (
+              <button
+                type="button"
+                className="bg-raised hover:bg-hover shadow-pop rounded-md px-3 py-1.5 text-sm"
+                onClick={props.onShow2D}
+              >
+                Show 2D Graph
+              </button>
+            )}
+            <button
+              type="button"
+              className="bg-raised hover:bg-hover shadow-pop rounded-md px-3 py-1.5 text-sm"
+              onClick={restart}
+            >
+              Restart 3D view
+            </button>
+          </div>
         </div>
       )}
       <ul className="sr-only" aria-label="3D graph nodes">
