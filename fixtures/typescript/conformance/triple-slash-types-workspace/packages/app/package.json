@@ -1,0 +1,7 @@
+{
+  "name": "@acme/app",
+  "type": "module",
+  "dependencies": {
+    "@acme/lib": "workspace:*"
+  }
+}

@@ -19,7 +19,7 @@ import { analyze } from "./analyze.js";
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REGISTERED_ADAPTERS = new Set(["typescript", "python", "go"]);
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
-  typescript: 21,
+  typescript: 22,
   python: 16,
   go: 15,
 };

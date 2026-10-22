@@ -327,10 +327,11 @@ const isRelativePath = (p: string) =>
   p.startsWith("./") || p.startsWith("../") || p.startsWith("/");
 
 /**
- * Triple-slash references to files, as type-only dependencies. TypeScript
- * reads them only in the leading comments. `path` is relative to the file
- * even without "./"; `types` names a file only when it is a relative path (a
- * package name, like "node", is a type package, not a file).
+ * Triple-slash references, as type-only dependencies. TypeScript reads them
+ * only in the leading comments. `path` is a file relative to this one even
+ * without "./"; `types` is a relative file or a package name, resolved like
+ * an import: a workspace package is a file in the repo, a third-party one
+ * (like "node") is recorded as an external package.
  */
 function referencePaths(root: Node): Pending[] {
   const out: Pending[] = [];
@@ -339,10 +340,10 @@ function referencePaths(root: Node): Pending[] {
     const m = REFERENCE.exec(c.text);
     const raw = m?.[3];
     if (raw === undefined) continue;
-    if (m?.[1] === "types" && !isRelativePath(raw)) continue;
+    const asPackage = m?.[1] === "types" && !isRelativePath(raw);
     out.push({
       kind: "static",
-      specifier: isRelativePath(raw) ? raw : `./${raw}`,
+      specifier: asPackage || isRelativePath(raw) ? raw : `./${raw}`,
       typeOnly: true,
       names: [],
       line: lineOf(c),
