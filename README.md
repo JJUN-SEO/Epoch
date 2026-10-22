@@ -6,6 +6,16 @@ Epoch is a local-first desktop app for TypeScript/JavaScript, Python and Go. Ope
 
 ![Epoch's shared app UI exploring zod's graph and candidate findings](docs/media/demo.gif)
 
+## Why
+
+Before changing a file in an unfamiliar codebase, you want to know three things: what depends on it, how risky it is to touch, and whether the code around it still runs at all. Epoch answers them from the code and its git history, on your machine:
+
+- **Blast radius:** every file that transitively imports the one you select, grouped by folder and language.
+- **Risk tiers:** a tier built from three facts you can check (how many files depend on it, how often it changed in the last 90 days, and its size or test coverage), never an opaque score.
+- **Candidate findings:** branches that likely never run, possibly stale feature flags, and files no entry point reaches, each with its evidence and caveats.
+
+Edges a resolver proved are facts and drawn solid; anything inferred is a hint, drawn dashed with its evidence. Each language says how precisely it is resolved.
+
 ## Try Epoch
 
 | Platform             | Installer                                                                                                                                                                                                                |
@@ -39,7 +49,19 @@ The demo links become live after the first GitHub Pages deployment.
 
 ## How it works
 
-Epoch parses files as data, resolves dependency edges, reads local git history for churn and risk, then applies a deterministic findings rubric. It keeps parsed facts in a local cache and updates the graph as files change. The [architecture guide](docs/architecture.md) diagrams the process, network boundary and release flow.
+Epoch parses files as data, resolves dependency edges, reads local git history for churn and risk, then applies a deterministic findings rubric. It keeps parsed facts in a local cache and updates the graph as files change. The desktop app and the CLI run the same engine:
+
+```mermaid
+flowchart LR
+  R["Renderer<br/>React, sandboxed, no Node"] -->|typed, validated IPC| M["Main process<br/>windows, keys, one egress"]
+  M --> H["Analysis host<br/>utilityProcess, no network"]
+  C["epoch CLI"] --> E
+  H --> E["Engine: discover, parse, extract,<br/>resolve, graph, hints, risk, findings"]
+  E --> K[("Local cache<br/>facts and hashes, no source")]
+  E -->|read only| P[("Your project<br/>and its git history")]
+```
+
+The [architecture guide](docs/architecture.md) diagrams the processes, the pipeline, the network boundary and the release flow.
 
 ### Privacy and data flow
 
@@ -232,27 +254,44 @@ The headless CLI shares the engine: `node packages/cli/dist/bin.js analyze <fold
 
 Similarity hints need the local embedding model, which is not in the repository. `node scripts/fetch-model.mjs` downloads the pinned default into `models/` (checked against its sha256; behind a proxy, set `NODE_USE_ENV_PROXY=1`). `pnpm dev` and `pnpm package` then use it, and the CLI takes `--embedding-model models/<id>`. Without it, everything else works and similarity is off.
 
-| Command                      | What it does                                                        |
-| ---------------------------- | ------------------------------------------------------------------- |
-| `pnpm build`                 | Compile every package (`dist/`, and the app's `out/`)               |
-| `pnpm dev`                   | Run the desktop app with hot reload                                 |
-| `pnpm package`               | Build this OS's installers (unsigned)                               |
-| `pnpm package:dir`           | Build the unpacked app the packaged e2e tests drive                 |
-| `pnpm e2e`                   | Playwright end-to-end and security tests                            |
-| `pnpm bench`                 | Analysis timings on pinned repositories                             |
-| `pnpm bench:accuracy`        | TS/JS edge accuracy against dependency-cruiser                      |
-| `pnpm bench:accuracy-python` | Python edge accuracy against grimp (needs a virtualenv)             |
-| `pnpm bench:accuracy-go`     | Go edge accuracy against `go list` (needs a Go toolchain)           |
-| `pnpm bench:watch`           | Watcher latency and churn cost                                      |
-| `pnpm bench:scorers`         | Hint scorers on a temporal holdout (`--embedding-model <dir>`)      |
-| `pnpm typecheck`             | Type-check every package                                            |
-| `pnpm lint`                  | Prettier check, then ESLint on every package                        |
-| `pnpm test`                  | Build, then run each package's Vitest suite                         |
-| `pnpm check`                 | `lint`, `typecheck` and `test` in one command                       |
-| `pnpm format`                | Format the repository with Prettier                                 |
-| `pnpm telemetry:off`         | Turn off Turborepo telemetry for direct `turbo` use on this machine |
+| Command                      | What it does                                                         |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `pnpm build`                 | Compile every package (`dist/`, and the app's `out/`)                |
+| `pnpm dev`                   | Run the desktop app with hot reload                                  |
+| `pnpm package`               | Build this OS's installers (unsigned)                                |
+| `pnpm package:dir`           | Build the unpacked app the packaged e2e tests drive                  |
+| `pnpm e2e`                   | Playwright end-to-end and security tests                             |
+| `pnpm bench`                 | Analysis timings on pinned repositories                              |
+| `pnpm bench:accuracy`        | TS/JS edge accuracy against dependency-cruiser                       |
+| `pnpm bench:accuracy-python` | Python edge accuracy against grimp (needs a virtualenv)              |
+| `pnpm bench:accuracy-go`     | Go edge accuracy against `go list` (needs a Go toolchain)            |
+| `pnpm bench:watch`           | Watcher latency and churn cost                                       |
+| `pnpm bench:findings`        | Findings on pinned repositories, the hindsight test and review sheet |
+| `pnpm bench:risk`            | Risk tiers against later fix commits                                 |
+| `pnpm bench:scorers`         | Hint scorers on a temporal holdout (`--embedding-model <dir>`)       |
+| `pnpm bench:summaries`       | Summary cost, full and incremental (needs your provider key)         |
+| `pnpm site:data`             | Regenerate the demo graphs with the CLI at the pinned commits        |
+| `pnpm typecheck`             | Type-check every package                                             |
+| `pnpm lint`                  | Prettier check, then ESLint on every package                         |
+| `pnpm test`                  | Build, then run each package's Vitest suite                          |
+| `pnpm check`                 | `lint`, `typecheck` and `test` in one command                        |
+| `pnpm format`                | Format the repository with Prettier                                  |
+| `pnpm telemetry:off`         | Turn off Turborepo telemetry for direct `turbo` use on this machine  |
 
 The root scripts already run Turborepo with its telemetry turned off. `pnpm telemetry:off` is only needed if you also run `turbo` directly.
+
+### The static site
+
+`apps/site` is the landing page and the browser demo: the app's UI on a static `EpochApi` over the graphs in `apps/site/data/`. `pnpm build` builds it with everything else.
+
+```sh
+pnpm --filter @epoch-dev/site preview        # http://127.0.0.1:4173/Epoch/
+pnpm --filter @epoch-dev/site exec playwright install chromium   # once
+pnpm --filter @epoch-dev/site e2e            # Playwright against the preview
+node scripts/site-size.mjs apps/site/dist    # gzip budgets per page and chunk
+```
+
+`pnpm site:data` clones the demo repositories into `.cache/site-repos`, checks each pinned commit, and rewrites `apps/site/data/`; two runs give byte-identical files. With the preview running, `node apps/site/scripts/record-demo.mjs` takes the landing page's screenshot and records a WebM, and `node scripts/make-gif.mjs <webm>` turns it into `docs/media/demo.gif` (both need ffmpeg).
 
 ### Windows notes
 
@@ -267,14 +306,19 @@ packages/
   adapters/typescript/  TypeScript/JavaScript language adapter (tier A)
   adapters/python/      Python language adapter (tier A)
   adapters/go/          Go language adapter, packages as nodes (tier A)
-  findings/             dead-feature detectors and confidence rubric (from M5)
+  findings/             dead-feature detectors, confidence rubric, flag pattern packs
   engine/               analysis pipeline, cache, parse worker pool, git churn, coverage, watcher
   cli/                  the headless `epoch` command
   app/                  Electron main process, preload, analysis host, packaging
   ui/                   React + Cytoscape renderer, written against EpochApi
-  bench/                pnpm bench and the accuracy and watcher benchmarks
+  scorers/              hint scorers, model providers, the network wrapper and tripwire
+  bench/                pnpm bench and the accuracy, findings, risk, scorer and summary benchmarks
+apps/site/              landing page and browser demo (precomputed graphs, no backend)
+scripts/                build, release, site data, README tables and size budgets
 queries/                tree-sitter queries per language
-fixtures/               conformance and safety fixtures per language
+fixtures/               conformance, findings and safety fixtures per language
+docs/architecture.md    processes, pipeline, network policy and release flow
+docs/privacy.md         the data-flow table
 docs/decisions/         architecture decision records
 docs/benchmarks/        generated and measured reports
 ```
@@ -283,8 +327,11 @@ docs/benchmarks/        generated and measured reports
 
 - [CLAUDE.md](CLAUDE.md): what Epoch is, the rules, and the data contracts (source of truth).
 - [PLAN.md](PLAN.md): build order, milestones and acceptance criteria.
+- [docs/architecture.md](docs/architecture.md): processes, pipeline, network policy and release flow.
+- [docs/privacy.md](docs/privacy.md): what leaves the machine, feature by feature.
 - [docs/findings.md](docs/findings.md): finding kinds, rubric, configuration and limits.
 - [docs/decisions/](docs/decisions/): architecture decision records.
+- [docs/benchmarks/](docs/benchmarks/): the measured reports the tables above are copied from.
 
 ## License
 
