@@ -33,7 +33,7 @@ sha256sum Epoch-linux-x64.deb                 # Linux
 
 In PowerShell: `Get-FileHash .\Epoch-win-x64-setup.exe -Algorithm SHA256`. Compare the printed hash with the matching line in `SHA256SUMS.txt`.
 
-Early builds are **unsigned**. The macOS app has an ad hoc signature, without Apple notarization; if Gatekeeper blocks it, open Privacy & Security and choose **Open Anyway** after verifying the download. Windows may show SmartScreen; choose **More info → Run anyway** after verifying the hash. The Windows installer is per-user. On Ubuntu 24.04, prefer the `.deb`; the AppImage may need FUSE and a compatible AppArmor configuration. Do not turn off Chromium's sandbox to run it. Signing is deferred until the maintainer chooses how to fund and maintain it.
+Early builds are **unsigned**. The macOS app has an ad hoc signature, without Apple notarization; if Gatekeeper blocks it, open Privacy & Security and choose **Open Anyway** after verifying the download. Windows may show SmartScreen; choose **More info → Run anyway** after verifying the hash. The Windows installer is per-user. On Ubuntu 24.04, prefer the `.deb`; the AppImage may need FUSE and a compatible AppArmor configuration. Do not turn off Chromium's sandbox to run it. Staying unsigned is a deliberate choice for now ([ADR-018](docs/decisions/ADR-018-distribution.md)); signed builds would remove these warnings.
 
 To use the CLI without an installer, build the repository and run `node packages/cli/dist/bin.js analyze <folder> --json` or `node packages/cli/dist/bin.js findings <folder> --json`. npm publication remains open.
 

@@ -364,7 +364,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - [x] `electron-builder` config for macOS (dmg), Windows (NSIS), Linux (AppImage/deb). Native modules are unpacked; grammar WASM stays in the asar because it is read with `fs` (ADR-018). Packaged e2e and installer smoke tests passed on all three OSes in [run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655).
 - [x] GitHub Actions release matrix (one runner per OS so native modules build correctly); a matching version tag creates a draft GitHub Release after smoke tests. Matrix verified on a branch; the first tag run remains the release gate.
 - [x] Check and notify for a newer release, with opt-out and no download or install, listed in the data-flow table (ADR-018).
-- [x] Signing: unsigned early builds with first-run and checksum instructions. macOS is ad hoc signed only; no signing money spent.
+- [x] Signing: unsigned early builds with first-run and checksum instructions. macOS is ad hoc signed only; no signing money spent. Maintainer decision (2026-10-22): stay unsigned (ADR-018).
 - [x] **Site** (`apps/site`): landing page, downloads, and in-browser demo viewer using the static `EpochApi`, with graphs and findings precomputed by the CLI for zod, Flask and cli/cli at pinned SHAs with license/attribution. No backend or model features. Pages deploy is configured in `site.yml`; the repository's Pages source must be set to GitHub Actions before its first deploy.
 - [x] **README:** problem, demo GIF, architecture diagrams, privacy and data-flow table, findings and measured precision, tradeoffs, signing, and benchmark tables copied by `scripts/readme-tables.mjs` and checked in lint.
 - [x] Fresh-runner installer smoke tests per OS: install, open zod, blast radius, findings banner, offline mode, and zero-network log, [run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655).
@@ -420,7 +420,7 @@ Always classify disagreements (tool wrong, we're wrong, ambiguous or dynamic) be
 | Jev access delayed or API changes | `RelationScorer` interface, heuristic and LLM fallbacks, mark "not run" |
 | Scope creep (languages, findings, hints, load tests) | MVP/v2 boundary, milestone gates, scope-cut order, no building ahead |
 | Surprise costs for users | Estimates, confirmations, spend cap, model features off by default |
-| Unsigned installers scare users | Document first-run steps; decide on signing before a public launch |
+| Unsigned installers scare users | Document first-run steps; decided to stay unsigned for now (ADR-018); revisit before a wide public launch |
 
 ## Kickoff prompts (copy and paste into Claude Code in plan mode)
 
