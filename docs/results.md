@@ -27,8 +27,9 @@ TypeScript/JavaScript versus dependency-cruiser, from [the TS/JS report](benchma
 
 | Repository                               | Commit       | Files | Epoch edges | Tool edges | Agreed | Raw precision | Raw recall | Adjusted precision | Adjusted recall | Unclassified |
 | ---------------------------------------- | ------------ | ----- | ----------- | ---------- | ------ | ------------- | ---------- | ------------------ | --------------- | ------------ |
-| https://github.com/colinhacks/zod.git    | 680d19f7d1e0 | 522   | 965         | 643        | 643    | 66.6%         | 100.0%     | 100.0%             | 100.0%          | 0            |
-| https://github.com/vitest-dev/vitest.git | 2899eb3e9793 | 2400  | 4632        | 2577       | 2556   | 55.2%         | 99.2%      | 100.0%             | 100.0%          | 0            |
+| https://github.com/colinhacks/zod.git    | 680d19f7d1e0 | 523   | 965         | 901        | 901    | 93.4%         | 100.0%     | 100.0%             | 100.0%          | 0            |
+| https://github.com/vitest-dev/vitest.git | 2899eb3e9793 | 2400  | 4636        | 4405       | 4374   | 94.3%         | 99.3%      | 100.0%             | 100.0%          | 0            |
+| https://github.com/vuejs/core.git        | 0ff253bfba3e | 528   | 1818        | 1818       | 1818   | 100.0%        | 100.0%     | 100.0%             | 100.0%          | 0            |
 
 <!-- END GENERATED:typescript-accuracy -->
 

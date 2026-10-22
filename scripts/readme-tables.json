@@ -59,8 +59,8 @@
           "[performance](docs/benchmarks/typescript-performance.md)"
         ],
         [
-          "TS/JS edges vs dependency-cruiser, precision / recall (adjusted: each disagreement classified)",
-          "zod {typescript-accuracy|https://github.com/colinhacks/zod.git|Adjusted precision} / {typescript-accuracy|https://github.com/colinhacks/zod.git|Adjusted recall}; vitest {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Adjusted precision} / {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Adjusted recall}",
+          "TS/JS edges vs dependency-cruiser, raw precision / recall (the tool as truth; vuejs/core held out)",
+          "zod {typescript-accuracy|https://github.com/colinhacks/zod.git|Raw precision} / {typescript-accuracy|https://github.com/colinhacks/zod.git|Raw recall}; vitest {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Raw precision} / {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Raw recall}; vuejs/core {typescript-accuracy|https://github.com/vuejs/core.git|Raw precision} / {typescript-accuracy|https://github.com/vuejs/core.git|Raw recall}",
           "[TS/JS accuracy](docs/benchmarks/typescript.md)"
         ],
         [

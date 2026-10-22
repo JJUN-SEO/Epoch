@@ -1,5 +1,6 @@
 import type { RawImport, Resolution } from "@epoch-dev/core";
 import { packageName } from "@epoch-dev/adapter-typescript";
+import { exportTargets } from "./reference.js";
 
 /** A file-level edge key. */
 export const edgeKey = (from: string, to: string): string =>
@@ -36,16 +37,23 @@ export interface Disagreement {
 }
 
 export interface ComparisonContext {
-  /** Workspace package names in the repo. */
-  readonly workspacePackages: ReadonlySet<string>;
+  /** Workspace packages by name: repo-relative directory and package.json `exports`. */
+  readonly workspacePackages: ReadonlyMap<
+    string,
+    { readonly dir: string; readonly exports: unknown }
+  >;
   /** Every package.json: its name (if any), repo-relative directory ("" for the root) and `imports` keys. */
   readonly packages: readonly {
     name?: string;
     dir: string;
     imports: readonly string[];
   }[];
-  /** `paths` patterns of tsconfigs the tool was not given, with the declaring tsconfig's directory. */
-  readonly otherAliases: readonly { pattern: string; dir: string }[];
+  /** `paths` patterns of every tsconfig: the declaring tsconfig's directory, and whether it sets `baseUrl`. */
+  readonly aliases: readonly {
+    pattern: string;
+    dir: string;
+    baseUrl: boolean;
+  }[];
 }
 
 export interface Comparison {
@@ -91,25 +99,70 @@ const QUERY = /.[?#]/;
 const within = (file: string, dir: string) =>
   dir === "" || file.startsWith(`${dir}/`);
 
+/** The TypeScript faces of an export target: TypeScript tries x.ts and x.d.ts for x.js. */
+function tsFaces(target: string): string[] {
+  const m = /^(.*)\.([cm]?)js(x?)$/.exec(target);
+  if (!m) return [target];
+  const [, stem = "", flavor = "", x = ""] = m;
+  return [
+    target,
+    `${stem}.${flavor}ts${x}`,
+    ...(x === "" ? [`${stem}.d.${flavor}ts`, `${stem}.tsx`] : []),
+  ];
+}
+
+/**
+ * The repo files a workspace package exports for a specifier's subpath,
+ * under any condition, with TypeScript's .ts faces of .js targets; undefined
+ * when the specifier names no workspace package.
+ */
+function ownExports(
+  spec: string,
+  ctx: ComparisonContext,
+): Set<string> | undefined {
+  const name = packageName(spec);
+  const workspace = ctx.workspacePackages.get(name);
+  if (!workspace) return undefined;
+  const subpath = `.${spec.slice(name.length)}`;
+  return new Set(
+    exportTargets(workspace.exports, subpath)
+      .flatMap(tsFaces)
+      .map((t) => (workspace.dir === "" ? t : `${workspace.dir}/${t}`)),
+  );
+}
+
+const BOTH_EXPORTED =
+  "the workspace package exports both files for this subpath; which one applies depends on the export conditions in effect";
+
 /** Why the tool could not resolve a specifier Epoch resolved, when the cause is certain. */
 function toolMiss(
   from: string,
   spec: string,
+  to: string,
   ctx: ComparisonContext,
 ): string | undefined {
   const name = packageName(spec);
-  if (ctx.workspacePackages.has(name)) {
-    return "workspace package resolved from source; the tool needs an installed node_modules";
+  const own = ownExports(spec, ctx);
+  if (own) {
+    // The tool has the package linked, so it failed on the exports: under
+    // this file's tsconfig they point at build output that is not there.
+    // Epoch's target counts only if the package itself exports that file
+    // for this subpath (under its own source condition).
+    return own.has(to)
+      ? "workspace package: under this file's tsconfig its exports point at unbuilt output; Epoch's target is the package's own export for this subpath"
+      : undefined;
   }
   if (ctx.packages.some((p) => p.name === name && within(from, p.dir))) {
     return "package self-reference through its own package.json exports";
   }
-  if (
-    ctx.otherAliases.some(
-      (a) => within(from, a.dir) && matchesAlias(spec, a.pattern),
-    )
-  ) {
-    return "tsconfig paths alias from a nested tsconfig; the tool reads only the root tsconfig";
+  const alias = ctx.aliases.find(
+    (a) => within(from, a.dir) && matchesAlias(spec, a.pattern),
+  );
+  if (alias) {
+    // Checked on zod's docs: the same tsconfig with a baseUrl added resolves.
+    return alias.baseUrl
+      ? undefined
+      : "tsconfig paths without baseUrl (TypeScript allows it since 4.1); the tool applies paths only with a baseUrl";
   }
   if (spec.startsWith("#")) {
     const owner = ctx.packages
@@ -140,7 +193,7 @@ function classifyEpochOnly(
     const dep = theirs.find((d) => d.specifier === spec);
     if (!dep) continue;
     if (dep.couldNotResolve) {
-      const reason = toolMiss(from, spec, ctx);
+      const reason = toolMiss(from, spec, to, ctx);
       return reason
         ? { ...base, verdict: "tool-wrong", reason }
         : {
@@ -150,6 +203,9 @@ function classifyEpochOnly(
           };
     }
     if (dep.resolved !== null && dep.resolved !== to) {
+      const own = ownExports(spec, ctx);
+      if (own?.has(to) === true && own.has(dep.resolved))
+        return { ...base, verdict: "ambiguous", reason: BOTH_EXPORTED };
       return areSiblings(to, dep.resolved)
         ? { ...base, verdict: "ambiguous", reason: SIBLINGS }
         : {
@@ -171,6 +227,7 @@ function classifyToolOnly(
   to: string,
   ours: readonly EpochImport[],
   theirs: readonly ToolDependency[],
+  ctx: ComparisonContext,
 ): Disagreement {
   const deps = theirs.filter((d) => d.resolved === to);
   const base = {
@@ -214,6 +271,9 @@ function classifyToolOnly(
       };
     }
     if (mine.res.kind === "file" && mine.res.target !== to) {
+      const own = ownExports(dep.specifier, ctx);
+      if (own?.has(to) === true && own.has(mine.res.target))
+        return { ...base, verdict: "ambiguous", reason: BOTH_EXPORTED };
       return areSiblings(to, mine.res.target)
         ? { ...base, verdict: "ambiguous", reason: SIBLINGS }
         : {
@@ -290,6 +350,7 @@ export function compareEdges(input: {
           to,
           ours.get(from) ?? [],
           theirs.get(from) ?? [],
+          input.context,
         ),
       );
     }
