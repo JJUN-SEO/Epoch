@@ -1,0 +1,6 @@
+{
+  "description": "A nested go.mod starts another module: the outer module does not provide its packages, and without a replace or go.work each sees the other as third-party.",
+  "adapters": [
+    "go"
+  ]
+}

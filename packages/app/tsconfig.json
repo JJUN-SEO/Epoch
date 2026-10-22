@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "lib": ["es2024", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true
+  },
+  "include": [
+    "src",
+    "e2e",
+    "smoke",
+    "electron.vite.config.ts",
+    "playwright.config.ts",
+    "playwright.smoke.config.ts"
+  ]
+}

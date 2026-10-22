@@ -1,0 +1,6 @@
+{
+  "description": "Triple-slash reference directives to files are type-only dependencies: path references (relative even without ./) and relative types references; package types references are not files.",
+  "adapters": [
+    "typescript"
+  ]
+}

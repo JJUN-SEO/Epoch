@@ -1,0 +1,30 @@
+{
+  "nodes": [
+    "src/a.ts",
+    "src/data.txt",
+    "src/worker.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/a.ts",
+      "target": "src/data.txt",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "src/a.ts",
+      "target": "src/worker.ts",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "src/a.ts",
+      "specifier": "./missing?raw",
+      "reason": "not-found",
+      "line": 3
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A reassigned variable is not a constant: no finding.",
+  "adapters": [
+    "typescript"
+  ]
+}

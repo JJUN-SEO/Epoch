@@ -1,0 +1,51 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "packages/bench/old.ts"
+      },
+      "confidence": "medium",
+      "caps": [
+        "convention-roots-only"
+      ],
+      "locations": [
+        {
+          "file": "packages/bench/old.ts"
+        }
+      ]
+    },
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "packages/lib/src/dead.ts"
+      },
+      "confidence": "high",
+      "caps": [],
+      "locations": [
+        {
+          "file": "packages/lib/src/dead.ts"
+        }
+      ]
+    },
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "scripts/old.ts"
+      },
+      "confidence": "medium",
+      "caps": [
+        "convention-roots-only"
+      ],
+      "locations": [
+        {
+          "file": "scripts/old.ts"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

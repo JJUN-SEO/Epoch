@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "app/orphan.py"
+      },
+      "confidence": "medium",
+      "caps": [
+        "convention-roots-only"
+      ],
+      "locations": [
+        {
+          "file": "app/orphan.py"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

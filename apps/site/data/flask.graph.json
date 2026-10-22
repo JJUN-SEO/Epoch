@@ -1,0 +1,5208 @@
+{
+  "schemaVersion": 2,
+  "nodes": [
+    {
+      "id": "docs/conf.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 84,
+      "contentHash": "a9732cff1ca5ee0420bc5f656df105c32cea32389033742c8f46dffab3b435cd",
+      "exports": [
+        "author",
+        "autodoc_member_order",
+        "autodoc_preserve_defaults",
+        "autodoc_typehints",
+        "copyright",
+        "default_role",
+        "extensions",
+        "extlinks",
+        "gettext_compact",
+        "gettext_uuid",
+        "github_link",
+        "html_context",
+        "html_favicon",
+        "html_logo",
+        "html_show_sourcelink",
+        "html_sidebars",
+        "html_static_path",
+        "html_theme",
+        "html_theme_options",
+        "html_title",
+        "intersphinx_mapping",
+        "project",
+        "release",
+        "setup",
+        "singlehtml_sidebars",
+        "version"
+      ],
+      "externals": [
+        "docutils",
+        "packaging",
+        "pallets_sphinx_themes"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 0,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/celery/make_celery.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 3,
+      "contentHash": "ff32ebf85ef8791fc07177ffe2dad6020fad34a4a57831d37a8bd8531f6e6707",
+      "exports": [
+        "celery_app",
+        "flask_app"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/celery/src/task_app/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 31,
+      "contentHash": "172de995eb076d7ea1911f20bf4c2fcb72dbc3d7eee3e5796c4cdfa2dfd486ab",
+      "exports": [
+        "Celery",
+        "Flask",
+        "Task",
+        "celery_init_app",
+        "create_app",
+        "render_template"
+      ],
+      "externals": [
+        "celery"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 1,
+        "fanOut": 2,
+        "dependents": 1,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/celery/src/task_app/tasks.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 15,
+      "contentHash": "d2c365c8ed2f5abf0b5b109361ebe58941559b7d67e57f96d6a6b7bd69970364",
+      "exports": [
+        "add",
+        "block",
+        "process"
+      ],
+      "externals": [
+        "celery",
+        "py:time"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 1,
+        "fanOut": 0,
+        "dependents": 3,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/celery/src/task_app/views.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 28,
+      "contentHash": "cb9f3c9ebbb359bae6d49f55fd717700062691d2be60f1700e2abf7060082704",
+      "exports": [
+        "add",
+        "block",
+        "bp",
+        "process",
+        "result"
+      ],
+      "externals": [
+        "celery"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 1,
+        "fanOut": 3,
+        "dependents": 2,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/javascript/js_example/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 3,
+      "contentHash": "ea2307cfd406f1b66de1537bc11eecc7d9ff2bf098b65befbe52e99a52ca2b09",
+      "exports": [
+        "Flask",
+        "app",
+        "views"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 2,
+        "dependents": 2,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/javascript/js_example/views.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 13,
+      "contentHash": "221cbb10e105b7463f25e0f296da6efc4db0346f49c6127f07168f283b3e70ca",
+      "exports": [
+        "add",
+        "index"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 1,
+        "fanOut": 4,
+        "dependents": 2,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/javascript/tests/conftest.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 10,
+      "contentHash": "aff1ac8ea5b7c6e4d7adf67a0eae5c13cbb9adf38e1a2434e6cc7e6824c56b11",
+      "exports": [
+        "client",
+        "fixture_app"
+      ],
+      "externals": [
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/javascript/tests/test_js_example.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 22,
+      "contentHash": "52a0ce22402bb671b391cd278c2ab0865d2d5f9d6daf8d4387ef23337f0a026f",
+      "exports": [
+        "test_add",
+        "test_index"
+      ],
+      "externals": [
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/flaskr/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 36,
+      "contentHash": "cc44165ea4444bc114aedba76cf2f15451f182df97629317589d46902742f118",
+      "exports": [
+        "Flask",
+        "create_app"
+      ],
+      "externals": [
+        "py:os"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 4,
+        "dependents": 2,
+        "churn90d": 1,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/flaskr/auth.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 90,
+      "contentHash": "a5ed5eaa05c6f6ee3e5bdb07b9e657a6e9320a115a68fd74b1cb4ac646680167",
+      "exports": [
+        "bp",
+        "load_logged_in_user",
+        "login",
+        "login_required",
+        "logout",
+        "register"
+      ],
+      "externals": [
+        "py:functools",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 5,
+        "dependents": 4,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/flaskr/blog.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 100,
+      "contentHash": "c49c5f6e3db32d74bfac13633fd328ec904cb7159d76ca78f6956432076c1fd7",
+      "exports": [
+        "bp",
+        "create",
+        "delete",
+        "get_post",
+        "index",
+        "update"
+      ],
+      "externals": [
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 1,
+        "fanOut": 6,
+        "dependents": 3,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/flaskr/db.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 40,
+      "contentHash": "700f9d0a455bf79c9bf6de4f2784f13b96256faea19c15ddee71fb7957e14c31",
+      "exports": [
+        "close_db",
+        "get_db",
+        "init_app",
+        "init_db",
+        "init_db_command"
+      ],
+      "externals": [
+        "click",
+        "py:datetime",
+        "py:sqlite3"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 7,
+        "fanOut": 1,
+        "dependents": 8,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/tests/conftest.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 44,
+      "contentHash": "2778b7c035d917bb0909ec6ee2f9d61ccba030ff8ae635ff65a52c133ec5afca",
+      "exports": [
+        "AuthActions",
+        "app",
+        "auth",
+        "client",
+        "runner"
+      ],
+      "externals": [
+        "py:os",
+        "py:tempfile",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 2,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/tests/test_auth.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 53,
+      "contentHash": "cbbe178c9980d8499561d8eae72f01b8abeead2fa10c9d5f71427da4af38a938",
+      "exports": [
+        "test_login",
+        "test_login_validate_input",
+        "test_logout",
+        "test_register",
+        "test_register_validate_input"
+      ],
+      "externals": [
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 2,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/tests/test_blog.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 61,
+      "contentHash": "a4c01c486e86aed522c3ade398bf4016f6ef59bbada2c7c5f69eb55ce297877c",
+      "exports": [
+        "test_author_required",
+        "test_create",
+        "test_create_update_validate",
+        "test_delete",
+        "test_exists_required",
+        "test_index",
+        "test_login_required",
+        "test_update"
+      ],
+      "externals": [
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/tests/test_db.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 19,
+      "contentHash": "324baea21b981575b4e6d92b6517f21ec2ad86a6138010863a9fcfb4f984e649",
+      "exports": [
+        "test_get_close_db",
+        "test_init_db_command"
+      ],
+      "externals": [
+        "py:sqlite3",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "examples/tutorial/tests/test_factory.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 8,
+      "contentHash": "1906cfed379afe315b6ad7db3c71c951ac87c53b57b28b04b5b6c84df2a79e01",
+      "exports": [
+        "test_config",
+        "test_hello"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "src/flask/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 55,
+      "contentHash": "987bc937d4b0b65d510ed8c2a82218c889e22bf499fe5fe1a94ca73b382927da",
+      "exports": [
+        "Blueprint",
+        "Config",
+        "Flask",
+        "Request",
+        "Response",
+        "abort",
+        "after_this_request",
+        "appcontext_popped",
+        "appcontext_pushed",
+        "appcontext_tearing_down",
+        "before_render_template",
+        "copy_current_request_context",
+        "current_app",
+        "flash",
+        "g",
+        "get_flashed_messages",
+        "get_template_attribute",
+        "got_request_exception",
+        "has_app_context",
+        "has_request_context",
+        "json",
+        "jsonify",
+        "make_response",
+        "message_flashed",
+        "redirect",
+        "render_template",
+        "render_template_string",
+        "request",
+        "request_finished",
+        "request_started",
+        "request_tearing_down",
+        "send_file",
+        "send_from_directory",
+        "session",
+        "stream_template",
+        "stream_template_string",
+        "stream_with_context",
+        "template_rendered",
+        "url_for"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:importlib",
+        "py:typing",
+        "py:warnings"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 23,
+        "fanOut": 10,
+        "dependents": 28,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/__main__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 2,
+      "contentHash": "6d8b7d7846a845059d7a3107143f11131f63c5511d669b44085b15ec5e3d2279",
+      "exports": [],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "src/flask/app.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 1253,
+      "contentHash": "93bb56f0b1d14a57548baccab0528aec0c5afd62f8ceed5edb03cdb6122cbbba",
+      "exports": [
+        "Flask",
+        "T_shell_context_processor",
+        "T_teardown",
+        "T_template_filter",
+        "T_template_global",
+        "T_template_test"
+      ],
+      "externals": [
+        "_typeshed",
+        "asgiref",
+        "click",
+        "py:__future__",
+        "py:collections",
+        "py:datetime",
+        "py:inspect",
+        "py:itertools",
+        "py:os",
+        "py:sys",
+        "py:types",
+        "py:typing",
+        "py:urllib",
+        "py:weakref",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 20,
+        "fanOut": 13,
+        "dependents": 74,
+        "churn90d": 2,
+        "risk": {
+          "tier": "high",
+          "archetype": "active-hotspot"
+        }
+      }
+    },
+    {
+      "id": "src/flask/blueprints.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 102,
+      "contentHash": "a79404da5635f0622d6ddaff44a46967c0e8d7b8343ef4062206644940e15f69",
+      "exports": [
+        "Blueprint"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:datetime",
+        "py:os",
+        "py:typing"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 7,
+        "fanOut": 6,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/cli.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 906,
+      "contentHash": "3df87bdbe07196fa07d101c20ce7351ef5c6ecaab95deb5fdf3ccdcf690d4879",
+      "exports": [
+        "AppGroup",
+        "CertParamType",
+        "F",
+        "FlaskGroup",
+        "NoAppException",
+        "ScriptInfo",
+        "SeparatedPathType",
+        "cli",
+        "find_app_by_string",
+        "find_best_app",
+        "get_version",
+        "load_dotenv",
+        "locate_app",
+        "main",
+        "pass_script_info",
+        "prepare_import",
+        "routes_command",
+        "run_command",
+        "shell_command",
+        "show_server_banner",
+        "version_option",
+        "with_appcontext"
+      ],
+      "externals": [
+        "_typeshed",
+        "click",
+        "cryptography",
+        "dotenv",
+        "importlib_metadata",
+        "py:__future__",
+        "py:ast",
+        "py:code",
+        "py:collections",
+        "py:functools",
+        "py:importlib",
+        "py:inspect",
+        "py:operator",
+        "py:os",
+        "py:platform",
+        "py:re",
+        "py:readline",
+        "py:rlcompleter",
+        "py:ssl",
+        "py:sys",
+        "py:traceback",
+        "py:types",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 6,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/config.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 286,
+      "contentHash": "3e2a85d033da9ba1d6d051f8087d61a574c17b7d0d4b38cf10ec2bcf56fa92dd",
+      "exports": [
+        "Config",
+        "ConfigAttribute",
+        "T"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:errno",
+        "py:json",
+        "py:os",
+        "py:types",
+        "py:typing",
+        "typing_extensions",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 1,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/ctx.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 358,
+      "contentHash": "a0c7b44d1b12716d2a75a22a6af56c93c3fdaa212f018e551e7d45020917f279",
+      "exports": [
+        "AppContext",
+        "F",
+        "RequestContext",
+        "after_this_request",
+        "copy_current_request_context",
+        "has_app_context",
+        "has_request_context"
+      ],
+      "externals": [
+        "_typeshed",
+        "py:__future__",
+        "py:contextvars",
+        "py:functools",
+        "py:sys",
+        "py:types",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 4,
+        "fanOut": 6,
+        "dependents": 74,
+        "churn90d": 1,
+        "risk": {
+          "tier": "high",
+          "archetype": "active-hotspot"
+        }
+      }
+    },
+    {
+      "id": "src/flask/debughelpers.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 146,
+      "contentHash": "3c6203852b56fde7d18e969adf31c8a68fa1b52b49391e35229dce2563d8070a",
+      "exports": [
+        "DebugFilesKeyError",
+        "FormDataRoutingRedirect",
+        "UnexpectedUnicodeError",
+        "attach_enctype_error_multidict",
+        "explain_template_loading_attempts"
+      ],
+      "externals": [
+        "jinja2",
+        "py:__future__",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 4,
+        "fanOut": 5,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/globals.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 43,
+      "contentHash": "5dd419992b4198f22cf2df77b63c7aa4eec19b78286c068e3569057141da19ab",
+      "exports": [
+        "app_ctx",
+        "current_app",
+        "g",
+        "request",
+        "request_ctx",
+        "session"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:contextvars",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 28,
+        "fanOut": 4,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/helpers.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 505,
+      "contentHash": "ac96607bbfc9dbcf09d5442fe7e90d7f8a046b0df7d8f3fc3535b44112016d71",
+      "exports": [
+        "abort",
+        "flash",
+        "get_debug_flag",
+        "get_flashed_messages",
+        "get_load_dotenv",
+        "get_root_path",
+        "get_template_attribute",
+        "make_response",
+        "redirect",
+        "send_file",
+        "send_from_directory",
+        "stream_with_context",
+        "url_for"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:datetime",
+        "py:functools",
+        "py:importlib",
+        "py:os",
+        "py:sys",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 12,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/json/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 122,
+      "contentHash": "84b351f3df296aaa1e7dd78086b69ae70c89cbe6e6441da4d9d578120572d99f",
+      "exports": [
+        "Response",
+        "current_app",
+        "dump",
+        "dumps",
+        "jsonify",
+        "load",
+        "loads"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:json",
+        "py:typing"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 7,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/json/provider.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 163,
+      "contentHash": "e62984cd8e478d5d87a1456b41b24ba970b330da595df0f46355ea74b5765c10",
+      "exports": [
+        "DefaultJSONProvider",
+        "JSONProvider"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:dataclasses",
+        "py:datetime",
+        "py:decimal",
+        "py:json",
+        "py:typing",
+        "py:uuid",
+        "py:weakref",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 3,
+        "fanOut": 1,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/json/tag.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 236,
+      "contentHash": "0e168dc2e20e85db7647be28382f58e19f19a6bc4562245be5d50fe5bcb220dc",
+      "exports": [
+        "JSONTag",
+        "PassDict",
+        "PassList",
+        "TagBytes",
+        "TagDateTime",
+        "TagDict",
+        "TagMarkup",
+        "TagTuple",
+        "TagUUID",
+        "TaggedJSONSerializer"
+      ],
+      "externals": [
+        "markupsafe",
+        "py:__future__",
+        "py:base64",
+        "py:datetime",
+        "py:typing",
+        "py:uuid",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 1,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/logging.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 55,
+      "contentHash": "f2c33758c4ee6e2d5c05bd9cfe53e45a937427c74c02aae029160b2e2d5d0952",
+      "exports": [
+        "create_logger",
+        "default_handler",
+        "has_level_handler",
+        "wsgi_errors_stream"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:logging",
+        "py:sys",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 2,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/sansio/app.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 796,
+      "contentHash": "c211944500e43748e6852e021ceec343de861a5652d2411390a9009284639785",
+      "exports": [
+        "App",
+        "T_shell_context_processor",
+        "T_teardown",
+        "T_template_filter",
+        "T_template_global",
+        "T_template_test"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:datetime",
+        "py:itertools",
+        "py:logging",
+        "py:os",
+        "py:sys",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 7,
+        "fanOut": 10,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/sansio/blueprints.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 524,
+      "contentHash": "4ea7beec4919fad6d67219bc883a027c3f38f1fd3fde72efe8d3637883ef1f03",
+      "exports": [
+        "Blueprint",
+        "BlueprintSetupState",
+        "DeferredSetupFunction",
+        "T_after_request",
+        "T_before_request",
+        "T_error_handler",
+        "T_teardown",
+        "T_template_context_processor",
+        "T_template_filter",
+        "T_template_global",
+        "T_template_test",
+        "T_url_defaults",
+        "T_url_value_preprocessor"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:collections",
+        "py:functools",
+        "py:os",
+        "py:typing"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 2,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/sansio/scaffold.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 641,
+      "contentHash": "c120125d8745456266a9c2f45eaf93ecdf8f0d55128851af8cef643d9839f1b9",
+      "exports": [
+        "F",
+        "Scaffold",
+        "T_after_request",
+        "T_before_request",
+        "T_error_handler",
+        "T_route",
+        "T_teardown",
+        "T_template_context_processor",
+        "T_url_defaults",
+        "T_url_value_preprocessor",
+        "find_package",
+        "setupmethod"
+      ],
+      "externals": [
+        "click",
+        "jinja2",
+        "py:__future__",
+        "py:collections",
+        "py:functools",
+        "py:importlib",
+        "py:os",
+        "py:pathlib",
+        "py:sys",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 6,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/sessions.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 310,
+      "contentHash": "7b2c11aa6cad4e66275ff102efcf980462684dce570ff951a61406e4b6cdd5dd",
+      "exports": [
+        "NullSession",
+        "SecureCookieSession",
+        "SecureCookieSessionInterface",
+        "SessionInterface",
+        "SessionMixin",
+        "session_json_serializer"
+      ],
+      "externals": [
+        "itsdangerous",
+        "py:__future__",
+        "py:collections",
+        "py:datetime",
+        "py:hashlib",
+        "py:typing",
+        "typing_extensions",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 6,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 2,
+        "risk": {
+          "tier": "high",
+          "archetype": "active-hotspot"
+        }
+      }
+    },
+    {
+      "id": "src/flask/signals.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 14,
+      "contentHash": "57b94c530c3b0aa809d93854067d4f89ab59b506a73b2b7b399a6ed86648fb7e",
+      "exports": [
+        "appcontext_popped",
+        "appcontext_pushed",
+        "appcontext_tearing_down",
+        "before_render_template",
+        "got_request_exception",
+        "message_flashed",
+        "request_finished",
+        "request_started",
+        "request_tearing_down",
+        "template_rendered"
+      ],
+      "externals": [
+        "blinker",
+        "py:__future__"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 7,
+        "fanOut": 0,
+        "dependents": 76,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/templating.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 174,
+      "contentHash": "bdb224c18031b1211f0f14080f580a46f05041c19612e5980a71f45cadc4a8e2",
+      "exports": [
+        "DispatchingJinjaLoader",
+        "Environment",
+        "render_template",
+        "render_template_string",
+        "stream_template",
+        "stream_template_string"
+      ],
+      "externals": [
+        "jinja2",
+        "py:__future__",
+        "py:typing"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 8,
+        "fanOut": 7,
+        "dependents": 74,
+        "churn90d": 1,
+        "risk": {
+          "tier": "moderate",
+          "archetype": "warm-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/testing.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 237,
+      "contentHash": "cf30bb5f184158e3fd1faf7b215ff8486ecb8372f36f93d68b210ff77fca4171",
+      "exports": [
+        "EnvironBuilder",
+        "FlaskCliRunner",
+        "FlaskClient"
+      ],
+      "externals": [
+        "_typeshed",
+        "click",
+        "py:__future__",
+        "py:contextlib",
+        "py:copy",
+        "py:importlib",
+        "py:types",
+        "py:typing",
+        "py:urllib",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 6,
+        "fanOut": 3,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/typing.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 83,
+      "contentHash": "2fe2f9b768ca812d1a3a65618a843fca5a9c8225459c0eb2c4ef912cd86af865",
+      "exports": [
+        "AfterRequestCallable",
+        "AppOrBlueprintKey",
+        "BeforeFirstRequestCallable",
+        "BeforeRequestCallable",
+        "ErrorHandlerCallable",
+        "HeaderValue",
+        "HeadersValue",
+        "ResponseClass",
+        "ResponseReturnValue",
+        "ResponseValue",
+        "RouteCallable",
+        "ShellContextProcessorCallable",
+        "TeardownCallable",
+        "TemplateContextProcessorCallable",
+        "TemplateFilterCallable",
+        "TemplateGlobalCallable",
+        "TemplateTestCallable",
+        "URLDefaultCallable",
+        "URLValuePreprocessorCallable"
+      ],
+      "externals": [
+        "_typeshed",
+        "py:__future__",
+        "py:collections",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 6,
+        "fanOut": 0,
+        "dependents": 75,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "src/flask/views.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 146,
+      "contentHash": "c73271ea826a18495386d12085937b65018cc394c3172b91c5491e73046e0280",
+      "exports": [
+        "F",
+        "MethodView",
+        "View",
+        "http_method_funcs"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:typing"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 4,
+        "fanOut": 2,
+        "dependents": 4,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "src/flask/wrappers.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 194,
+      "contentHash": "8d492fe2655e93622ae21c3177846faab20c6faf41bf43c49438162e6779391a",
+      "exports": [
+        "Request",
+        "Response"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:typing",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 12,
+        "fanOut": 4,
+        "dependents": 74,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
+        }
+      }
+    },
+    {
+      "id": "tests/conftest.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 95,
+      "contentHash": "ea0734fd65cf1fd22670f2d525bbdf9936bc2a2c6bd67a9b40a3a2edcc87d8d3",
+      "exports": [
+        "app",
+        "app_ctx",
+        "client",
+        "leak_detector",
+        "modules_tmp_path",
+        "modules_tmp_path_prefix",
+        "purge_module",
+        "req_ctx",
+        "site_packages",
+        "test_apps"
+      ],
+      "externals": [
+        "_pytest",
+        "py:os",
+        "py:sys",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 2,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_appctx.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 149,
+      "contentHash": "4e40c0ab6c7b7bd04b9e286a329ffba7c32082969961176aa8c30a0eb78a7fb0",
+      "exports": [
+        "test_app_context_provides_current_app",
+        "test_app_ctx_globals_methods",
+        "test_app_tearing_down",
+        "test_app_tearing_down_with_handled_exception_by_app_handler",
+        "test_app_tearing_down_with_handled_exception_by_except_block",
+        "test_app_tearing_down_with_previous_exception",
+        "test_app_tearing_down_with_unhandled_exception",
+        "test_basic_url_generation",
+        "test_clean_pop",
+        "test_context_refcounts",
+        "test_custom_app_ctx_globals_class",
+        "test_request_context_means_app_context",
+        "test_url_generation_requires_server_name",
+        "test_url_generation_without_context_fails"
+      ],
+      "externals": [
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 2,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/blueprintapp/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 7,
+      "contentHash": "87622ebc37bcfe87d81be1437e4b97a4c2a8341eb3df38461dd37a0b89db07d3",
+      "exports": [
+        "Flask",
+        "admin",
+        "app",
+        "frontend"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/blueprintapp/apps/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 0,
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exports": [],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 0,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 15,
+      "contentHash": "5e849dc6984b0b3944ea687e40d96da9d5a9f42e32aa5b4035dedef4558ad83d",
+      "exports": [
+        "Blueprint",
+        "admin",
+        "index",
+        "index2",
+        "render_template"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 9,
+      "contentHash": "1630cefb5d073808e8b4164e4d910f69aee57a93eaee53debb575e7e7aabb83f",
+      "exports": [
+        "Blueprint",
+        "frontend",
+        "index",
+        "missing_template",
+        "render_template"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 0,
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exports": [],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 0,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/app.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 2,
+      "contentHash": "b0c37142ff064f6d7f3ca21b8acec34a0657cf1a7c354178d5e3acc0879c7467",
+      "exports": [
+        "testapp"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/factory.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 7,
+      "contentHash": "3a93cd69f200848e8ffef6b2abdaa5803fb5044981ab64297f8c7d6541820570",
+      "exports": [
+        "create_app",
+        "create_app2",
+        "no_app"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/importerrorapp.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 3,
+      "contentHash": "5ad812b09337f9699cd2b6aeebfd7d6f14045451de846b0503d746a34ce8a8c4",
+      "exports": [
+        "testapp"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/inner1/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 2,
+      "contentHash": "d3885f0114c83025a754fb3a8582634946541c9aeb72fe4f90af27554a6d4c83",
+      "exports": [
+        "Flask",
+        "application"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/inner1/inner2/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 0,
+      "contentHash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "exports": [],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 0,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 2,
+      "contentHash": "570567aafaf185348cffa097d904b964c44fe1a92c5ec82488b97e3d93dbab38",
+      "exports": [
+        "app"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/cliapp/multiapp.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 3,
+      "contentHash": "0580225ea4edb705c2e412c5ac6bd27d659cc239f0243467a33eaa9ee74675fc",
+      "exports": [
+        "app1",
+        "app2"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/helloworld/hello.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 5,
+      "contentHash": "42722083156af9f3eb82e3a88403f4191b9dfcb5f9e1c3432e79f02827b0ccf1",
+      "exports": [
+        "app",
+        "hello"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 1,
+        "fanOut": 1,
+        "dependents": 1,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/helloworld/wsgi.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 1,
+      "contentHash": "c1d5a162364e71546a8a8b76eb7fba0381582b8546ad14189f6431e647b7a547",
+      "exports": [],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_apps/subdomaintestmodule/__init__.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 2,
+      "contentHash": "31e4dbd8ce53affded865990aea6a44db0bc46a0f44ee3fd6c14106f84a65cad",
+      "exports": [
+        "Module",
+        "mod"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_async.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 104,
+      "contentHash": "0a6a50bfd651581478abe8cda5c94aba6d70df35567a220aabc7ba08202d471c",
+      "exports": [
+        "AppError",
+        "AsyncMethodView",
+        "AsyncView",
+        "BlueprintError",
+        "test_async_before_after_request",
+        "test_async_error_handler",
+        "test_async_route"
+      ],
+      "externals": [
+        "py:asyncio",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 4,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_basic.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 1489,
+      "contentHash": "bf3b18ff51cc2891255f7efb70d320c0d034de51edcb9667d0f56494e9de2fd6",
+      "exports": [
+        "require_cpython_gc",
+        "test_after_request_processing",
+        "test_app_freed_on_zero_refcount",
+        "test_baseexception_error_handling",
+        "test_before_after_request_order",
+        "test_before_request_and_routing_errors",
+        "test_build_error_handler",
+        "test_build_error_handler_reraise",
+        "test_disallow_string_for_allowed_methods",
+        "test_enctype_debug_helper",
+        "test_endpoint_decorator",
+        "test_error_handler_after_processor_error",
+        "test_error_handling",
+        "test_error_handling_processing",
+        "test_errorhandler_precedence",
+        "test_exception_propagation",
+        "test_extended_flashing",
+        "test_flashes",
+        "test_g_iteration_protocol",
+        "test_get_method_on_g",
+        "test_http_error_subclass_handling",
+        "test_inject_blueprint_url_defaults",
+        "test_json_dump_dataclass",
+        "test_jsonify_args_and_kwargs_check",
+        "test_jsonify_mimetype",
+        "test_jsonify_no_prettyprint",
+        "test_make_response",
+        "test_make_response_with_response_instance",
+        "test_max_cookie_size",
+        "test_method_route",
+        "test_method_route_no_methods",
+        "test_missing_session",
+        "test_multi_route_class_views",
+        "test_multi_route_rules",
+        "test_no_setup_after_first_request",
+        "test_nonascii_pathinfo",
+        "test_options_on_multiple_rules",
+        "test_options_work",
+        "test_provide_automatic_options_attr",
+        "test_provide_automatic_options_kwarg",
+        "test_request_dispatching",
+        "test_request_locals",
+        "test_request_preprocessing_early_return",
+        "test_request_processing",
+        "test_response_type_errors",
+        "test_response_types",
+        "test_route_decorator_custom_endpoint",
+        "test_routing_redirect_debugging",
+        "test_run_defaults",
+        "test_run_from_config",
+        "test_run_server_port",
+        "test_server_name_matching",
+        "test_server_name_subdomain",
+        "test_session_accessed",
+        "test_session_cookie_setting",
+        "test_session_expiration",
+        "test_session_path",
+        "test_session_refresh_vary",
+        "test_session_secret_key_fallbacks",
+        "test_session_special_types",
+        "test_session_stored_last",
+        "test_session_using_application_root",
+        "test_session_using_samesite_attribute",
+        "test_session_using_session_settings",
+        "test_session_vary_cookie",
+        "test_static_files",
+        "test_static_folder_with_ending_slash",
+        "test_static_folder_with_pathlib_path",
+        "test_static_route_with_host_matching",
+        "test_static_url_empty_path",
+        "test_static_url_empty_path_default",
+        "test_static_url_path",
+        "test_static_url_path_with_ending_slash",
+        "test_subdomain_basic_support",
+        "test_subdomain_matching",
+        "test_subdomain_matching_other_name",
+        "test_subdomain_matching_with_ports",
+        "test_teardown_request_handler",
+        "test_teardown_request_handler_debug_mode",
+        "test_teardown_request_handler_error",
+        "test_trap_bad_request_key_error",
+        "test_trapping_of_all_http_exceptions",
+        "test_url_for_passes_special_values_to_build_error_handler",
+        "test_url_generation",
+        "test_url_mapping",
+        "test_url_processors",
+        "test_user_error_handling",
+        "test_werkzeug_passthrough_errors",
+        "test_werkzeug_routing"
+      ],
+      "externals": [
+        "markupsafe",
+        "py:contextlib",
+        "py:dataclasses",
+        "py:datetime",
+        "py:gc",
+        "py:pathlib",
+        "py:platform",
+        "py:re",
+        "py:typing",
+        "py:uuid",
+        "py:warnings",
+        "py:weakref",
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 4,
+        "dependents": 0,
+        "churn90d": 1,
+        "risk": {
+          "tier": "moderate",
+          "archetype": "fragile-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_blueprints.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 745,
+      "contentHash": "63592f00e0151b8f4362fdae5fa231c42ca638cb4d2b94fabe216e39f3874142",
+      "exports": [
+        "test_add_template_filter",
+        "test_add_template_filter_with_name",
+        "test_add_template_filter_with_name_and_template",
+        "test_add_template_filter_with_template",
+        "test_add_template_test",
+        "test_add_template_test_with_name",
+        "test_add_template_test_with_name_and_template",
+        "test_add_template_test_with_template",
+        "test_app_request_processing",
+        "test_app_url_processors",
+        "test_blueprint_app_error_handling",
+        "test_blueprint_prefix_slash",
+        "test_blueprint_renaming",
+        "test_blueprint_specific_error_handling",
+        "test_blueprint_specific_user_error_handling",
+        "test_blueprint_url_defaults",
+        "test_blueprint_url_processors",
+        "test_child_and_parent_subdomain",
+        "test_context_processing",
+        "test_default_static_max_age",
+        "test_dotted_name_not_allowed",
+        "test_dotted_names_from_app",
+        "test_empty_name_not_allowed",
+        "test_empty_url_defaults",
+        "test_endpoint_decorator",
+        "test_nested_blueprint",
+        "test_nested_callback_order",
+        "test_nesting_subdomains",
+        "test_nesting_url_prefixes",
+        "test_request_processing",
+        "test_route_decorator_custom_endpoint",
+        "test_route_decorator_custom_endpoint_with_dots",
+        "test_self_registration",
+        "test_template_filter",
+        "test_template_filter_after_route_with_template",
+        "test_template_filter_with_name",
+        "test_template_filter_with_name_and_template",
+        "test_template_filter_with_template",
+        "test_template_global",
+        "test_template_test",
+        "test_template_test_after_route_with_template",
+        "test_template_test_with_name",
+        "test_template_test_with_name_and_template",
+        "test_template_test_with_template",
+        "test_templates_and_static",
+        "test_templates_list",
+        "test_unique_blueprint_names"
+      ],
+      "externals": [
+        "jinja2",
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_cli.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 536,
+      "contentHash": "bc9b456bcd5c8698f4a809ca9c5a595b8be47ac5f8f057442d6c78498b70e3f8",
+      "exports": [
+        "TestRoutes",
+        "cwd",
+        "dotenv_not_available",
+        "need_dotenv",
+        "runner",
+        "test_app_cli_has_app_context",
+        "test_appgroup_app_context",
+        "test_cli_blueprints",
+        "test_cli_empty",
+        "test_cli_name",
+        "test_disable_dotenv_from_env",
+        "test_dotenv_optional",
+        "test_dotenv_path",
+        "test_find_best_app",
+        "test_flaskgroup_app_context",
+        "test_flaskgroup_debug",
+        "test_flaskgroup_nested",
+        "test_get_version",
+        "test_help_echo_exception",
+        "test_help_echo_loading_error",
+        "test_load_dotenv",
+        "test_locate_app",
+        "test_locate_app_raises",
+        "test_locate_app_suppress_raise",
+        "test_no_command_echo_loading_error",
+        "test_path",
+        "test_prepare_import",
+        "test_run_cert_adhoc",
+        "test_run_cert_import",
+        "test_run_cert_no_ssl",
+        "test_run_cert_path",
+        "test_run_exclude_patterns",
+        "test_scriptinfo",
+        "test_with_appcontext"
+      ],
+      "externals": [
+        "_pytest",
+        "click",
+        "dotenv",
+        "py:functools",
+        "py:importlib",
+        "py:os",
+        "py:pathlib",
+        "py:platform",
+        "py:ssl",
+        "py:sys",
+        "py:types",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 4,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_config.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 193,
+      "contentHash": "09df8aec5f88df421fa5b47bd66ee4e3aef23384c7c36a1be191d24723caadd0",
+      "exports": [
+        "SECRET_KEY",
+        "TEST_KEY",
+        "common_object_test",
+        "test_config_from_class",
+        "test_config_from_envvar",
+        "test_config_from_envvar_missing",
+        "test_config_from_file_json",
+        "test_config_from_file_toml",
+        "test_config_from_mapping",
+        "test_config_from_object",
+        "test_config_from_pyfile",
+        "test_config_missing",
+        "test_config_missing_file",
+        "test_custom_config_class",
+        "test_from_prefixed_env",
+        "test_from_prefixed_env_custom_prefix",
+        "test_from_prefixed_env_nested",
+        "test_from_pyfile_weird_encoding",
+        "test_get_namespace",
+        "test_session_lifetime"
+      ],
+      "externals": [
+        "py:json",
+        "py:os",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_converters.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 29,
+      "contentHash": "4f529ca6ee85a88c487a488807ff30cb8e4672307b9017f348174a67a5984347",
+      "exports": [
+        "test_context_available",
+        "test_custom_converters"
+      ],
+      "externals": [
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 2,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_helpers.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 280,
+      "contentHash": "2fabfd1624e41150f0913431c5e37b71e69b26021e31920086acd6e773f6594a",
+      "exports": [
+        "FakePath",
+        "PyBytesIO",
+        "TestHelpers",
+        "TestNoImports",
+        "TestSendfile",
+        "TestStreaming",
+        "TestUrlFor",
+        "test_abort_no_app",
+        "test_abort_with_app",
+        "test_app_aborter_class",
+        "test_open_resource",
+        "test_open_resource_exceptions",
+        "test_open_resource_with_encoding",
+        "test_redirect_no_app",
+        "test_redirect_with_app"
+      ],
+      "externals": [
+        "py:io",
+        "py:os",
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 3,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_instance_config.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 80,
+      "contentHash": "26466b388aabecbce19f2122bf0631e964bb79fdab84eae4716fe488d71b3857",
+      "exports": [
+        "test_explicit_instance_paths",
+        "test_installed_module_paths",
+        "test_installed_package_paths",
+        "test_prefix_package_paths",
+        "test_uninstalled_module_paths",
+        "test_uninstalled_namespace_paths",
+        "test_uninstalled_package_paths"
+      ],
+      "externals": [
+        "config_module_app",
+        "config_package_app",
+        "installed_package",
+        "namespace",
+        "py:os",
+        "pytest",
+        "site_app",
+        "site_package"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_json.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 272,
+      "contentHash": "f6c73c61a602ee3b8b87bfa90284fbc96e567b77c3a6d86c0e3919c5f12b64c6",
+      "exports": [
+        "FixedOffset",
+        "test_bad_request_debug_message",
+        "test_html_method",
+        "test_json_as_unicode",
+        "test_json_attr",
+        "test_json_bad_requests",
+        "test_json_custom_mimetypes",
+        "test_json_customization",
+        "test_json_decimal",
+        "test_json_dump_to_file",
+        "test_json_key_sorting",
+        "test_jsonify_arrays",
+        "test_jsonify_aware_datetimes",
+        "test_jsonify_basic_types",
+        "test_jsonify_datetime",
+        "test_jsonify_dicts",
+        "test_jsonify_uuid_types",
+        "test_tojson_filter"
+      ],
+      "externals": [
+        "py:codecs",
+        "py:datetime",
+        "py:decimal",
+        "py:io",
+        "py:uuid",
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 3,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_json_tag.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 64,
+      "contentHash": "019a2cd9b43245667b178e023dbd3541086f561677c32f06fa2eb85fd81aff65",
+      "exports": [
+        "test_custom_tag",
+        "test_dump_load_unchanged",
+        "test_duplicate_tag",
+        "test_tag_interface",
+        "test_tag_order"
+      ],
+      "externals": [
+        "markupsafe",
+        "py:datetime",
+        "py:uuid",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_logging.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 69,
+      "contentHash": "311ea43751a836c3d585a40f08fa54a60d783a232aa50c5ea1225b689e9ac683",
+      "exports": [
+        "reset_logging",
+        "test_existing_handler",
+        "test_has_level_handler",
+        "test_log_view_exception",
+        "test_logger",
+        "test_logger_debug",
+        "test_wsgi_errors_stream"
+      ],
+      "externals": [
+        "py:io",
+        "py:logging",
+        "py:sys",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_regression.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 22,
+      "contentHash": "2749a17454a9aa8a610a2213d739046488af06fe742da1c06802d00ab28a3bf8",
+      "exports": [
+        "test_aborting"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_reqctx.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 242,
+      "contentHash": "8c19e1468ed3360efccef5e5ea886377cfe5baf8bb259b34dc84ee993974a764",
+      "exports": [
+        "TestGreenletContextCopying",
+        "greenlet",
+        "test_bad_environ_raises_bad_request",
+        "test_context_binding",
+        "test_context_test",
+        "test_environ_for_valid_idna_completes",
+        "test_manual_context_binding",
+        "test_normal_environ_completes",
+        "test_proper_test_request_context",
+        "test_session_dynamic_cookie_name",
+        "test_session_error_pops_context",
+        "test_teardown_on_pop",
+        "test_teardown_with_handled_exception",
+        "test_teardown_with_previous_exception"
+      ],
+      "externals": [
+        "greenlet",
+        "py:warnings",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 4,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_request.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 53,
+      "contentHash": "4e9b4bb6fa9ec22285bf8c5004bec5a32d25b60ab1717acd38f98ed8f6ec63c4",
+      "exports": [
+        "test_limit_config",
+        "test_max_content_length",
+        "test_trusted_hosts_config"
+      ],
+      "externals": [
+        "py:__future__"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 4,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_session_interface.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 21,
+      "contentHash": "d3990141744f27683503ffc17f46042b9fe0b10119c77e414ea47795079b7dba",
+      "exports": [
+        "test_open_session_with_endpoint"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 3,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_signals.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 139,
+      "contentHash": "eaa27de84a44ad1f1b0baa883ec7b76793ee0973362646a7f93ebb7d5e3b2abe",
+      "exports": [
+        "test_appcontext_signals",
+        "test_appcontext_tearing_down_signal",
+        "test_before_render_template",
+        "test_flash_signal",
+        "test_request_exception_signal",
+        "test_request_signals",
+        "test_template_rendered"
+      ],
+      "externals": [],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_subclassing.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 15,
+      "contentHash": "0d325f8099e38403287a0cd8f1e184884beb5c345ac894300f2aa469a04cbd10",
+      "exports": [
+        "test_suppressed_exception_logging"
+      ],
+      "externals": [
+        "py:io"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_templating.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 327,
+      "contentHash": "d20c5f1f67fdc81ed0f9fdaf450b699fa9cb787e2eb1b40637b4c758a1e20e19",
+      "exports": [
+        "test_add_template_filter",
+        "test_add_template_filter_with_name",
+        "test_add_template_filter_with_name_and_template",
+        "test_add_template_filter_with_template",
+        "test_add_template_global",
+        "test_add_template_test",
+        "test_add_template_test_with_name",
+        "test_add_template_test_with_name_and_template",
+        "test_add_template_test_with_template",
+        "test_context_processing",
+        "test_custom_jinja_env",
+        "test_custom_template_loader",
+        "test_escaping",
+        "test_escaping_without_template_filename",
+        "test_iterable_loader",
+        "test_macros",
+        "test_no_escaping",
+        "test_original_win",
+        "test_request_less_rendering",
+        "test_simple_stream",
+        "test_standard_context",
+        "test_template_filter",
+        "test_template_filter_with_name",
+        "test_template_filter_with_name_and_template",
+        "test_template_filter_with_template",
+        "test_template_loader_debugging",
+        "test_template_test",
+        "test_template_test_with_name",
+        "test_template_test_with_name_and_template",
+        "test_template_test_with_template",
+        "test_templates_auto_reload",
+        "test_templates_auto_reload_debug_run"
+      ],
+      "externals": [
+        "jinja2",
+        "markupsafe",
+        "py:logging",
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_testing.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 278,
+      "contentHash": "ebfc988c866b0be05c1b8447b6456600ac94523a4058616f0fcd422bfef4ef7e",
+      "exports": [
+        "test_blueprint_with_subdomain",
+        "test_cli_custom_obj",
+        "test_cli_invoke",
+        "test_cli_runner_class",
+        "test_client_json_no_app_context",
+        "test_client_open_environ",
+        "test_client_pop_all_preserved",
+        "test_environ_base_default",
+        "test_environ_base_modified",
+        "test_environ_defaults",
+        "test_environ_defaults_from_config",
+        "test_environbuilder_json_dumps",
+        "test_full_url_request",
+        "test_json_request_and_response",
+        "test_nosubdomain",
+        "test_path_is_url",
+        "test_redirect_session",
+        "test_reuse_client",
+        "test_session_transaction_needs_cookies",
+        "test_session_transactions",
+        "test_session_transactions_keep_context",
+        "test_session_transactions_no_null_sessions",
+        "test_specify_url_scheme",
+        "test_subdomain",
+        "test_test_client_context_binding"
+      ],
+      "externals": [
+        "click",
+        "py:importlib",
+        "pytest"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 6,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_user_error_handler.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 215,
+      "contentHash": "f05213bb275e08d354bf9750eb3a37aeb8fc713a8beee7edcdd3078d11af9d60",
+      "exports": [
+        "TestGenericHandlers",
+        "test_default_error_handler",
+        "test_error_handler_blueprint",
+        "test_error_handler_http_subclass",
+        "test_error_handler_no_match",
+        "test_error_handler_subclass"
+      ],
+      "externals": [
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/test_views.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 179,
+      "contentHash": "166328b1cef85fcd8f4336ac1c1a27e40444c9d26c54b46a1321fbfc11a4fca9",
+      "exports": [
+        "common_test",
+        "test_basic_view",
+        "test_endpoint_override",
+        "test_explicit_head",
+        "test_implicit_head",
+        "test_init_once",
+        "test_method_based_view",
+        "test_methods_var_inheritance",
+        "test_multiple_inheritance",
+        "test_remove_method_from_parent",
+        "test_view_decorators",
+        "test_view_inheritance",
+        "test_view_patching",
+        "test_view_provide_automatic_options_attr"
+      ],
+      "externals": [
+        "pytest",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/type_check/typing_app_decorators.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 18,
+      "contentHash": "1236df0a3447c828b1401cc56a31f1b988d6a4aa4944e63bf678c5470e373859",
+      "exports": [
+        "after_async",
+        "after_sync",
+        "app",
+        "before_async",
+        "before_sync",
+        "teardown_async",
+        "teardown_sync"
+      ],
+      "externals": [
+        "py:__future__"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 2,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/type_check/typing_error_handler.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 21,
+      "contentHash": "6ca69ec7b4813dfac97080cfb49b9c2d41acab44351e86620e337e1f25674604",
+      "exports": [
+        "app",
+        "handle_400",
+        "handle_accept_base",
+        "handle_custom",
+        "handle_multiple"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:http",
+        "werkzeug"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 1,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    },
+    {
+      "id": "tests/type_check/typing_route.py",
+      "kind": "file",
+      "language": "python",
+      "loc": 71,
+      "contentHash": "4554c7c77994fdd2ba2a8c50756c418aba619707f3e951551f26e8e9fd37c72a",
+      "exports": [
+        "RenderTemplateView",
+        "StatusJSON",
+        "app",
+        "async_route",
+        "hello_bytes",
+        "hello_generator",
+        "hello_generator_expression",
+        "hello_iterator",
+        "hello_json",
+        "hello_json_dict",
+        "hello_json_list",
+        "hello_str",
+        "return_template",
+        "return_template_stream",
+        "tuple_headers",
+        "tuple_status",
+        "tuple_status_enum",
+        "typed_dict"
+      ],
+      "externals": [
+        "py:__future__",
+        "py:http",
+        "py:typing"
+      ],
+      "flags": [],
+      "metrics": {
+        "fanIn": 0,
+        "fanOut": 5,
+        "dependents": 0,
+        "churn90d": 0,
+        "risk": {
+          "tier": "low",
+          "archetype": "stable-leaf"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "examples/celery/make_celery.py",
+      "target": "examples/celery/src/task_app/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/celery/src/task_app/__init__.py",
+      "target": "examples/celery/src/task_app/views.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/celery/src/task_app/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/celery/src/task_app/views.py",
+      "target": "examples/celery/src/task_app/tasks.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/celery/src/task_app/views.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/celery/src/task_app/views.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/celery/src/task_app/views.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/javascript/js_example/__init__.py",
+      "target": "examples/javascript/js_example/views.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/javascript/js_example/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/javascript/js_example/views.py",
+      "target": "examples/javascript/js_example/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/javascript/js_example/views.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/javascript/js_example/views.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/javascript/js_example/views.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/javascript/js_example/views.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/javascript/tests/conftest.py",
+      "target": "examples/javascript/js_example/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/javascript/tests/test_js_example.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/javascript/tests/test_js_example.py",
+      "target": "src/flask/signals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/__init__.py",
+      "target": "examples/tutorial/flaskr/auth.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/__init__.py",
+      "target": "examples/tutorial/flaskr/blog.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/__init__.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/auth.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/auth.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/auth.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/auth.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/auth.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/auth.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "examples/tutorial/flaskr/auth.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/blog.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/flaskr/db.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/flaskr/db.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/tests/conftest.py",
+      "target": "examples/tutorial/flaskr/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/tests/conftest.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/tests/test_auth.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/tests/test_auth.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/tests/test_auth.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "examples/tutorial/tests/test_blog.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/tests/test_db.py",
+      "target": "examples/tutorial/flaskr/db.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "examples/tutorial/tests/test_factory.py",
+      "target": "examples/tutorial/flaskr/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/app.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/config.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/ctx.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/globals.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/helpers.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/signals.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/templating.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__init__.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/__main__.py",
+      "target": "src/flask/cli.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/cli.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/ctx.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/debughelpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/sansio/scaffold.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/sessions.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/signals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/testing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/testing.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/typing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/typing.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/app.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/blueprints.py",
+      "target": "src/flask/cli.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/blueprints.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/blueprints.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/blueprints.py",
+      "target": "src/flask/sansio/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/blueprints.py",
+      "target": "src/flask/sansio/scaffold.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/blueprints.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/cli.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/cli.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "src/flask/cli.py",
+      "target": "src/flask/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/cli.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/cli.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/config.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/ctx.py",
+      "target": "src/flask/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/ctx.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/ctx.py",
+      "target": "src/flask/sessions.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/ctx.py",
+      "target": "src/flask/signals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/ctx.py",
+      "target": "src/flask/typing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/ctx.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/debughelpers.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/debughelpers.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/debughelpers.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/debughelpers.py",
+      "target": "src/flask/sansio/scaffold.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/debughelpers.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/globals.py",
+      "target": "src/flask/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/globals.py",
+      "target": "src/flask/ctx.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/globals.py",
+      "target": "src/flask/sessions.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/globals.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/helpers.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/helpers.py",
+      "target": "src/flask/signals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/helpers.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/json/__init__.py",
+      "target": "src/flask/globals.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/json/__init__.py",
+      "target": "src/flask/json/provider.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/json/__init__.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/json/provider.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/json/tag.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/logging.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/logging.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/config.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/ctx.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/json/provider.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/logging.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/sansio/blueprints.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/sansio/scaffold.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/testing.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/app.py",
+      "target": "src/flask/typing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/blueprints.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/blueprints.py",
+      "target": "src/flask/sansio/scaffold.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/blueprints.py",
+      "target": "src/flask/typing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/scaffold.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/scaffold.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sansio/scaffold.py",
+      "target": "src/flask/typing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sessions.py",
+      "target": "src/flask/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sessions.py",
+      "target": "src/flask/json/tag.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/sessions.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/debughelpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/sansio/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/sansio/scaffold.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/templating.py",
+      "target": "src/flask/signals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/testing.py",
+      "target": "src/flask/app.py",
+      "kind": "type-only",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/testing.py",
+      "target": "src/flask/cli.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/testing.py",
+      "target": "src/flask/sessions.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/views.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/views.py",
+      "target": "src/flask/typing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/wrappers.py",
+      "target": "src/flask/debughelpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/wrappers.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/wrappers.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "src/flask/wrappers.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/conftest.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/conftest.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/conftest.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_appctx.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_appctx.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/blueprintapp/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/app.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/app.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_apps/cliapp/factory.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/factory.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_apps/cliapp/importerrorapp.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/importerrorapp.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_apps/cliapp/inner1/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_apps/cliapp/multiapp.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/cliapp/multiapp.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_apps/helloworld/hello.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/helloworld/hello.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_apps/helloworld/wsgi.py",
+      "target": "tests/test_apps/helloworld/hello.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_apps/subdomaintestmodule/__init__.py",
+      "target": "src/flask/__init__.py",
+      "kind": "reexport",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_async.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_async.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_async.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_async.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_async.py",
+      "target": "src/flask/views.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_basic.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_basic.py",
+      "target": "src/flask/debughelpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_basic.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_basic.py",
+      "target": "src/flask/testing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_blueprints.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_cli.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_cli.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_cli.py",
+      "target": "src/flask/blueprints.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_cli.py",
+      "target": "src/flask/cli.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_cli.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_config.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_converters.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_converters.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_converters.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_helpers.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_helpers.py",
+      "target": "src/flask/helpers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_helpers.py",
+      "target": "src/flask/views.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_instance_config.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_json.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_json.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_json.py",
+      "target": "src/flask/json/provider.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_json_tag.py",
+      "target": "src/flask/json/tag.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_logging.py",
+      "target": "src/flask/logging.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_regression.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_reqctx.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_reqctx.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_reqctx.py",
+      "target": "src/flask/sessions.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_reqctx.py",
+      "target": "src/flask/testing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_request.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_request.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_request.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_request.py",
+      "target": "src/flask/testing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_request.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_session_interface.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_session_interface.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_session_interface.py",
+      "target": "src/flask/sessions.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_signals.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_subclassing.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_templating.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/cli.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/globals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/signals.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/test_testing.py",
+      "target": "src/flask/testing.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_user_error_handler.py",
+      "target": "src/flask/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/test_views.py",
+      "target": "src/flask/views.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/type_check/typing_app_decorators.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/type_check/typing_app_decorators.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/type_check/typing_app_decorators.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/type_check/typing_error_handler.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/type_check/typing_error_handler.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/type_check/typing_route.py",
+      "target": "src/flask/__init__.py",
+      "kind": "via-barrel",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/type_check/typing_route.py",
+      "target": "src/flask/app.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/type_check/typing_route.py",
+      "target": "src/flask/json/__init__.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/type_check/typing_route.py",
+      "target": "src/flask/templating.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": [
+        "via barrel src/flask/__init__.py"
+      ]
+    },
+    {
+      "source": "tests/type_check/typing_route.py",
+      "target": "src/flask/views.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "tests/type_check/typing_route.py",
+      "target": "src/flask/wrappers.py",
+      "kind": "import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    }
+  ],
+  "roots": [
+    {
+      "file": "docs/conf.py",
+      "reason": "config",
+      "source": "conf.py (tool configuration)"
+    },
+    {
+      "file": "examples/celery/make_celery.py",
+      "reason": "manifest",
+      "source": "examples/celery/pyproject.toml (public module make_celery)"
+    },
+    {
+      "file": "examples/celery/src/task_app/__init__.py",
+      "reason": "manifest",
+      "source": "examples/celery/pyproject.toml (public module task_app)"
+    },
+    {
+      "file": "examples/celery/src/task_app/tasks.py",
+      "reason": "manifest",
+      "source": "examples/celery/pyproject.toml (public module task_app.tasks)"
+    },
+    {
+      "file": "examples/celery/src/task_app/views.py",
+      "reason": "manifest",
+      "source": "examples/celery/pyproject.toml (public module task_app.views)"
+    },
+    {
+      "file": "examples/javascript/js_example/__init__.py",
+      "reason": "manifest",
+      "source": "examples/javascript/pyproject.toml (public module js_example)"
+    },
+    {
+      "file": "examples/javascript/js_example/views.py",
+      "reason": "manifest",
+      "source": "examples/javascript/pyproject.toml (public module js_example.views)"
+    },
+    {
+      "file": "examples/javascript/tests/conftest.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "examples/javascript/tests/test_js_example.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "examples/tutorial/flaskr/__init__.py",
+      "reason": "manifest",
+      "source": "examples/tutorial/pyproject.toml (public module flaskr)"
+    },
+    {
+      "file": "examples/tutorial/flaskr/auth.py",
+      "reason": "manifest",
+      "source": "examples/tutorial/pyproject.toml (public module flaskr.auth)"
+    },
+    {
+      "file": "examples/tutorial/flaskr/blog.py",
+      "reason": "manifest",
+      "source": "examples/tutorial/pyproject.toml (public module flaskr.blog)"
+    },
+    {
+      "file": "examples/tutorial/flaskr/db.py",
+      "reason": "manifest",
+      "source": "examples/tutorial/pyproject.toml (public module flaskr.db)"
+    },
+    {
+      "file": "examples/tutorial/tests/conftest.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "examples/tutorial/tests/test_auth.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "examples/tutorial/tests/test_blog.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "examples/tutorial/tests/test_db.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "examples/tutorial/tests/test_factory.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "src/flask/__init__.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask)"
+    },
+    {
+      "file": "src/flask/__main__.py",
+      "reason": "convention",
+      "source": "__main__.py (entry-point name)"
+    },
+    {
+      "file": "src/flask/app.py",
+      "reason": "convention",
+      "source": "if __name__ == \"__main__\""
+    },
+    {
+      "file": "src/flask/app.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.app)"
+    },
+    {
+      "file": "src/flask/blueprints.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.blueprints)"
+    },
+    {
+      "file": "src/flask/cli.py",
+      "reason": "convention",
+      "source": "if __name__ == \"__main__\""
+    },
+    {
+      "file": "src/flask/cli.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.cli)"
+    },
+    {
+      "file": "src/flask/cli.py",
+      "reason": "manifest",
+      "source": "pyproject.toml [project.scripts] flask"
+    },
+    {
+      "file": "src/flask/config.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.config)"
+    },
+    {
+      "file": "src/flask/ctx.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.ctx)"
+    },
+    {
+      "file": "src/flask/debughelpers.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.debughelpers)"
+    },
+    {
+      "file": "src/flask/globals.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.globals)"
+    },
+    {
+      "file": "src/flask/helpers.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.helpers)"
+    },
+    {
+      "file": "src/flask/json/__init__.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.json)"
+    },
+    {
+      "file": "src/flask/json/provider.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.json.provider)"
+    },
+    {
+      "file": "src/flask/json/tag.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.json.tag)"
+    },
+    {
+      "file": "src/flask/logging.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.logging)"
+    },
+    {
+      "file": "src/flask/sansio/app.py",
+      "reason": "convention",
+      "source": "if __name__ == \"__main__\""
+    },
+    {
+      "file": "src/flask/sessions.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.sessions)"
+    },
+    {
+      "file": "src/flask/signals.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.signals)"
+    },
+    {
+      "file": "src/flask/templating.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.templating)"
+    },
+    {
+      "file": "src/flask/testing.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.testing)"
+    },
+    {
+      "file": "src/flask/typing.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.typing)"
+    },
+    {
+      "file": "src/flask/views.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.views)"
+    },
+    {
+      "file": "src/flask/wrappers.py",
+      "reason": "manifest",
+      "source": "pyproject.toml (public module flask.wrappers)"
+    },
+    {
+      "file": "tests/conftest.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_appctx.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/blueprintapp/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/blueprintapp/apps/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/blueprintapp/apps/admin/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/blueprintapp/apps/frontend/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/app.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/factory.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/importerrorapp.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/inner1/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/inner1/inner2/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/inner1/inner2/flask.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/cliapp/multiapp.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/helloworld/hello.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/helloworld/wsgi.py",
+      "reason": "convention",
+      "source": "wsgi.py (entry-point name)"
+    },
+    {
+      "file": "tests/test_apps/helloworld/wsgi.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_apps/subdomaintestmodule/__init__.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_async.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_basic.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_blueprints.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_cli.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_config.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_converters.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_helpers.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_instance_config.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_json.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_json_tag.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_logging.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_regression.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_reqctx.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_request.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_session_interface.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_signals.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_subclassing.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_templating.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_testing.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_user_error_handler.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/test_views.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/type_check/typing_app_decorators.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/type_check/typing_error_handler.py",
+      "reason": "test",
+      "source": "test file"
+    },
+    {
+      "file": "tests/type_check/typing_route.py",
+      "reason": "test",
+      "source": "test file"
+    }
+  ],
+  "findings": [],
+  "unresolved": [
+    {
+      "from": "src/flask/cli.py",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "line": 245
+    },
+    {
+      "from": "src/flask/helpers.py",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "line": 613
+    },
+    {
+      "from": "tests/test_apps/blueprintapp/__init__.py",
+      "specifier": "blueprintapp.apps.admin",
+      "reason": "ambiguous",
+      "line": 5
+    },
+    {
+      "from": "tests/test_apps/blueprintapp/__init__.py",
+      "specifier": "blueprintapp.apps.frontend",
+      "reason": "ambiguous",
+      "line": 6
+    },
+    {
+      "from": "tests/test_blueprints.py",
+      "specifier": "blueprintapp",
+      "reason": "ambiguous",
+      "line": 177
+    },
+    {
+      "from": "tests/test_blueprints.py",
+      "specifier": "blueprintapp",
+      "reason": "ambiguous",
+      "line": 248
+    },
+    {
+      "from": "tests/test_cli.py",
+      "specifier": "cliapp.app",
+      "reason": "ambiguous",
+      "line": 43
+    },
+    {
+      "from": "tests/test_templating.py",
+      "specifier": "blueprintapp",
+      "reason": "ambiguous",
+      "line": 408
+    }
+  ]
+}

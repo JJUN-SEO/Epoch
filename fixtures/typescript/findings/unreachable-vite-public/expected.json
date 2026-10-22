@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "src/client/public/injector.js"
+      },
+      "confidence": "low",
+      "caps": [
+        "framework-convention"
+      ],
+      "locations": [
+        {
+          "file": "src/client/public/injector.js"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

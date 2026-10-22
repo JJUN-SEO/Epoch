@@ -1,0 +1,12 @@
+{
+  "nodes": [
+    "pkg:example.com/app"
+  ],
+  "edges": [],
+  "externals": {
+    "pkg:example.com/app": [
+      "github.com/dep/x"
+    ]
+  },
+  "unresolved": []
+}

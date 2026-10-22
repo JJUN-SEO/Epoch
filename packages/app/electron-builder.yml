@@ -1,0 +1,161 @@
+# electron-builder configuration (ADR-018). `pnpm package` builds this OS's
+# installers from this file alone; `pnpm package:dir` builds the unpacked app
+# the e2e suite drives (electron-builder.e2e.yml). Nothing is signed beyond
+# macOS's ad-hoc signature, and nothing is published from here: the release
+# workflow uploads the installers to a draft GitHub Release.
+appId: dev.epoch.app
+productName: Epoch
+executableName: epoch
+# The packaged app's package name. A per-user Windows install goes to
+# %LOCALAPPDATA%\Programs\<name>, which would otherwise be the workspace name
+# (@epoch-dev/app). The app's own name, and so its data folder, comes from
+# package.json's productName ("Epoch").
+extraMetadata:
+  name: epoch
+copyright: Copyright © 2026 Junhyuk Seo
+
+directories:
+  output: release
+
+# Only the electron-vite output. Runtime dependencies (package.json
+# "dependencies": the native and WASM packages that stay external) are added
+# by electron-builder from node_modules.
+files:
+  - out/**
+  - "!out/**/*.map"
+  - package.json
+  # better-sqlite3's C sources (for building from source); the prebuilt addon
+  # is all that runs.
+  - "!node_modules/better-sqlite3/{deps,src}/**"
+  # onnxruntime-node (the local embedding model, ADR-008) ships every
+  # platform's runtime; keep only this build's (${platform} is the build
+  # machine's OS, ${arch} the target's). On macOS the binding loads
+  # libonnxruntime.1.dylib, and the versioned file next to it is a
+  # byte-identical copy.
+  - "!node_modules/onnxruntime-node/bin/napi-v6/!(${platform})/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v6/${platform}/!(${arch})/**"
+  - "!node_modules/onnxruntime-node/bin/napi-v6/darwin/*/libonnxruntime.1.*.*.dylib"
+  - "!node_modules/onnxruntime-node/{script,lib}/**"
+  # better-sqlite3 13 loads prebuilds/<platform>-<arch>.node; keep this
+  # build's only (ADR-005 measured eight platforms' worth, 16.9 MB).
+  - "!node_modules/better-sqlite3/prebuilds/!(${platform}-${arch}).node"
+  # Only the grammars the adapters load (GRAMMARS in
+  # packages/engine/src/parse.ts; packaged.spec.ts checks the two agree).
+  # The package's main entry, wasm/tree-sitter.js, stays: the cache key
+  # resolves it to read the package's version.
+  - "!node_modules/@vscode/tree-sitter-wasm/wasm/tree-sitter-!(typescript|tsx|javascript|python|go).wasm"
+  - "!node_modules/web-tree-sitter/debug/**"
+  # Module resolution needs only lib/typescript.js (the package's main): not
+  # the compiler and language-server entry points or their translations.
+  - "!node_modules/typescript/lib/{_tsc,tsc,_tsserver,tsserver,tsserverlibrary,_typingsInstaller,typingsInstaller,watchGuard}.js"
+  - "!node_modules/typescript/lib/*/**"
+  - "!node_modules/typescript/bin/**"
+  - "!node_modules/**/*.map"
+
+# The local embedding model, fetched at build time by scripts/fetch-model.mjs
+# (pinned revision and sha256); the installed app never downloads one. It is
+# models/manifest.json's default (src/main/model.test.ts checks this). Without
+# it the app runs with similarity hints off.
+extraResources:
+  - from: ../../models/all-minilm-l6-v2
+    to: model
+    filter:
+      - epoch-model.json
+      - model.onnx
+      - tokenizer.json
+      - tokenizer_config.json
+
+# Epoch's UI is in English; Chromium's own strings fall back to en-US. On
+# macOS these name the .lproj folders, on Windows and Linux the locales/*.pak
+# files (48.1 MB for all of them, ADR-005).
+electronLanguages:
+  - en
+  - en-US
+  - en-GB
+
+asar: true
+# A native addon cannot be loaded from inside an asar archive, nor can the
+# runtime libraries it links.
+asarUnpack:
+  - "**/*.node"
+  - "node_modules/onnxruntime-node/bin/**"
+
+# better-sqlite3 ships N-API prebuilds, which Electron loads as-is (ADR-004,
+# verified in M3), so nothing is rebuilt or compiled from source.
+npmRebuild: false
+nodeGypRebuild: false
+buildDependenciesFromSource: false
+
+# Installer names carry no version, so the site can link to
+# releases/latest/download/<name> (e2e/packaging.ts lists them).
+mac:
+  category: public.app-category.developer-tools
+  # Apple Silicon only: onnxruntime-node 1.30 (the local embedding model,
+  # ADR-008) ships no Intel macOS runtime.
+  target:
+    - target: dmg
+      arch: [arm64]
+  # Ad-hoc signature only (no certificate; see the signing status in the
+  # README): Apple Silicon refuses to run native code without at least that.
+  # Hardened runtime matters for notarization, which needs a certificate.
+  identity: "-"
+  hardenedRuntime: false
+dmg:
+  artifactName: Epoch-mac-arm64.${ext}
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+nsis:
+  artifactName: Epoch-win-x64-setup.${ext}
+  # Installs for the current user, without asking for administrator rights.
+  oneClick: true
+  perMachine: false
+  # Uninstalling keeps settings, keys and the cache; Settings can clear the
+  # cache, and the README says where the rest lives.
+  deleteAppDataOnUninstall: false
+  # Differential packages serve electron-updater, which Epoch does not use:
+  # it checks for a newer version and leaves installing to the user (ADR-018).
+  differentialPackage: false
+linux:
+  target:
+    - target: AppImage
+      arch: [x64]
+    - target: deb
+      arch: [x64]
+  category: Development
+  synopsis: Codebase dependency graph, blast radius and dead-feature alerts
+  # For package managers and the desktop entry (package.json's describes the
+  # workspace package).
+  description: >-
+    Epoch turns a codebase into an interactive dependency graph: what each
+    file depends on, what a change would affect, how risky each file is, and
+    which features are likely dead. Your code never leaves your machine.
+appImage:
+  artifactName: Epoch-linux-x64.${ext}
+deb:
+  artifactName: Epoch-linux-x64.${ext}
+
+# Electron fuses, flipped in the binary at package time (ADR-018).
+electronFuses:
+  # Nothing uses ELECTRON_RUN_AS_NODE (the host is a utilityProcess, parsing
+  # runs in worker threads); left on, any local process could run its own
+  # JavaScript as Epoch, with Epoch's keychain access on macOS.
+  runAsNode: false
+  # Main never uses Node's networking (the tripwire), so NODE_OPTIONS and
+  # NODE_EXTRA_CA_CERTS would only let the environment change Node.
+  enableNodeOptionsEnvironmentVariable: false
+  # --inspect would let anything attach a debugger to main, where keys are
+  # decrypted. The CI-only e2e build turns it back on for Playwright
+  # (electron-builder.e2e.yml); installers never have it.
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+  # The UI is served from epoch:// (ADR-005), never file://.
+  grantFileProtocolExtraPrivileges: false
+  # Epoch keeps no cookies; turning this on would make Chromium read the OS
+  # keychain at startup, which on ad-hoc-signed macOS builds can prompt
+  # again after every update.
+  enableCookieEncryption: false
+
+publish: null

@@ -1,0 +1,22 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "pages/about.tsx"
+      },
+      "confidence": "low",
+      "caps": [
+        "convention-roots-only",
+        "framework-convention"
+      ],
+      "locations": [
+        {
+          "file": "pages/about.tsx"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

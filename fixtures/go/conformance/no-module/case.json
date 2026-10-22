@@ -1,0 +1,6 @@
+{
+  "description": "Go files with no go.mod above them have no import path: they stay file nodes, and their imports are external.",
+  "adapters": [
+    "go"
+  ]
+}

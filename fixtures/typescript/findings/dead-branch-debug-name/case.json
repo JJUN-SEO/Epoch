@@ -1,0 +1,6 @@
+{
+  "description": "A debug-like name is likely a compile-time toggle: capped at Low.",
+  "adapters": [
+    "typescript"
+  ]
+}

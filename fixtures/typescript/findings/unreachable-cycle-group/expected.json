@@ -1,0 +1,22 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "src/a.ts"
+      },
+      "confidence": "high",
+      "caps": [],
+      "locations": [
+        {
+          "file": "src/a.ts"
+        },
+        {
+          "file": "src/b.ts"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

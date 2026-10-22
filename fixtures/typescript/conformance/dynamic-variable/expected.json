@@ -1,0 +1,15 @@
+{
+  "nodes": [
+    "src/a.ts"
+  ],
+  "edges": [],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "src/a.ts",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "line": 2
+    }
+  ]
+}

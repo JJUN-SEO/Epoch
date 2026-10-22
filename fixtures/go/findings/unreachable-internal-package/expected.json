@@ -1,0 +1,22 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "internal/unused/a.go"
+      },
+      "confidence": "high",
+      "caps": [],
+      "locations": [
+        {
+          "file": "internal/unused/a.go"
+        },
+        {
+          "file": "internal/unused/b.go"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

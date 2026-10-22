@@ -1,0 +1,13 @@
+{
+  "description": "An OpenFeature flag (SDK imported), old and untouched: Medium.",
+  "adapters": [
+    "go"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01",
+    "introduced": {
+      "new-checkout": "2024-01-01"
+    }
+  }
+}

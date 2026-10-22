@@ -1,0 +1,6 @@
+{
+  "description": "A dynamic import with a literal specifier resolves to a dynamic-import edge.",
+  "adapters": [
+    "typescript"
+  ]
+}

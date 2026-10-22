@@ -1,0 +1,13 @@
+{
+  "description": "A configured wrapper function is strong evidence: Medium.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01",
+    "introduced": {
+      "beta-search": "2024-01-01"
+    }
+  }
+}

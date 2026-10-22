@@ -1,0 +1,110 @@
+# ADR-016: Model features in the desktop app
+
+- **Status:** Accepted (the M7 plan, approved 2026-10-16). Changes the `EpochApi` contract in CLAUDE.md and adds one clause to its offline-mode rule.
+- **Date:** 2026-10-17
+
+## Context
+
+M7 adds the app's first model feature: prose summaries of files, Go packages and folders (CLAUDE.md "Local cache": lazy, hierarchical, cached; "RelationScorer": prose summaries use a text LLM or a local model, never Jev). Before M7 the app had no keys, settings, spend control, offline mode or egress. The CLI already had hardened clients, spend caps and `--offline` (M6, M7 steps 1–6).
+
+The maintainer decided four things for M7:
+
+1. Summaries are made automatically when a file is opened, after a one-time consent per project, and reused while the file is unchanged.
+2. Offline mode still allows a local model on this machine.
+3. CLI keys live in the OS keychain plus environment variables (ADR-009).
+4. Token cost is measured with the maintainer's own key, capped at $1.
+
+This ADR records how the app does it safely.
+
+## Decision
+
+### Where requests come from
+
+1. **Model calls run in main only.** CLAUDE.md allows main or the analysis host; main alone is a subset, so no rule changes.
+   - The analysis host reads source through its root-confined reader, builds the prompt and owns the summary cache, but never sends anything.
+   - Main checks settings, consent and budget, decrypts the key for that one call, sends, and records spend.
+   - Keys never leave main.
+2. **The host has no network at all.** It and its parse workers install the tripwire (`@epoch-dev/scorers/tripwire`): every socket, DNS lookup and fetch is refused, and each attempt is reported to main, which logs it.
+3. **The host's environment is scrubbed.** Main forks it without variables that look like keys or tokens (core `withoutSecrets`), the same rule as for git.
+4. **Bundles are checked.** A per-entry test fails if the host, a parse worker, the preload or the renderer carries a model client through any import, or if main's entry carries one outside a lazy chunk.
+
+### Egress and offline mode
+
+5. **One egress in main** (`main/egress.ts`), loaded only when a model feature first sends.
+   - **First layer:** `createNet`, with an origin allowlist, the offline setting read at each request, and abort of requests in flight.
+   - **Second layer:** a dedicated Electron session (`epoch-egress`, no cache) that no window uses. Its request filter allows the Anthropic origin, and the Ollama origin on loopback. Offline, it allows only Ollama. It refuses permission requests.
+   - **Lint:** Electron's `net` module and any session's `fetch` are banned elsewhere in the app.
+   - **Spike result** (M7 step 13, Electron 43.7.7, SDK 0.129.0): the SDK runs unchanged on the session's `fetch`.
+     - It sends `x-api-key` and `anthropic-version`, no `authorization` header, and the exact request body.
+     - A caller's abort, and turning offline mode on mid-request (`abortInFlight`), each stopped a pending request in about 200 ms.
+     - The session filter runs before a `protocol.handle` interceptor, so e2e tests can stub the provider on the partition from the test side and the filter still guards. A refused origin fails with `net::ERR_BLOCKED_BY_CLIENT`.
+     - Offline requests are refused by `createNet` before the session sees them.
+   - **Not used:** `enableNetworkEmulation({ offline })` cannot keep the loopback exception, so the request filter is the session-level layer. The Node-fetch fallback was not needed.
+6. **Offline mode** refuses every remote origin, reading the setting at each request (not a fixed flag), and aborts requests in flight when it is turned on. It allows only `http://127.0.0.1:11434`, and only when a local model is the user's summary provider. Update checks are forced off (the setting exists; the check itself is M8). CLAUDE.md's offline rule gains: "A local model on this machine that the user chose (loopback only) keeps working."
+
+### Consent, approval and spend
+
+7. **Consent** is per project (its resolved root) and provider, stored in Epoch's data directory, and given in a native dialog owned by main, so a compromised renderer cannot approve a send. The dialog states what is sent and where. A local model needs no consent, since nothing leaves the machine.
+8. **Approval tokens.** When a request needs approval, main issues a single-use `planId` bound to the window and project. `generateSummary(planId)` rebuilds the plan; if the input changed or the worst-case cost rose, it asks again.
+9. **Spend.**
+   - A monthly cap ($5 by default), with a reset button. There is a per-session budget ($1), and a per-job threshold ($0.05) above which Epoch asks first. All three are defaults to tune with use, not claims.
+   - Prices: Epoch ships the default model's price, copied from Anthropic's pricing page with the date it was read (`SHIPPED_PRICES` in core; Claude Haiku 5.5, $0.10 / $0.50 per million tokens, read 2026-10-17). The user's own price for a model replaces it, and a lower price in effect, shipped or the user's, counts as a spending raise. Another model with no price makes paid summaries unavailable.
+   - Saving an Anthropic key turns summaries on (the key is the opt-in). The first send per project still asks, in main's dialog.
+   - _Changed after review (2026-10-17):_ this first required the user to enter a price and a cap before anything worked; the maintainer asked that entering a key be enough.
+   - Each call reserves its worst case in a ledger (counts and USD only, no paths or content) before it is sent, and settles the actual usage after.
+   - Raising what Epoch may spend asks in a native dialog (core `spendRaises`): a higher or first cap, a higher budget or threshold, or a lower or new price, since a zero price would make every cap meaningless.
+
+### Summaries
+
+10. **Cache** (the maintainer's "reuse while unchanged"):
+    - Summaries are content-addressed: `key = sha256(prompt version, provider, model, subject, hash of the content sent)`. An unchanged file finds its summary again, including after switching branches and back.
+    - Each summary records the dependency (or child) summaries it was given, by text hash. Fresh means the key hits and those still match (core `summaryStatus`, with a property test).
+    - A per-project pointer keeps the latest summary per subject, shown as stale meanwhile. Stale because the file changed: regenerated on open if the auto rules pass. Stale because only a dependency's summary changed: an "Update" button, never automatic.
+    - Pruning evicts summaries last, and Clear says how many paid summaries it deletes.
+11. **Auto rules:** a summary is made on open only when all of these hold:
+    - the Summary section is visible and the selection has held for about 0.75 s;
+    - there is no fresh summary for this content;
+    - consent was given;
+    - the estimate is under the ask-first threshold and both budgets;
+    - one call at a time, and a few per minute at most.
+
+    A folder is always a confirmed job (core `folderJob`, bottom-up), with a total estimate, progress, cancel, and partial results kept.
+
+12. **No source in the cache.** The host's store path drops code blocks and any sentence that repeats a line of the source sent (core `sourceLines`, the same rule as the cache's no-source test). Summaries are capped in length, shown as plain text and labeled "model-generated". Files that look like secrets, by name or by content (a PEM private key), are never sent, and are listed as not sent.
+
+### Keys
+
+13. **Keys** in the app live in Electron `safeStorage`, as ciphertext in `userData/keys.json` (mode 0600).
+    - On Linux with the `basic_text` backend, Epoch warns (CLAUDE.md) and offers "this session only" (the default) or "store anyway (weak)".
+    - The renderer sends a key once and learns only `{ configured, storage }`.
+    - Errors carry fixed reason codes, never a key, a request option or provider text.
+
+### Contract (CLAUDE.md `EpochApi`)
+
+14. **New members:** `removeKey`, `getSummary(subject, { auto })`, `generateSummary(planId)`, `cancelSummaries`, `onSummaryProgress`, `getSpend`.
+    - `getKeyStatus` also returns `storage`.
+    - `updateSettings` takes a `SettingsPatch`: any field of any section, with `null` removing the cap or a price. It replaces `Partial<Settings>`, which forced whole sections.
+    - `SummaryState` is `ready`, `needs-approval`, `unavailable` or `failed`, each with the cached text when there is one.
+
+    The static demo serves precomputed summaries read-only and has no model features.
+
+## Alternatives considered
+
+- **Model calls in the analysis host,** next to the source. Rejected: keys and network would then live in the process that parses untrusted repositories. Main already holds keys (CLAUDE.md), and the host stays provably network-free.
+- **Automatic regeneration on soft staleness.** Rejected: a change to one widely imported file would re-summarize every dependent and spend money the user never chose to spend.
+- **Consent in the renderer.** Rejected: a compromised renderer could approve its own sends. Native dialogs come from main.
+- **Shipping prices.** Rejected: CLAUDE.md forbids prices from memory, and prices change. The user enters them from the provider's page, and the M7 benchmark cites the page it used.
+
+## Consequences
+
+- For the default model a summary needs only a key, then one consent per project. Another model needs its price entered. The Summary section says which step is missing (`unavailable` reason codes).
+- Main gains code that holds keys and sends requests. It is covered by unit tests with fakes for the host, the egress and `safeStorage`, and by e2e that stub the provider from the test side, so the app contains no test-only code.
+- The host's network tripwire also guards against future dependencies that would phone home.
+
+## Verification and measurement (M7 steps 18 and 19)
+
+- **Offline, proven from outside the app.** Main now installs the same network tripwire as the host, since it sends only through its egress session. The e2e test (`offline.spec.ts`) reads Chromium's own network log. Requests answered by a `protocol.handle` stub never reach Chromium's network stack, so the local model in that test is a real HTTP server on 127.0.0.1 in the test process. A canary first shows the log records a summary request from the egress session. Then, with offline mode on and Anthropic configured, a full analysis and a summary attempt log no URL, and neither tripwire fires. The local model, and only it, still answers.
+- **Secrets, scanned.** `secrets.spec.ts` enters a key in Settings, has it refused once (401) and used once. It then scans every file under the run's user-data, data and cache directories (as text, UTF-16 and base64, with a planted canary), everything the app printed, the DOM and web storage, and every bridge answer and rejection. The key appears nowhere, and `keys.json` holds only ciphertext. The test is skipped on macOS, where the keychain may prompt on a CI runner.
+- **Found by the benchmark: empty files blocked folder summaries.** A folder waited for a summary of every child file, and an empty file (an `__init__.py`, common in Python) never gets one, so the folder and every folder above it stayed "children missing". In the app a folder job over such a tree failed partway. A folder is now made from the children that have something to summarize; secrets are still left out and listed.
+- **`pnpm bench:summaries`** runs the app's root folder job on a project at one commit (full, on an empty cache), then at a later commit (incremental, on that cache). Without `--send` it records Epoch's own worst case per request: byte-estimated input, the output cap, and full-length stand-in summaries that change whenever their input does. With `--send`, the user's key, prices and cap, it records what Anthropic reports. On Flask, with one commit changing 7 source files, the estimate is 108 requests for the full run. Refreshing the whole project afterwards is 102 requests, because a changed file's new summary makes everything that imports it softly stale. The app sends only the 7 changed files, as they are opened. This supports decision 10: soft staleness is never regenerated automatically.
+- **Measured (2026-10-17, Claude Haiku 5.5, `docs/benchmarks/summaries.md`).** The first attempt with the maintainer's key sent nothing billable: Anthropic answered every request with a 400 because the key belonged to no workspace. Epoch now names that case (`key-needs-workspace`: create a key inside a workspace) instead of a generic rejection, and does not send an `anthropic-workspace-id` header. With a workspace key, on Flask: the full run was 108 requests, 269,203 input and 16,255 output tokens, $0.035. Refreshing the whole project after the commit was 102 requests, 269,860 input and 15,408 output tokens, $0.035: as much as the full run, because every changed summary made what imports it stale. The 7 new or changed files alone, which is what the app sends by itself, were 56,897 input and 1,250 output tokens, $0.0063. This confirms decision 10 with real numbers. The byte estimate overshot reported input tokens by 1.73× on the full run (465,098 estimated), 1.81× on the whole-project refresh (487,925) and 1.27× on the changed files (72,351); the larger gap on the runs with folders and imports comes from the full-length stand-in summaries, which real summaries are far shorter than. The estimate stayed an upper bound in every row, so the spending cap held. Every answer was stored: none was cut off at the 1,024-token cap (adaptive thinking included), refused, or emptied by the sanitizer. Output averaged about 150 tokens per request.

@@ -1,0 +1,16 @@
+{
+  "withoutEmbeddings": {
+    "intercept": -1.8488,
+    "cochangeRatio": 0.7894,
+    "cochangeSupport": 1.0254,
+    "stringWeight": -0.0004,
+    "embeddingCosine": 0
+  },
+  "withEmbeddings": {
+    "intercept": -3.1931,
+    "cochangeRatio": 0.5184,
+    "cochangeSupport": 1.3357,
+    "stringWeight": -0.0017,
+    "embeddingCosine": 1.5243
+  }
+}

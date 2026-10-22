@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "pkg/__init__.py",
+    "pkg/a.py",
+    "y.py"
+  ],
+  "edges": [],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "pkg/a.py",
+      "specifier": "..",
+      "reason": "not-found",
+      "line": 1
+    }
+  ]
+}

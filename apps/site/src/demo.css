@@ -1,0 +1,48 @@
+@import "../../../packages/ui/src/styles.css";
+@source "../../../packages/ui/src";
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+.demo-attribution {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+  padding: 0.55rem 1rem;
+  background: var(--epoch-chrome);
+  border-bottom: 1px solid var(--epoch-border);
+  font:
+    12px system-ui,
+    sans-serif;
+}
+
+.demo-attribution a {
+  color: var(--epoch-accent);
+}
+
+.demo-attribution .push {
+  margin-left: auto;
+}
+
+.demo-app {
+  min-height: 0;
+  flex: 1;
+}
+
+.demo-error {
+  margin: 2rem auto;
+  font:
+    14px system-ui,
+    sans-serif;
+}

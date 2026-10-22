@@ -1,0 +1,10 @@
+{
+  "description": "The same orphan without git history: capped at Medium.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "not-a-repo",
+    "now": "2026-06-01"
+  }
+}

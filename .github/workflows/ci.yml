@@ -58,7 +58,34 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm build
+
+      # The local embedding model (ADR-008), from its pinned Hugging Face
+      # revision and checked against its sha256. Build time only: the
+      # installed app never downloads a model. The tests run it on each OS.
+      - name: Fetch the embedding model
+        run: node scripts/fetch-model.mjs
+
       - run: pnpm test
+
+      # The OS keychain itself (ADR-009): store, read and remove a throwaway
+      # key. Linux runners have no Secret Service; the tests' fake covers it.
+      - name: The real OS keychain
+        if: runner.os != 'Linux'
+        timeout-minutes: 3
+        env:
+          EPOCH_TEST_REAL_KEYCHAIN: "1"
+        run: pnpm --filter @epoch-dev/cli exec vitest run src/auth.test.ts -t "osKeychain"
+
+      # The zero-network test runs in pnpm test on every OS (the built CLI
+      # under scripts/no-network.mjs). On Linux the same analysis also runs
+      # in a network namespace, where the kernel itself has no way out.
+      - name: Zero network in a network namespace
+        if: runner.os == 'Linux'
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          MODEL="models/$(node -p "require('./models/manifest.json').default")"
+          unshare -rn node packages/cli/dist/bin.js analyze fixtures/typescript/monorepo --embedding-model "$MODEL" > /dev/null
+          unshare -rn node packages/cli/dist/bin.js findings fixtures/typescript/monorepo --embedding-model "$MODEL" > /dev/null
 
       - name: Telemetry stays off without the workflow env
         env:
@@ -76,3 +103,95 @@ jobs:
         run: |
           test ! -e AGENTS.md
           test -z "$(git status --porcelain)"
+
+  e2e:
+    name: e2e (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-26, windows-2025]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      # xvfb-run gives Electron a display on Linux; the other runners have one.
+      # (The runner context is not available at job level, hence the matrix.)
+      HEADLESS: ${{ startsWith(matrix.os, 'ubuntu') && 'xvfb-run -a' || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # electron has no install script (allowBuilds stays deny-by-default);
+      # its own installer downloads the binary for this OS from GitHub.
+      - name: Install the Electron binary
+        run: pnpm --filter @epoch-dev/app exec install-electron
+
+      # Ubuntu 24.04 blocks unprivileged user namespaces through AppArmor, which
+      # Chromium's sandbox needs. The tests keep the sandbox on (never
+      # --no-sandbox), so allow them for this runner.
+      - name: Allow Chromium's sandbox
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - run: pnpm build
+
+      # The local embedding model (ADR-008), from its pinned Hugging Face
+      # revision and checked against its sha256. Build time only: the
+      # installed app never downloads a model.
+      - name: Fetch the embedding model
+        run: node scripts/fetch-model.mjs
+
+      - name: e2e against the build
+        run: $HEADLESS pnpm --filter @epoch-dev/app e2e
+
+      - name: Package (unpacked, unsigned)
+        run: pnpm --filter @epoch-dev/app package:dir
+
+      - name: e2e against the packaged app
+        env:
+          EPOCH_E2E_TARGET: packaged
+        run: $HEADLESS pnpm --filter @epoch-dev/app e2e
+
+      # What Playwright kept of a failing test (page snapshot, error context),
+      # so a failure that only happens on a runner can be looked at.
+      - name: Keep e2e results of a failure
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: e2e-results-${{ matrix.os }}
+          path: packages/app/test-results
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: The run left the tree clean
+        run: test -z "$(git status --porcelain)"
+
+  site:
+    name: static site and browser demo
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/turbo.mjs run build --filter=@epoch-dev/site...
+      - run: pnpm --filter @epoch-dev/site test
+      - run: node scripts/site-size.mjs apps/site/dist
+      - run: pnpm --filter @epoch-dev/site exec playwright install --with-deps chromium
+      - run: pnpm --filter @epoch-dev/site e2e
+      - run: test -z "$(git status --porcelain)"

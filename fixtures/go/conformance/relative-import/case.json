@@ -1,0 +1,6 @@
+{
+  "description": "Relative import paths are not allowed in a module and stay unresolved.",
+  "adapters": [
+    "go"
+  ]
+}

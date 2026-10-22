@@ -1,0 +1,10 @@
+{
+  "description": "A console script makes its private module a root; public modules of a distributable package (it declares a build system) are importable; a private module nothing reaches is reported.",
+  "adapters": [
+    "python"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A file outside a package also imports from its own directory (Python adds a script's folder to sys.path, and so does pytest's default prepend mode).",
+  "adapters": [
+    "python"
+  ]
+}

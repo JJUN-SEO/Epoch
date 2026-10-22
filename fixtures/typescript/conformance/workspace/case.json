@@ -1,0 +1,6 @@
+{
+  "description": "Monorepo siblings are internal: workspace imports resolve to source without node_modules, including exports that point at an unbuilt dist/.",
+  "adapters": [
+    "typescript"
+  ]
+}

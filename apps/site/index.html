@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; object-src 'none'"
+    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Epoch maps a codebase into a dependency graph, shows blast radius, and surfaces likely dead features. Analysis stays on your machine."
+    />
+    <title>Epoch — see the shape of your codebase</title>
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
+    <link rel="stylesheet" href="./site.css" />
+  </head>
+  <body>
+    <header class="site-header wrap">
+      <a class="brand" href="./"><img src="./icon.svg" alt="" /> Epoch</a>
+      <nav aria-label="Main navigation">
+        <a href="#demo">Try the demo</a>
+        <a href="#download">Download</a>
+        <a href="https://github.com/JJUN-SEO/Epoch">GitHub ↗</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero wrap">
+        <div class="eyebrow">Understand the code before you change it</div>
+        <h1>See the shape of<br /><em>your codebase.</em></h1>
+        <p class="hero-copy">
+          Epoch turns a repository into an interactive dependency graph. Trace
+          the blast radius of a change, inspect risk tiers, and review likely
+          dead features with evidence and caveats.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="#download"
+            >Download Epoch <span aria-hidden="true">↓</span></a
+          >
+          <a class="button secondary" href="./demo.html?repo=zod"
+            >Explore a live demo <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <p class="hero-note">
+          Local analysis · Read-only on your project · No account
+        </p>
+        <div class="graph-art">
+          <img
+            src="./demo.png"
+            width="1440"
+            height="900"
+            alt="Epoch viewing the zod dependency graph, candidate findings banner, file tree, and risk colors"
+          />
+        </div>
+      </section>
+
+      <section class="section section-alt" id="demo">
+        <div class="wrap">
+          <div class="section-heading">
+            <span class="eyebrow">Explore real repositories</span>
+            <h2>Try the graph in your browser.</h2>
+            <p>
+              These graphs were generated once by Epoch's offline CLI at pinned
+              commits. The demo has no backend, no source code, and no model
+              features.
+            </p>
+          </div>
+          <div class="cards">
+            <a class="card" href="./demo.html?repo=zod"
+              ><span class="language">TypeScript</span><strong>zod</strong
+              ><span
+                >Explore dependencies and likely dead-feature candidates in a
+                validation library.</span
+              ><span class="card-link">Open demo ↗</span></a
+            >
+            <a class="card" href="./demo.html?repo=flask"
+              ><span class="language">Python</span><strong>Flask</strong
+              ><span>Follow the structure of a Python web framework.</span
+              ><span class="card-link">Open demo ↗</span></a
+            >
+            <a class="card" href="./demo.html?repo=cli"
+              ><span class="language">Go</span><strong>GitHub CLI</strong
+              ><span
+                >Navigate a larger Go application through its package
+                graph.</span
+              ><span class="card-link">Open demo ↗</span></a
+            >
+          </div>
+          <p class="small">
+            Each demo names its upstream repository, exact commit, and license.
+            Epoch's candidate findings are prompts for review, never verdicts.
+          </p>
+        </div>
+      </section>
+
+      <section class="section wrap" id="download">
+        <div class="section-heading">
+          <span class="eyebrow">Install locally</span>
+          <h2>Get Epoch.</h2>
+          <p>
+            Early builds are unsigned. Review the
+            <a href="https://github.com/JJUN-SEO/Epoch/releases/latest"
+              >latest release</a
+            >
+            and verify its SHA-256 checksum before opening an installer.
+          </p>
+        </div>
+        <div class="downloads">
+          <a
+            href="https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-mac-arm64.dmg"
+            ><strong>macOS</strong><span>Apple silicon · DMG</span
+            ><b>Download ↗</b></a
+          >
+          <a
+            href="https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-win-x64-setup.exe"
+            ><strong>Windows</strong><span>x64 · per-user installer</span
+            ><b>Download ↗</b></a
+          >
+          <a
+            href="https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-linux-x64.deb"
+            ><strong>Linux</strong><span>x64 · .deb (Ubuntu 24.04)</span
+            ><b>Download ↗</b></a
+          >
+          <a
+            href="https://github.com/JJUN-SEO/Epoch/releases/latest/download/Epoch-linux-x64.AppImage"
+            ><strong>Linux</strong><span>x64 · AppImage</span
+            ><b>Download ↗</b></a
+          >
+        </div>
+        <div class="install-notes">
+          <div>
+            <h3>First run</h3>
+            <p>
+              macOS may require “Open Anyway” in Privacy &amp; Security. Windows
+              may show SmartScreen; choose “More info” and “Run anyway” after
+              verifying the checksum. On Ubuntu 24.04, the .deb is recommended.
+              AppImage can depend on local FUSE and AppArmor configuration.
+            </p>
+          </div>
+          <div>
+            <h3>Verify the download</h3>
+            <p>
+              Compare the installer with
+              <a
+                href="https://github.com/JJUN-SEO/Epoch/releases/latest/download/SHA256SUMS.txt"
+                >SHA256SUMS.txt</a
+              >: <code>shasum -a 256 &lt;file&gt;</code> on macOS,
+              <code>Get-FileHash &lt;file&gt; -Algorithm SHA256</code> on
+              Windows, or <code>sha256sum &lt;file&gt;</code> on Linux.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section section-alt">
+        <div class="wrap principles">
+          <div>
+            <span class="eyebrow">Designed to be inspectable</span>
+            <h2>Your code stays yours.</h2>
+          </div>
+          <div>
+            <p>
+              Parsing, graph generation, findings, and the default scorer run
+              locally. Remote model features require your key and consent. The
+              desktop app checks GitHub Releases for updates once a day unless
+              you disable the check or turn on offline mode.
+            </p>
+            <a
+              href="https://github.com/JJUN-SEO/Epoch/blob/main/docs/privacy.md"
+              >Read the data-flow table ↗</a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="wrap">
+      <span>Epoch · MIT licensed</span
+      ><a href="https://github.com/JJUN-SEO/Epoch"
+        >Source and documentation ↗</a
+      >
+    </footer>
+  </body>
+</html>

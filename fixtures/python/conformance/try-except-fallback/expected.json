@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    "app.py",
+    "fast.py",
+    "slow.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "fast.py",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "app.py",
+      "target": "slow.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

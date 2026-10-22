@@ -1,0 +1,10 @@
+{
+  "description": "package main is a root and non-internal packages are importable; an internal package nothing reaches is one finding for its files.",
+  "adapters": [
+    "go"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

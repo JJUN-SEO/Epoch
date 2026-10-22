@@ -1,0 +1,6 @@
+{
+  "description": "A directory without __init__.py is a namespace package: its submodules resolve, a bare import of it has no file to link.",
+  "adapters": [
+    "python"
+  ]
+}

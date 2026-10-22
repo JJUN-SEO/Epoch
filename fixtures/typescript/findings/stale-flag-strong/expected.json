@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "new-checkout"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "src/index.ts",
+          "line": 6,
+          "endLine": 6
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

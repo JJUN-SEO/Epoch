@@ -6,3 +6,15 @@ coverage
 # Specs keep their exact wording (edited only with an ADR).
 CLAUDE.md
 PLAN.md
+
+# Analyzed fixtures keep their exact bytes.
+fixtures
+
+# Benchmark reports keep the exact output of the scripts that generate them.
+docs/benchmarks/typescript*.md
+
+# Generated from queries/ by scripts/gen-queries.mjs (checked by pnpm lint).
+**/*.generated.ts
+# The CLI's exact output and the demo repositories' own license texts.
+apps/site/data/*.graph.json
+apps/site/data/*.LICENSE.txt

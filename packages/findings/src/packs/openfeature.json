@@ -1,0 +1,527 @@
+[
+  {
+    "id": "openfeature.typescript.getBooleanValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getBooleanValue",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getBooleanDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getBooleanDetails",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getStringValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getStringValue",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getStringDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getStringDetails",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getNumberValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getNumberValue",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getNumberDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getNumberDetails",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getObjectValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getObjectValue",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.getObjectDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "getObjectDetails",
+    "keyArgIndex": 0,
+    "importHints": [
+      "@openfeature/server-sdk",
+      "@openfeature/web-sdk",
+      "@openfeature/react-sdk",
+      "@openfeature/angular-sdk",
+      "@openfeature/nestjs-sdk"
+    ],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/server/src/evaluation/evaluation.ts"
+  },
+  {
+    "id": "openfeature.typescript.useFlag",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useFlag",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useSuspenseFlag",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useSuspenseFlag",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useBooleanFlagValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useBooleanFlagValue",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useBooleanFlagDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useBooleanFlagDetails",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useStringFlagValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useStringFlagValue",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useStringFlagDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useStringFlagDetails",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useNumberFlagValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useNumberFlagValue",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useNumberFlagDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useNumberFlagDetails",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useObjectFlagValue",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useObjectFlagValue",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.typescript.useObjectFlagDetails",
+    "provider": "openfeature",
+    "language": "typescript",
+    "callee": "useObjectFlagDetails",
+    "keyArgIndex": 0,
+    "importHints": ["@openfeature/react-sdk"],
+    "source": "https://github.com/open-feature/js-sdk/blob/a99bb9f2645a85b76ce69f96d31640ff22277aa3/packages/react/src/evaluation/use-feature-flag.ts"
+  },
+  {
+    "id": "openfeature.python.get_boolean_value",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_boolean_value",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_boolean_value_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_boolean_value_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_boolean_details",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_boolean_details",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_boolean_details_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_boolean_details_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_string_value",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_string_value",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_string_value_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_string_value_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_string_details",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_string_details",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_string_details_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_string_details_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_integer_value",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_integer_value",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_integer_value_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_integer_value_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_integer_details",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_integer_details",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_integer_details_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_integer_details_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_float_value",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_float_value",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_float_value_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_float_value_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_float_details",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_float_details",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_float_details_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_float_details_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_object_value",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_object_value",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_object_value_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_object_value_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_object_details",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_object_details",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.python.get_object_details_async",
+    "provider": "openfeature",
+    "language": "python",
+    "callee": "get_object_details_async",
+    "keyArgIndex": 0,
+    "importHints": ["openfeature"],
+    "source": "https://github.com/open-feature/python-sdk/blob/faf6c28f1dae508c8e4ef960a71469d2a9107b9f/openfeature/client.py"
+  },
+  {
+    "id": "openfeature.go.BooleanValue",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "BooleanValue",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.BooleanValueDetails",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "BooleanValueDetails",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.Boolean",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "Boolean",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.StringValue",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "StringValue",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.StringValueDetails",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "StringValueDetails",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.String",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "String",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.FloatValue",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "FloatValue",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.FloatValueDetails",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "FloatValueDetails",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.Float",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "Float",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.IntValue",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "IntValue",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.IntValueDetails",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "IntValueDetails",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.Int",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "Int",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.ObjectValue",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "ObjectValue",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.ObjectValueDetails",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "ObjectValueDetails",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  },
+  {
+    "id": "openfeature.go.Object",
+    "provider": "openfeature",
+    "language": "go",
+    "callee": "Object",
+    "keyArgIndex": 1,
+    "importHints": ["github.com/open-feature/go-sdk/openfeature"],
+    "source": "https://github.com/open-feature/go-sdk/blob/e5bcfb6ab86af873c7cb6b2a1bb85b4bac0e45f2/openfeature/client.go"
+  }
+]

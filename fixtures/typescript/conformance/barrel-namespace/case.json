@@ -1,0 +1,6 @@
+{
+  "description": "A namespace import through a barrel stays a conservative edge to the barrel.",
+  "adapters": [
+    "typescript"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "Importing a directory resolves to its index file.",
+  "adapters": [
+    "typescript"
+  ]
+}

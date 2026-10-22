@@ -1,6 +1,6 @@
 # Epoch
 
-A local-first desktop app (macOS, Windows, Linux) that parses a codebase in most major languages into an interactive dependency graph (nodes connecting like neurons), scores each file for risk, shows the blast radius of changing any file, alerts you to likely-dead features (constant branches, stale feature flags, unreachable files), and keeps itself up to date cheaply as the repo changes.
+A local-first desktop app (macOS, Windows, Linux) that parses a codebase in most major languages into an interactive dependency graph (nodes connecting like neurons), rates each file's risk in tiers, shows the blast radius of changing any file, alerts you to likely-dead features (constant branches, stale feature flags, unreachable files), and keeps itself up to date cheaply as the repo changes.
 
 Open a project folder in the app and it analyzes it. Your code never leaves your machine by default, and Epoch never modifies your project.
 
@@ -32,7 +32,7 @@ Precedence: CLAUDE.md > ADRs > PLAN.md. If they conflict, stop and ask. A change
 1. **[M1]** Language-agnostic core, adapter interface, TypeScript/JavaScript adapter, headless CLI (`epoch analyze`).
 2. **[M2]** Local content-addressed cache, incremental analysis, accuracy benchmarks.
 3. **[M3]** Electron desktop app: open folder, graph UI, secure IPC. Python adapter.
-4. **[M4]** File watcher, blast radius, git churn, coverage ingestion, risk score. Go adapter.
+4. **[M4]** File watcher, blast radius, git churn, coverage ingestion, risk tiers. Go adapter.
 5. **[M5]** Dead-feature detection and alerts across TS/JS, Python, and Go.
 6. **[M6]** Hint edges (co-change, shared strings, embeddings), `RelationScorer` backends, evaluation.
 7. **[M7]** Bring-your-own keys, cost guardrails, opt-in summaries, offline mode.
@@ -72,7 +72,7 @@ Electron app with three processes. There is no HTTP server; the UI talks to the 
 ```
 Epoch (Electron)
  ├─ Renderer (React + Cytoscape)   sandboxed, no Node access; talks to main only via a typed preload API
- ├─ Main process                   windows, menus, native dialogs, IPC router, secrets, auto-update
+ ├─ Main process                   windows, menus, native dialogs, IPC router, secrets, update check
  └─ Analysis host (utilityProcess) pipeline + worker threads (piscina, web-tree-sitter),
                                    SQLite cache, file watcher, git, scorers
 Optional outbound: opt-in model providers, update check
@@ -92,11 +92,19 @@ interface EpochApi {
   undismissFinding(id: string): Promise<void>;
   getCodePreview(file: string, startLine: number, endLine: number): Promise<CodePreview>; // read-only, inside project root
   getSettings(): Promise<Settings>;
-  updateSettings(patch: Partial<Settings>): Promise<Settings>;
+  updateSettings(patch: SettingsPatch): Promise<Settings>;    // any field of any section; raising spend limits is confirmed natively (ADR-016)
   setKey(provider: string, value: string): Promise<void>;      // one-way: value is never readable back
-  getKeyStatus(provider: string): Promise<{ configured: boolean }>;
+  removeKey(provider: string): Promise<void>;
+  getKeyStatus(provider: string): Promise<{ configured: boolean; storage?: "encrypted" | "session" | "weak" }>;
+  getSummary(subject: string, opts?: { auto?: boolean }): Promise<SummaryState>;   // file, pkg: or dir:<path>; spends only under the auto rules (ADR-016)
+  generateSummary(planId: string): Promise<SummaryState>;      // spends exactly an approved, single-use plan
+  cancelSummaries(): Promise<void>;
+  onSummaryProgress(cb: (p: SummaryProgress) => void): Unsubscribe;
+  getSpend(): Promise<SpendStatus>;
 }
 ```
+
+`SummaryState` is `ready` (text, an optional stale marker, how it was made), `needs-approval` (a single-use plan id with what would be sent and its worst-case cost), `unavailable` or `failed` (fixed reason codes, never provider text), each with the last summary when there is one. The types are in `core` (`interfaces/api.ts`); the static demo serves precomputed summaries read-only.
 
 Pipeline (each stage is a pure function of its inputs unless noted):
 
@@ -110,7 +118,7 @@ Discover → Parse → Extract (cached) → Resolve → Graph → Enrich (hints)
 4. **Resolve**: the adapter turns each `RawImport` into a `Resolution`. Recomputed on every run over cached `FileFacts`.
 5. **Graph**: assemble nodes and edges (including barrel tracing), fan-in/out, cycles (graphology).
 6. **Enrich**: hint edges from git co-change, shared strings, and local embeddings (M6; a no-op before that).
-7. **Score**: `RelationScorer` assigns probabilities to candidate hint edges; risk score computed here.
+7. **Score**: `RelationScorer` assigns probabilities to candidate hint edges; risk tiers computed here.
 8. **Findings**: dead-feature detectors run last so they can use roots, edges, hints, and git history.
 9. **Store / Serve**: derived results to the cache; the analysis host streams results to main, which forwards them to the renderer.
 
@@ -162,6 +170,7 @@ type FileFacts = {                 // cached unit: pure function of file content
   exportAllFrom: string[];         // specifiers of `export * from`
   flagUsages: FlagUsage[];
   constantConditions: ConstantCondition[];
+  strings: string[];               // key-like literals (event names, routes, topics, config keys), at most 64; shared-string hints (ADR-014)
   isGenerated: boolean;            // generated-file marker found
   loc: number;
 };
@@ -188,8 +197,16 @@ type GraphNode = {
   externals: string[];             // third-party packages this node imports
   flags: FlagUsage[];
   role?: { label: string; confidence: number };   // from scorer, e.g. controller/model/util/test/config
-  metrics: { fanIn: number; fanOut: number; churn90d: number; coverage?: number; riskScore: number };
+  metrics: {                       // optional fields are absent until computed (ADR-011)
+    fanIn: number; fanOut: number;
+    dependents?: number;           // transitive, over the "Blast radius, certain" edge set
+    churn90d?: number; coverage?: number;
+    risk?: { tier: RiskTier; archetype: RiskArchetype };  // absent without git history (ADR-015)
+  };
 };
+
+type RiskTier = "critical" | "high" | "moderate" | "low-moderate" | "low";   // most to least risky
+type RiskArchetype = "volatile-core" | "active-hotspot" | "warm-core" | "fragile-leaf" | "frozen-core" | "stable-leaf";
 
 type GraphEdge = {
   source: string;
@@ -256,7 +273,8 @@ interface GitHistoryProvider {
 |---|---|
 | Blast radius, certain | `import`, `dynamic-import` (resolved), `reexport`, `type-only` (toggle, default on) |
 | Blast radius, likely | the certain set plus hint edges at or above a threshold |
-| Fan-in / fan-out (risk) | the certain set; direct edges only; count distinct neighbor nodes |
+| Fan-in / fan-out (node metrics) | the certain set; direct edges only; count distinct neighbor nodes |
+| Exposure (risk tiers) | the certain set (`type-only` included); transitive; count distinct dependents |
 | Reachability (findings) | ALL fact edge kinds, including `type-only` and `via-barrel` |
 | Default display | all fact kinds except `via-barrel` (toggle to show) |
 
@@ -383,7 +401,7 @@ Everything is cached locally. The cache is derived data and always safe to delet
 - **Location:** one per-user cache directory resolved in `core` (e.g. via `env-paths`, app name `epoch`) so the app and the CLI share it. Owner-only permissions. Never inside the analyzed repo.
 - **What is cached:** `FileFacts` per file, keyed by hash(file contents + adapter id + adapter version + `extractorConfigHash`). `extractorConfigHash` covers the flag patterns, wrapper functions, and env prefixes, so changing them re-extracts. Also cached: embeddings (M6), summaries (M7), and git history lookups (M5, keyed by path and blob hash; approximate by design, see the findings ADR).
 - **What is NOT cached:** resolved edges, the graph, and findings. They are recomputed on every run from cached `FileFacts`, because adding or removing a file elsewhere, or editing tsconfig/go.mod/pyproject, can change how an unchanged file's imports resolve. Add resolution caching only if profiling shows it is the bottleneck, with explicit dependency tracking (ADR).
-- **No source stored.** The cache never stores file contents or code excerpts. Only short identifiers and literals that are part of the facts (specifiers, export names, flag keys) and derived values (hashes, metrics, scores, summaries). Display snippets are read from disk on demand.
+- **No source stored.** The cache never stores file contents or code excerpts. Only short identifiers and literals that are part of the facts (specifiers, export names, flag keys, key-like strings) and derived values (hashes, metrics, scores, summaries). Display snippets are read from disk on demand.
 - **Per-repo index.** File manifest and last analyzed commit, so `--since` and the watcher know what changed.
 - **Change detection.** File watcher events and `git diff` against the last analyzed commit; content-hash fallback for non-git folders.
 - **Early cutoff.** For downstream model-derived outputs (scores, summaries): if a recomputed input equals the previous one, stop propagating.
@@ -399,7 +417,7 @@ Document this table in `docs/privacy.md` and the README, and keep it accurate. A
 
 | Feature | What leaves the machine | Default |
 |---|---|---|
-| Parsing, graph, blast radius, risk score, git analysis | Nothing | On |
+| Parsing, graph, blast radius, risk tiers, git analysis | Nothing | On |
 | Dead-feature detection (reachability, constants, git history) | Nothing | On |
 | Heuristic scorer, co-change and shared-string hints | Nothing | On |
 | Embeddings similarity | Nothing (small local embedding model, chosen in an ADR) | On |
@@ -412,7 +430,7 @@ With no keys configured and update checks disabled, Epoch makes no network reque
 
 Rules:
 - All remote model features are **off by default**. On first use, show exactly what will be sent and require explicit consent.
-- **Offline mode** (app setting and `epoch --offline`) hard-blocks all outbound network, including update checks. Enforce it in main and the analysis host through a single network wrapper, and at the Electron session level. An automated test runs a full analysis with the network blocked and asserts zero outbound requests.
+- **Offline mode** (app setting and `epoch --offline`) hard-blocks all outbound network, including update checks. A local model on this machine that the user chose (loopback only) keeps working. Enforce it in main and the analysis host through a single network wrapper, and at the Electron session level. An automated test runs a full analysis with the network blocked and asserts zero outbound requests.
 - Respect `.gitignore` and `.epochignore`. Never send files matching secret patterns (`.env*`, keys, credentials) to any remote model, even if the user opts in.
 - No telemetry. No crash reporting that includes paths or code.
 - Sharing is explicit: Export writes a static HTML/JSON file locally that the user can share themselves.
@@ -463,15 +481,31 @@ Rules:
 - Benchmark scorers against each other and ground truth: precision/recall at thresholds and calibration. Put results in the README.
 - Prose summaries use a regular text LLM (or a local model), lazy and cached, grounded in file source plus neighbor summaries. Jev cannot do this.
 
-## Risk score (v1 formula)
+## Risk tiers (ordinal)
 
-Percentile-rank each input across the repo (ties broken deterministically), then:
+A file's risk is a tier and an archetype from three facts, never a made-up number (ADR-015). Show the facts behind the tier in the UI.
 
-```
-risk = 100 * (0.4 * fanIn + 0.3 * churn + 0.3 * (1 - coverage))
-```
+| Dimension | Values (default thresholds) |
+|---|---|
+| Exposure | **exposed**: more than 5 transitive dependents (traversal policy, "Exposure"); else **contained** |
+| Change | **hot**: 3 or more commits in the last 90 days; **warm**: 1 or 2; **quiet**: 0 |
+| Fragility | **fragile**: more than 300 lines, or line coverage below 50% when a coverage report covers the file; else **sturdy** |
 
-If coverage is missing, drop that term and reweight (0.55 fanIn, 0.45 churn). Show the breakdown in the UI. Coverage formats to support first: lcov and Cobertura XML, then Go cover profiles and JaCoCo. Fan-in uses the traversal policy above.
+Rules, first match wins:
+
+| Tier | Archetype | Rule |
+|---|---|---|
+| Critical | Volatile core | exposed + hot + fragile |
+| High | Active hotspot | exposed + hot, or exposed + warm + fragile |
+| Moderate | Warm core | exposed + warm |
+| Moderate | Fragile leaf | contained + hot, or contained + warm + fragile |
+| Low–moderate | Frozen core | exposed + quiet |
+| Low | Stable leaf | everything else (contained + warm + sturdy, contained + quiet) |
+
+- No git history: no tier; the UI says why. No coverage report: fragility from size alone.
+- Wherever files are ordered by risk: by tier, then dependents, then churn.
+- The thresholds are defaults to tune with evidence (`pnpm bench:risk`), like `staleAfterDays`, not claims.
+- Coverage formats to support first: lcov and Cobertura XML, then Go cover profiles and JaCoCo.
 
 ## Blast radius
 
@@ -492,7 +526,7 @@ If coverage is missing, drop that term and reweight (0.55 fanIn, 0.45 churn). Sh
 ## Distribution
 
 - **Installers:** macOS (dmg), Windows (NSIS), Linux (AppImage/deb), built in a GitHub Actions matrix (one runner per OS) and published on GitHub Releases.
-- **Auto-update:** via the release host (e.g. `electron-updater`), opt-out, listed in the data-flow table.
+- **Update check:** once a day main asks the release host (GitHub Releases) for the latest version through its egress and shows a notice linking to the release page; the user downloads and installs it. Opt-out, never in offline mode, listed in the data-flow table (ADR-018).
 - **Code signing:** macOS notarization needs a paid Apple Developer account and Windows signing needs a certificate. Ship early builds unsigned with documented first-run steps, and decide on signing before a public launch. Be upfront about this in the README.
 - **Static site:** landing page, download links, and an in-browser demo viewer with precomputed graphs and findings of well-known public OSS repos (reuses the UI via the static `EpochApi`). No backend, no user code, no model features.
 - **CLI:** also published to npm for headless and CI use (`epoch analyze --json`, `epoch findings`). We host nothing.
@@ -508,7 +542,7 @@ If coverage is missing, drop that term and reweight (0.55 fanIn, 0.45 churn). Sh
 - **Git**: `simple-git` plus direct `git` invocations where needed. **Watching**: `chokidar`.
 - **Cache**: SQLite via `better-sqlite3`, rebuilt for Electron.
 - **Frontend (renderer)**: React + Vite + Cytoscape.js + Tailwind.
-- **Integrations**: Jev API (when access is granted), Anthropic API for summaries and the fallback scorer, optional Ollama.
+- **Integrations**: Jev API (when access is granted), Anthropic, OpenAI or Gemini API for summaries (the user's choice and key; ADR-019), Anthropic API for the fallback scorer, optional Ollama.
 - **Testing**: Vitest for unit tests; Playwright (Electron support) for end-to-end.
 - **Why Electron, not Tauri (for now):** the engine depends on Node (TS compiler API, native modules, worker threads), which runs as-is in Electron. Tauri would need a Node sidecar or a Rust rewrite of the engine. Electron also ships a consistent Chromium for Cytoscape/WebGL across OSes. Cost: larger installers and memory use. Recorded in an ADR; revisit in v2.
 
@@ -523,7 +557,7 @@ epoch/
   pnpm-workspace.yaml
   turbo.json
   packages/
-    core/             # schemas, interfaces, canonicalization, graph algorithms (blast radius, reachability, SCC), risk scoring. Pure, no I/O
+    core/             # schemas, interfaces, canonicalization, graph algorithms (blast radius, reachability, SCC), risk tiers. Pure, no I/O
     adapters/
       typescript/
       python/
@@ -565,6 +599,7 @@ pnpm bench <path>              # parse time, incremental time
 pnpm bench:accuracy <repo>     # edge precision/recall vs ground truth
 pnpm bench:findings <repo>     # finding comparisons, hindsight test, review sheet
 pnpm bench:scorers             # scorer evaluation
+pnpm bench:risk                # risk tiers against later fix commits (hindsight)
 ```
 
 ## Testing and accuracy
@@ -574,6 +609,7 @@ pnpm bench:scorers             # scorer evaluation
 - For each Tier A language, measure edge precision/recall against a ground-truth tool on at least one real OSS repo.
 - Findings: compare against an existing tool where one exists, run a hindsight test, and measure precision on a human-reviewed sample (see PLAN.md M5). Report all limits.
 - Scorers: temporal-holdout evaluation with precision/recall and calibration.
+- Risk tiers: hindsight evaluation (later fix commits per tier, on a window after the one the thresholds were chosen on).
 - Offline test, secrets test, Electron security tests, local-cache tests (hit/miss, no source stored), and e2e (open folder, blast radius, findings banner, incremental update).
 - Every graph-correctness or finding-rubric change starts with a fixture and a failing test.
 

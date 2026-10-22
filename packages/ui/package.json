@@ -1,0 +1,51 @@
+{
+  "name": "@epoch-dev/ui",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Epoch renderer: React + Cytoscape UI written against EpochApi (used by the app and the static demo site).",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./app": {
+      "types": "./src/App.tsx",
+      "default": "./src/App.tsx"
+    },
+    "./api": {
+      "types": "./src/api.ts",
+      "default": "./src/api.ts"
+    },
+    "./bridge": {
+      "types": "./src/bridge.ts"
+    },
+    "./styles.css": "./src/styles.css"
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "pnpm run clean && vite build",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "dependencies": {
+    "@epoch-dev/core": "workspace:*",
+    "cytoscape": "3.34.3",
+    "cytoscape-fcose": "2.2.0",
+    "d3-force-3d": "3.0.6",
+    "lucide-react": "1.49.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "catalog:",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@types/three": "0.186.0",
+    "@vitejs/plugin-react": "catalog:",
+    "eslint": "catalog:",
+    "tailwindcss": "4.3.3",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:"
+  }
+}

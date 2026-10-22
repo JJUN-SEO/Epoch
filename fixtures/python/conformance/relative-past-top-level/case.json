@@ -1,0 +1,6 @@
+{
+  "description": "A relative import that climbs above the top-level package is unresolved (Python raises an ImportError).",
+  "adapters": [
+    "python"
+  ]
+}

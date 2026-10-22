@@ -1,0 +1,10 @@
+{
+  "description": "Two files that import each other, reached by no root, are one finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

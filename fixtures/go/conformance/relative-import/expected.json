@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    "pkg:example.com/app",
+    "pkg:example.com/app/sibling"
+  ],
+  "edges": [],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "main.go",
+      "specifier": "./sibling",
+      "reason": "unsupported-syntax",
+      "line": 3
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "FEATURE_DARK_MODE"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "src/index.ts",
+          "line": 2,
+          "endLine": 2
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

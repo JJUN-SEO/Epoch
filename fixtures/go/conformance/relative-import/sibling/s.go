@@ -1,0 +1,3 @@
+package sibling
+
+func S() {}

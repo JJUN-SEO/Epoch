@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "customConditions": [
+      "fx-source"
+    ]
+  },
+  "include": [
+    "src"
+  ]
+}

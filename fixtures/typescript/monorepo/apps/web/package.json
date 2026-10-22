@@ -1,0 +1,9 @@
+{
+  "name": "web",
+  "type": "module",
+  "dependencies": {
+    "@mono/core": "workspace:*",
+    "@mono/data": "workspace:*",
+    "react": "^19"
+  }
+}

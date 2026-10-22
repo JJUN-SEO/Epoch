@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    "app.py",
+    "plugins/__init__.py",
+    "plugins/alpha.py",
+    "plugins/beta.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "plugins/alpha.py",
+      "kind": "dynamic-import",
+      "evidence": []
+    },
+    {
+      "source": "app.py",
+      "target": "plugins/beta.py",
+      "kind": "dynamic-import",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "app.py": [
+      "py:importlib"
+    ]
+  },
+  "unresolved": [
+    {
+      "from": "app.py",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "line": 4
+    },
+    {
+      "from": "app.py",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "pathPrefix": "plugins/",
+      "line": 5
+    }
+  ]
+}

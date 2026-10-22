@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    "app.py",
+    "ns/mod.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "ns/mod.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "app.py",
+      "specifier": "ns",
+      "reason": "ambiguous",
+      "line": 2
+    }
+  ]
+}

@@ -9,6 +9,22 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./parse-worker": {
+      "types": "./dist/parse-worker.d.ts",
+      "default": "./dist/parse-worker.js"
+    },
+    "./dismissals": {
+      "types": "./dist/dismissals.d.ts",
+      "default": "./dist/dismissals.js"
+    },
+    "./onnx-embedder": {
+      "types": "./dist/onnx-embedder.d.ts",
+      "default": "./dist/onnx-embedder.js"
+    },
+    "./cache": {
+      "types": "./dist/cache/index.d.ts",
+      "default": "./dist/cache/index.js"
     }
   },
   "scripts": {
@@ -19,9 +35,29 @@
     "test": "vitest run --dir src"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "9.6.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
+    "fast-check": "4.10.2",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@epoch-dev/adapter-go": "workspace:*",
+    "@epoch-dev/adapter-python": "workspace:*",
+    "@epoch-dev/adapter-typescript": "workspace:*",
+    "@epoch-dev/core": "workspace:*",
+    "@epoch-dev/findings": "workspace:*",
+    "@epoch-dev/scorers": "workspace:*",
+    "@huggingface/tokenizers": "0.2.0",
+    "@vscode/tree-sitter-wasm": "catalog:",
+    "better-sqlite3": "catalog:",
+    "chokidar": "5.0.0",
+    "ignore": "7.0.12",
+    "onnxruntime-node": "1.30.0",
+    "piscina": "catalog:",
+    "smol-toml": "1.9.0",
+    "web-tree-sitter": "catalog:",
+    "zod": "catalog:"
   }
 }

@@ -1,0 +1,24 @@
+{
+  "nodes": [
+    "app/main.ts",
+    "packages/lib/src/index.ts",
+    "packages/plain/src/index.ts"
+  ],
+  "edges": [
+    {
+      "source": "app/main.ts",
+      "target": "packages/lib/src/index.ts",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "app/main.ts",
+      "specifier": "@fx/plain",
+      "reason": "not-found",
+      "line": 2
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "app.py",
+    "pkg/__init__.py",
+    "pkg/util.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "pkg/util.py",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

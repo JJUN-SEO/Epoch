@@ -1,0 +1,20 @@
+{
+  "nodes": [
+    "app.py",
+    "models.py"
+  ],
+  "edges": [
+    {
+      "source": "app.py",
+      "target": "models.py",
+      "kind": "type-only",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "app.py": [
+      "py:typing"
+    ]
+  },
+  "unresolved": []
+}

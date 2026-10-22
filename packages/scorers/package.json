@@ -1,0 +1,56 @@
+{
+  "name": "@epoch-dev/scorers",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Epoch scorers: RelationScorer implementations for hint edges (heuristic baseline; local, Jev and LLM scorers are opt-in).",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./heuristic": {
+      "types": "./dist/heuristic.d.ts",
+      "default": "./dist/heuristic.js"
+    },
+    "./tripwire": {
+      "types": "./dist/tripwire.d.ts",
+      "default": "./dist/tripwire.js"
+    },
+    "./summary": {
+      "types": "./dist/summary/index.d.ts",
+      "default": "./dist/summary/index.js"
+    },
+    "./net": {
+      "types": "./dist/net.d.ts",
+      "default": "./dist/net.js"
+    },
+    "./origins": {
+      "types": "./dist/origins.d.ts",
+      "default": "./dist/origins.js"
+    },
+    "./cost": {
+      "types": "./dist/cost.d.ts",
+      "default": "./dist/cost.js"
+    }
+  },
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "build": "pnpm run clean && tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.129.0",
+    "@epoch-dev/core": "workspace:*",
+    "zod": "catalog:"
+  }
+}

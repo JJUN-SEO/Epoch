@@ -1,0 +1,16 @@
+{
+  "nodes": [
+    "pkg:example.com/app",
+    "pkg:example.com/app/util"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/app",
+      "target": "pkg:example.com/app/util",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

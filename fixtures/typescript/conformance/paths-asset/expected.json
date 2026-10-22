@@ -1,0 +1,23 @@
+{
+  "nodes": [
+    "public/logo.png",
+    "src/a.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/a.ts",
+      "target": "public/logo.png",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "src/a.ts",
+      "specifier": "@/public/none.png",
+      "reason": "not-found",
+      "line": 2
+    }
+  ]
+}

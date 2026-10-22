@@ -1,0 +1,11 @@
+{
+  "id": "tiny-embedder",
+  "repo": "epoch/tests",
+  "revision": "0000000000000000000000000000000000000000",
+  "license": "mit",
+  "source": "packages/engine/src/fixtures/tiny-embedder (built for tests)",
+  "pooling": "mean",
+  "normalize": true,
+  "maxTokens": 16,
+  "dimensions": 4
+}

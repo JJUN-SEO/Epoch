@@ -1,0 +1,6 @@
+{
+  "description": "A reassigned variable: no finding.",
+  "adapters": [
+    "go"
+  ]
+}

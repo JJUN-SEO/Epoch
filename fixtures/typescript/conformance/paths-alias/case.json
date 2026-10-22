@@ -1,0 +1,6 @@
+{
+  "description": "A tsconfig `paths` alias resolves through the alias mapping.",
+  "adapters": [
+    "typescript"
+  ]
+}

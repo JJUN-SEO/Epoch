@@ -1,0 +1,6 @@
+{
+  "description": "A name found on no source root but defined elsewhere in the project may be reached through a runtime sys.path edit: unresolved (ambiguous), not third-party.",
+  "adapters": [
+    "python"
+  ]
+}

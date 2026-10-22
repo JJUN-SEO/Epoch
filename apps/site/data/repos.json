@@ -1,0 +1,29 @@
+[
+  {
+    "id": "zod",
+    "name": "zod",
+    "language": "TypeScript",
+    "url": "https://github.com/colinhacks/zod",
+    "commit": "680d19f7d1e042e55934209caeb79bc843b94f44",
+    "license": "MIT",
+    "licenseFile": "LICENSE"
+  },
+  {
+    "id": "flask",
+    "name": "Flask",
+    "language": "Python",
+    "url": "https://github.com/pallets/flask",
+    "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
+    "license": "BSD-3-Clause",
+    "licenseFile": "LICENSE.txt"
+  },
+  {
+    "id": "cli",
+    "name": "GitHub CLI",
+    "language": "Go",
+    "url": "https://github.com/cli/cli",
+    "commit": "d2535897fd14a9c9697f3c6f112ce34007a6bf95",
+    "license": "MIT",
+    "licenseFile": "LICENSE"
+  }
+]

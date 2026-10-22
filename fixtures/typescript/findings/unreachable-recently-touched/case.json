@@ -1,0 +1,13 @@
+{
+  "description": "An orphan touched within staleAfterDays: capped at Medium.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01",
+    "touched": {
+      "src/orphan.ts": "2026-05-25"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A public module name other modules can rebind: capped at Medium.",
+  "adapters": [
+    "python"
+  ]
+}

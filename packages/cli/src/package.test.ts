@@ -65,5 +65,7 @@ describe(`${EXPECTED_NAME} package`, () => {
     expect(() =>
       execFileSync(process.execPath, [entry], { stdio: "pipe" }),
     ).not.toThrow();
-  });
+    // A cold Node loading every adapter (the TypeScript compiler included)
+    // took over 5 s on a busy macOS runner; this checks loading, not speed.
+  }, 60_000);
 });

@@ -1,0 +1,6 @@
+{
+  "description": "Two files that import each other produce both edges.",
+  "adapters": [
+    "typescript"
+  ]
+}

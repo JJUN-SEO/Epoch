@@ -1,0 +1,6 @@
+{
+  "description": "A literal false condition: the then-branch can never run (High).",
+  "adapters": [
+    "typescript"
+  ]
+}

@@ -1,0 +1,176 @@
+[
+  {
+    "id": "nextjs",
+    "name": "Next.js",
+    "ecosystem": "npm",
+    "dependencies": ["next"],
+    "markerFiles": [],
+    "conventions": [
+      "{,src/}{app,pages}/**",
+      "{,src/}{middleware,proxy,instrumentation,instrumentation-client}.{js,jsx,ts,tsx,mjs,cjs,mts,cts}"
+    ],
+    "sources": [
+      "https://github.com/vercel/next.js/blob/edd8011d30b78ebf71a7d85534fe1ecd14f090fc/docs/01-app/01-getting-started/02-project-structure.mdx",
+      "https://github.com/vercel/next.js/blob/edd8011d30b78ebf71a7d85534fe1ecd14f090fc/docs/01-app/03-api-reference/03-file-conventions/proxy.mdx"
+    ]
+  },
+  {
+    "id": "nuxt",
+    "name": "Nuxt",
+    "ecosystem": "npm",
+    "dependencies": ["nuxt"],
+    "markerFiles": [],
+    "conventions": [
+      "{,app/}{components,composables,layouts,middleware,pages,plugins,utils}/**",
+      "{,app/}app.config.{js,ts,mjs,mts}",
+      "{server,shared,modules,layers}/**"
+    ],
+    "sources": [
+      "https://github.com/nuxt/nuxt/blob/4caed0f26ff819455b16d2651efba24dcbf74500/docs/2.directory-structure/index.md"
+    ]
+  },
+  {
+    "id": "sveltekit",
+    "name": "SvelteKit",
+    "ecosystem": "npm",
+    "dependencies": ["@sveltejs/kit"],
+    "markerFiles": [],
+    "conventions": [
+      "src/{routes,service-worker}/**",
+      "src/{hooks,hooks.client,hooks.server,instrumentation.server,params,service-worker}.{js,ts}"
+    ],
+    "sources": [
+      "https://github.com/sveltejs/kit/blob/73bf98cabea2ef18e1bfef40be5229a43e79b05c/documentation/docs/10-getting-started/30-project-structure.md",
+      "https://github.com/sveltejs/kit/blob/73bf98cabea2ef18e1bfef40be5229a43e79b05c/documentation/docs/30-advanced/10-advanced-routing.md",
+      "https://github.com/sveltejs/kit/blob/73bf98cabea2ef18e1bfef40be5229a43e79b05c/documentation/docs/30-advanced/20-hooks.md"
+    ]
+  },
+  {
+    "id": "astro",
+    "name": "Astro",
+    "ecosystem": "npm",
+    "dependencies": ["astro"],
+    "markerFiles": [],
+    "conventions": [
+      "src/pages/**",
+      "src/middleware{,/index}.{js,ts,mjs,mts}",
+      "src/content.config.{js,ts,mjs,mts}"
+    ],
+    "sources": [
+      "https://github.com/withastro/docs/blob/9ddda3903f1769b7da153a9d0ddcd2ce60331341/src/content/docs/en/basics/project-structure.mdx",
+      "https://github.com/withastro/docs/blob/9ddda3903f1769b7da153a9d0ddcd2ce60331341/src/content/docs/en/guides/middleware.mdx"
+    ]
+  },
+  {
+    "id": "remix",
+    "name": "Remix",
+    "ecosystem": "npm",
+    "dependencies": ["@remix-run/dev"],
+    "markerFiles": [],
+    "conventions": [
+      "app/routes/**",
+      "app/{root,entry.client,entry.server}.{js,jsx,ts,tsx}"
+    ],
+    "sources": [
+      "https://github.com/remix-run/remix/blob/8307662161457e1ad710bde0a52de7b7f800abbc/docs/file-conventions/routes.md"
+    ]
+  },
+  {
+    "id": "react-router",
+    "name": "React Router (framework mode)",
+    "ecosystem": "npm",
+    "dependencies": ["@react-router/dev"],
+    "markerFiles": [],
+    "conventions": ["app/**"],
+    "sources": [
+      "https://github.com/remix-run/react-router/blob/9da0ec9f3e68053d8deb6c6ee4a8d36f809f9335/docs/explanation/special-files.md"
+    ]
+  },
+  {
+    "id": "gatsby",
+    "name": "Gatsby",
+    "ecosystem": "npm",
+    "dependencies": ["gatsby"],
+    "markerFiles": [],
+    "conventions": [
+      "src/{pages,api,templates}/**",
+      "src/html.{js,jsx,ts,tsx}",
+      "gatsby-{browser,config,node,ssr}.{js,jsx,ts,tsx,mjs,mts}",
+      "plugins/**"
+    ],
+    "sources": [
+      "https://github.com/gatsbyjs/gatsby/blob/8999a2ed4dd8b40bab6571f7d23c7d196ebdb83e/docs/docs/reference/gatsby-project-structure.md"
+    ]
+  },
+  {
+    "id": "django",
+    "name": "Django",
+    "ecosystem": "python",
+    "dependencies": ["django"],
+    "markerFiles": ["manage.py"],
+    "conventions": [
+      "**/{migrations,templatetags,settings}/**",
+      "**/management/commands/**",
+      "**/{admin,apps,models,urls,settings}.py"
+    ],
+    "sources": [
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/topics/migrations.txt",
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/howto/custom-management-commands.txt",
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/howto/custom-template-tags.txt",
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/ref/contrib/admin/index.txt",
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/ref/applications.txt",
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/topics/settings.txt",
+      "https://github.com/django/django/blob/d430084791a61b31cecec132bce3dca19194f7f2/docs/topics/http/urls.txt"
+    ]
+  },
+  {
+    "id": "vitepress",
+    "name": "VitePress",
+    "ecosystem": "npm",
+    "dependencies": ["vitepress"],
+    "markerFiles": [],
+    "conventions": ["**/.vitepress/**", "**/*.{paths,data}.{js,ts,mjs,mts}"],
+    "sources": [
+      "https://github.com/vuejs/vitepress/blob/8ffc07c44eb9a688354d62202336a88c3609ed09/docs/en/guide/custom-theme.md",
+      "https://github.com/vuejs/vitepress/blob/8ffc07c44eb9a688354d62202336a88c3609ed09/docs/en/guide/routing.md",
+      "https://github.com/vuejs/vitepress/blob/8ffc07c44eb9a688354d62202336a88c3609ed09/docs/en/guide/data-loading.md"
+    ]
+  },
+  {
+    "id": "storybook",
+    "name": "Storybook",
+    "ecosystem": "npm",
+    "dependencies": [
+      "storybook",
+      "@storybook/react",
+      "@storybook/react-vite",
+      "@storybook/react-webpack5",
+      "@storybook/nextjs",
+      "@storybook/vue3",
+      "@storybook/vue3-vite",
+      "@storybook/angular",
+      "@storybook/svelte",
+      "@storybook/sveltekit",
+      "@storybook/web-components",
+      "@storybook/html"
+    ],
+    "markerFiles": [],
+    "conventions": [".storybook/**", "**/*.stories.{js,jsx,mjs,ts,tsx}"],
+    "sources": [
+      "https://github.com/storybookjs/storybook/blob/323f10d623978e97e5596d3ba80f353d1266a850/docs/configure/index.mdx",
+      "https://github.com/storybookjs/storybook/blob/323f10d623978e97e5596d3ba80f353d1266a850/docs/api/main-config/main-config-stories.mdx"
+    ]
+  },
+  {
+    "id": "vite",
+    "name": "Vite",
+    "ecosystem": "npm",
+    "dependencies": ["vite"],
+    "markerFiles": [],
+    "conventions": ["**/public/**"],
+    "sources": [
+      "https://github.com/vitejs/vite/blob/928e721b36690ac0f3f118290a21fc0cc4349055/docs/guide/assets.md",
+      "https://github.com/vitejs/vite/blob/928e721b36690ac0f3f118290a21fc0cc4349055/docs/config/shared-options.md"
+    ]
+  }
+]

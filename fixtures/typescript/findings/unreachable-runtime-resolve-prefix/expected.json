@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "src/bench/string.ts"
+      },
+      "confidence": "low",
+      "caps": [
+        "dynamic-import-prefix"
+      ],
+      "locations": [
+        {
+          "file": "src/bench/string.ts"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

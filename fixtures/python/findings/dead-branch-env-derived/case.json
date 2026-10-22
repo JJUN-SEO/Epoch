@@ -1,0 +1,6 @@
+{
+  "description": "A value derived from the environment: no finding.",
+  "adapters": [
+    "python"
+  ]
+}

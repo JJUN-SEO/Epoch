@@ -5,6 +5,7 @@
   "description": "Epoch core: schemas, interfaces, canonicalization, pure graph algorithms and risk scoring. No I/O.",
   "license": "MIT",
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -21,7 +22,13 @@
   "devDependencies": {
     "@types/node": "catalog:",
     "eslint": "catalog:",
+    "graphology-types": "0.24.8",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "graphology": "0.26.0",
+    "graphology-components": "1.5.4",
+    "zod": "catalog:"
   }
 }

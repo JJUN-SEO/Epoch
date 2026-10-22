@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "FEATURE_DARK_MODE"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "main.go",
+          "line": 6,
+          "endLine": 6
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

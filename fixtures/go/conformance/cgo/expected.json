@@ -1,0 +1,13 @@
+{
+  "nodes": [
+    "pkg:example.com/app"
+  ],
+  "edges": [],
+  "externals": {
+    "pkg:example.com/app": [
+      "cgo",
+      "go:fmt"
+    ]
+  },
+  "unresolved": []
+}

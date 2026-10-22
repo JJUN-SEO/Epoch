@@ -1,0 +1,20 @@
+{
+  "id": "cli",
+  "name": "GitHub CLI",
+  "language": "Go",
+  "url": "https://github.com/cli/cli",
+  "commit": "d2535897fd14a9c9697f3c6f112ce34007a6bf95",
+  "commitDate": "2025-10-15T14:51:07+01:00",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2019 GitHub Inc.",
+  "licenseFile": "cli.LICENSE.txt",
+  "madeWith": {
+    "epochCommit": "02fb5da44cfbbed9eb390a2fcd299a4202c6e443",
+    "command": "epoch --offline analyze <repository> --json"
+  },
+  "counts": {
+    "nodes": 933,
+    "edges": 4612,
+    "findings": 0
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "description": "A shallow clone has no usable history: no stale-flag finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "shallow",
+    "now": "2026-06-01",
+    "introduced": {
+      "new-checkout": "2024-01-01"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "description": "A dynamic import of a variable is unresolved with reason dynamic-specifier.",
+  "adapters": [
+    "typescript"
+  ]
+}

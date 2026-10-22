@@ -1,0 +1,6 @@
+{
+  "description": "A workspace package built by a bundler (exports point at a missing dist/) resolves to source through the source condition its own tsconfig declares; a package that declares none stays unresolved.",
+  "adapters": [
+    "typescript"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "In an ESM TypeScript project, a `.js` specifier maps to the `.ts` source.",
+  "adapters": [
+    "typescript"
+  ]
+}

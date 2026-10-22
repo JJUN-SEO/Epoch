@@ -1,0 +1,6 @@
+{
+  "description": "A package-level constant (High).",
+  "adapters": [
+    "go"
+  ]
+}

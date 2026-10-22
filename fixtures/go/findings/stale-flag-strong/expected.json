@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "new-checkout"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "main.go",
+          "line": 11,
+          "endLine": 11
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

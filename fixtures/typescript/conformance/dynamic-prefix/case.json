@@ -1,0 +1,6 @@
+{
+  "description": "A dynamic import with a literal prefix records the repo-relative path prefix.",
+  "adapters": [
+    "typescript"
+  ]
+}

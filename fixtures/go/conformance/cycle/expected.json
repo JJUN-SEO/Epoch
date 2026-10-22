@@ -1,0 +1,22 @@
+{
+  "nodes": [
+    "pkg:example.com/c/a",
+    "pkg:example.com/c/b"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/c/a",
+      "target": "pkg:example.com/c/b",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "pkg:example.com/c/b",
+      "target": "pkg:example.com/c/a",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

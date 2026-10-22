@@ -1,0 +1,6 @@
+{
+  "description": "Every production file of a directory folds into one package node; imports from several member files give one edge.",
+  "adapters": [
+    "go"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "import \"C\" is cgo's pseudo-package, an external named cgo.",
+  "adapters": [
+    "go"
+  ]
+}

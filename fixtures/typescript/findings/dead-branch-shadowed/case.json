@@ -1,0 +1,6 @@
+{
+  "description": "A name declared twice (here a parameter shadows it) is skipped: no finding.",
+  "adapters": [
+    "typescript"
+  ]
+}

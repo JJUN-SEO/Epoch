@@ -1,0 +1,6 @@
+{
+  "description": "A name rebound through global is not a constant: no finding.",
+  "adapters": [
+    "python"
+  ]
+}

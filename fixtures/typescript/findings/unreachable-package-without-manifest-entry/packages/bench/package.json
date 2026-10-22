@@ -1,0 +1,7 @@
+{
+  "name": "bench",
+  "private": true,
+  "scripts": {
+    "bench": "node run.mjs"
+  }
+}

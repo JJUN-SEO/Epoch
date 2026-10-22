@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "stale-flag",
+      "subject": {
+        "type": "flag",
+        "name": "new-checkout"
+      },
+      "confidence": "medium",
+      "caps": [],
+      "locations": [
+        {
+          "file": "app/core.py",
+          "line": 7,
+          "endLine": 7
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

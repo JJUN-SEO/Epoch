@@ -1,0 +1,23 @@
+{
+  "findings": [
+    {
+      "kind": "dead-branch",
+      "subject": {
+        "type": "file",
+        "name": "src/index.ts"
+      },
+      "confidence": "medium",
+      "caps": [
+        "exported-constant"
+      ],
+      "locations": [
+        {
+          "file": "src/index.ts",
+          "line": 4,
+          "endLine": 4
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

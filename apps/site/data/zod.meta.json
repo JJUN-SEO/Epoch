@@ -1,0 +1,20 @@
+{
+  "id": "zod",
+  "name": "zod",
+  "language": "TypeScript",
+  "url": "https://github.com/colinhacks/zod",
+  "commit": "680d19f7d1e042e55934209caeb79bc843b94f44",
+  "commitDate": "2026-10-13T11:16:28-07:00",
+  "license": "MIT",
+  "copyright": "Copyright (c) 2025 Colin McDonnell",
+  "licenseFile": "zod.LICENSE.txt",
+  "madeWith": {
+    "epochCommit": "02fb5da44cfbbed9eb390a2fcd299a4202c6e443",
+    "command": "epoch --offline analyze <repository> --json"
+  },
+  "counts": {
+    "nodes": 526,
+    "edges": 1322,
+    "findings": 155
+  }
+}

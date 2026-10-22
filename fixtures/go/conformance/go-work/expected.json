@@ -1,0 +1,21 @@
+{
+  "nodes": [
+    "pkg:example.com/app",
+    "pkg:example.com/lib/greet",
+    "pkg:example.com/tools"
+  ],
+  "edges": [
+    {
+      "source": "pkg:example.com/app",
+      "target": "pkg:example.com/lib/greet",
+      "kind": "import",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "pkg:example.com/tools": [
+      "example.com/lib"
+    ]
+  },
+  "unresolved": []
+}

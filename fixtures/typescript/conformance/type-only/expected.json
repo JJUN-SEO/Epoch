@@ -1,0 +1,29 @@
+{
+  "nodes": [
+    "src/a.ts",
+    "src/mixed.ts",
+    "src/types.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/a.ts",
+      "target": "src/mixed.ts",
+      "kind": "import",
+      "evidence": []
+    },
+    {
+      "source": "src/a.ts",
+      "target": "src/mixed.ts",
+      "kind": "type-only",
+      "evidence": []
+    },
+    {
+      "source": "src/a.ts",
+      "target": "src/types.ts",
+      "kind": "type-only",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": []
+}

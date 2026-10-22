@@ -1,0 +1,10 @@
+{
+  "description": "A folder that is not a git repository: no stale-flag finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "not-a-repo",
+    "now": "2026-06-01"
+  }
+}

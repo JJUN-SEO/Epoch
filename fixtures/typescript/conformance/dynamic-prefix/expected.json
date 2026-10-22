@@ -1,0 +1,17 @@
+{
+  "nodes": [
+    "src/a.ts",
+    "src/pages/home.ts"
+  ],
+  "edges": [],
+  "externals": {},
+  "unresolved": [
+    {
+      "from": "src/a.ts",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "pathPrefix": "src/pages/",
+      "line": 1
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "description": "An in-module import path with no package directory, or a directory with only test files, is not found.",
+  "adapters": [
+    "go"
+  ]
+}

@@ -1,0 +1,55 @@
+{
+  "name": "@epoch-dev/app",
+  "productName": "Epoch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Epoch desktop app: Electron main process, preload bridge and analysis host.",
+  "license": "MIT",
+  "homepage": "https://github.com/JJUN-SEO/Epoch",
+  "author": {
+    "name": "Junhyuk Seo",
+    "email": "98858713+JJUN-SEO@users.noreply.github.com"
+  },
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "clean": "node -e \"for (const d of ['out','release']) require('fs').rmSync(d,{recursive:true,force:true})\"",
+    "build": "pnpm run clean && electron-vite build",
+    "dev": "electron-vite dev",
+    "package:dir": "electron-builder --dir --config electron-builder.e2e.yml",
+    "package:installer": "electron-builder --publish never",
+    "icon": "node scripts/render-icon.mjs",
+    "e2e": "playwright test",
+    "smoke": "playwright test --config playwright.smoke.config.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run --dir src"
+  },
+  "dependencies": {
+    "@vscode/tree-sitter-wasm": "catalog:",
+    "better-sqlite3": "catalog:",
+    "onnxruntime-node": "1.30.0",
+    "piscina": "catalog:",
+    "typescript": "catalog:",
+    "web-tree-sitter": "catalog:"
+  },
+  "devDependencies": {
+    "@electron/fuses": "1.8.0",
+    "@epoch-dev/core": "workspace:*",
+    "@epoch-dev/engine": "workspace:*",
+    "@epoch-dev/scorers": "workspace:*",
+    "@epoch-dev/ui": "workspace:*",
+    "@playwright/test": "1.63.0",
+    "@tailwindcss/vite": "catalog:",
+    "@types/node": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "electron": "43.7.7",
+    "electron-builder": "26.17.0",
+    "electron-vite": "5.0.0",
+    "eslint": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "yaml": "2.9.1",
+    "zod": "catalog:"
+  }
+}

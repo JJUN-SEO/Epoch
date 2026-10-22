@@ -39,7 +39,7 @@ You are the build agent. Work in plan mode first, then implement, one milestone 
 | Core, adapter interface, TS/JS adapter, CLI | M1 | Data contracts, Edge traversal policy, Barrel transparency rule, Language adapter interface |
 | Cache, incremental analysis, accuracy benchmarks | M2 | Local cache, Testing and accuracy |
 | Desktop app, graph UI, Python adapter | M3 | Architecture, Electron security, App UX basics |
-| Watcher, blast radius, churn, coverage, risk, Go adapter | M4 | Blast radius, Risk score, Edge traversal policy |
+| Watcher, blast radius, churn, coverage, risk, Go adapter | M4 (risk tiers: M6.5) | Blast radius, Risk tiers, Edge traversal policy |
 | Dead-feature detection and alerts | M5 | Dead-feature detection (all subsections) |
 | Hint edges, scorers, evaluation | M6 | RelationScorer, Edge traversal policy |
 | Keys, cost guardrails, summaries, offline | M7 | Privacy and data flow, Bring your own keys |
@@ -61,6 +61,15 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-008 | M6 | Local embedding model and the default hint threshold for "likely" mode |
 | ADR-009 | M7 | Keychain library for the CLI |
 | ADR-010 | M0 | Toolchain baseline: Node 24, pnpm 11, TypeScript 6 (not 7), Turborepo settings and telemetry off, compiled packages, CI on Linux, macOS and Windows |
+| ADR-011 | M1 | `churn90d` and `riskScore` are optional and absent until computed (M4), like `coverage` |
+| ADR-012 | M3.5 | Optional 3D overview: own renderer on three.js and d3-force-3d (the ready-made library violates the CSP); measured layout time, frame rate and picking |
+| ADR-013 | M4 | Go: packages as `pkg:` nodes (tests stay file nodes), go.mod/go.work resolution read as data, build tags not evaluated; measured against `go list` |
+| ADR-014 | M6 | `FileFacts.strings`: key-like literals (event names, routes, topics, config keys) for shared-string hints; a CLAUDE.md contract change |
+| ADR-015 | M6.5 | Ordinal risk tiers replace the weighted risk score (`riskScore` removed, `dependents` and `risk` added); a CLAUDE.md contract change, evaluated by `pnpm bench:risk` |
+| ADR-016 | M7 | Model features in the app: model calls in main only, a network-free host, one egress, offline mode with a local-model exception, native consent, single-use approvals, spend holds, content-addressed summaries, `safeStorage` keys; a CLAUDE.md contract change |
+| ADR-017 | M6 | JevScorer: TypeSafe's HTTP API through the network module (no SDK), a pair as a Noul plus a Choice, pinned `jev-1.13.0`, user's prices, fixed error codes; measured by `pnpm bench:scorers --scorer jev` |
+| ADR-018 | M8 | Distribution: size trims, Electron fuses (inspector off in installers, on only in the CI e2e build), installers per OS, the release workflow, the update check |
+| ADR-019 | M7 | OpenAI and Gemini as summary providers: plain fetch through the network module, keys in headers, `store: false`, consent per provider, shipped default-model prices; `bench:summaries --provider` |
 
 ## Questions to ask me
 
@@ -108,16 +117,16 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Data contracts, Edge traversal policy, Barrel transparency rule, Language adapter interface, Known hard problems (TS/JS).
 
 **Tasks**
-- [ ] **Schemas:** zod schemas in `core` for every type in CLAUDE.md "Data contracts" (types via `z.infer`), plus a canonicalization function (sorted arrays, forward-slash ids, no timestamps or absolute paths) with tests. A `Graph` is validated before it is written or sent.
-- [ ] **Interfaces (types only):** `LanguageAdapter`, `CacheStore`, `SecretStore`, `RelationScorer`, `GitHistoryProvider`, `EpochApi`.
-- [ ] **Graph helpers in `core`:** the edge traversal policy as constants, `reverseReachable(graph, nodeId, edgeKinds)`, and strongly connected components. (The full blast radius result comes in M4.)
-- [ ] **Discover:** walk the repo honoring `.gitignore` (the `ignore` package) and `.epochignore`; skip `node_modules`, `.git`, and build output by default; detect language by extension; detect project roots (`tsconfig.json`, `package.json`, workspaces). Cap file size and record skipped files.
-- [ ] **Parse:** initialize `web-tree-sitter`; load TS, TSX, and JS grammars. ADR-002. Pitfall: a grammar WASM's ABI must be supported by the runtime; pin both together and add a startup self-test.
-- [ ] **TS adapter `extract`:** static imports, `import type`, `export ... from`, `export * from`, dynamic `import("literal")`, `import(\`prefix/${x}\`)` (record `dynamicPrefix`), `require("literal")`, side-effect imports; exports; `loc`; `isGenerated`. `flagUsages` and `constantConditions` return `[]` until M5; `detectEntryPoints` returns `[]` until M5; `isTestFile` implemented now.
-- [ ] **TS adapter `resolveImport`:** TypeScript's module resolution API (`ts.resolveModuleName` with a parsed tsconfig and read-only file access). Handle relative paths, `paths`/`baseUrl`, directory `index`, `.js`-to-`.ts` mapping in ESM TS projects, `package.json` `exports`, `node_modules` packages as `external` (recorded in `externals`, not materialized as nodes), and workspace packages (monorepo siblings are internal). Read tsconfig as data only; never execute project config.
-- [ ] **Barrel tracing and graph stage:** implement the Barrel transparency rule exactly (edges A→C `import` with evidence `via barrel B`, B→C `reexport`, A→B `via-barrel`; conservative `import` A→B for namespace, side-effect, or untraceable re-exports). Compute fan-in/out and cycles. ADR-003.
-- [ ] **Conformance harness:** each case is a folder `fixtures/<lang>/conformance/<case>/` with sources and `expected.json` (canonical `Graph` subset). Any adapter must pass the shared cases that apply.
-- [ ] **CLI:** `epoch analyze <path> [--json]`. Output validates against the schema; progress and warnings to stderr, JSON to stdout; includes the `unresolved` list with reasons.
+- [x] **Schemas:** zod schemas in `core` for every type in CLAUDE.md "Data contracts" (types via `z.infer`), plus a canonicalization function (sorted arrays, forward-slash ids, no timestamps or absolute paths) with tests. A `Graph` is validated before it is written or sent.
+- [x] **Interfaces (types only):** `LanguageAdapter`, `CacheStore`, `SecretStore`, `RelationScorer`, `GitHistoryProvider`, `EpochApi`.
+- [x] **Graph helpers in `core`:** the edge traversal policy as constants, `reverseReachable(graph, nodeId, edgeKinds)`, and strongly connected components. (The full blast radius result comes in M4.)
+- [x] **Discover:** walk the repo honoring `.gitignore` (the `ignore` package) and `.epochignore`; skip `node_modules`, `.git`, and build output by default; detect language by extension; detect project roots (`tsconfig.json`, `package.json`, workspaces). Cap file size and record skipped files.
+- [x] **Parse:** initialize `web-tree-sitter`; load TS, TSX, and JS grammars. ADR-002. Pitfall: a grammar WASM's ABI must be supported by the runtime; pin both together and add a startup self-test.
+- [x] **TS adapter `extract`:** static imports, `import type`, `export ... from`, `export * from`, dynamic `import("literal")`, `import(\`prefix/${x}\`)` (record `dynamicPrefix`), `require("literal")`, side-effect imports; exports; `loc`; `isGenerated`. `flagUsages` and `constantConditions` return `[]` until M5; `detectEntryPoints` returns `[]` until M5; `isTestFile` implemented now.
+- [x] **TS adapter `resolveImport`:** TypeScript's module resolution API (`ts.resolveModuleName` with a parsed tsconfig and read-only file access). Handle relative paths, `paths`/`baseUrl`, directory `index`, `.js`-to-`.ts` mapping in ESM TS projects, `package.json` `exports`, `node_modules` packages as `external` (recorded in `externals`, not materialized as nodes), and workspace packages (monorepo siblings are internal). Read tsconfig as data only; never execute project config.
+- [x] **Barrel tracing and graph stage:** implement the Barrel transparency rule exactly (edges A→C `import` with evidence `via barrel B`, B→C `reexport`, A→B `via-barrel`; conservative `import` A→B for namespace, side-effect, or untraceable re-exports). Compute fan-in/out and cycles. ADR-003.
+- [x] **Conformance harness:** each case is a folder `fixtures/<lang>/conformance/<case>/` with sources and `expected.json` (canonical `Graph` subset). Any adapter must pass the shared cases that apply.
+- [x] **CLI:** `epoch analyze <path> [--json]`. Output validates against the schema; progress and warnings to stderr, JSON to stdout; includes the `unresolved` list with reasons.
 
 **Required conformance cases (TS/JS):** relative import; `paths` alias; `baseUrl`; directory `index`; barrel with named re-exports; `export *` barrel; namespace import through a barrel (conservative edge); cycle; external package; monorepo workspace import; dynamic import with literal; dynamic import with variable (`unresolved`, `dynamic-specifier`); dynamic import with literal prefix (`pathPrefix` recorded); `import type` (`type-only`); `.js` extension mapping; `via-barrel` edge present.
 
@@ -140,14 +149,14 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Local cache, Testing and accuracy.
 
 **Tasks**
-- [ ] Run on 2 or 3 real TS repos (candidates below). Fix resolution gaps you find, each with a new fixture.
-- [ ] **Measure accuracy** with `pnpm bench:accuracy <repo>` against a ground-truth tool (table below): precision and recall for file-level import edges, with disagreements classified (tool wrong, we're wrong, ambiguous or dynamic). Write to `docs/benchmarks/typescript.md` with method, repo SHAs, and tool versions.
-- [ ] **CacheStore (SQLite, `better-sqlite3`)** in `engine`: WAL mode, schema versioning with migrations, owner-only permissions, location from the shared resolver in `core`. ADR-004.
-- [ ] **Cache `FileFacts`** keyed by hash(contents + adapter id + adapter version + `extractorConfigHash`). Plumb `extractorConfigHash` now (constant until M5 gives it content). **Recompute resolution, graph, and findings every run** from cached facts. Never store file contents or code excerpts.
-- [ ] **Incremental:** change detection via `git diff` against the last analyzed commit, with a content-hash fallback for non-git folders; per-repo index stores the manifest and last commit; handle uncommitted changes.
-- [ ] **Early cutoff mechanism** for downstream outputs (used by M6/M7 scores and summaries): generic "if the recomputed input equals the previous one, stop propagating", tested with a stub.
-- [ ] CLI: `--since <commit>`, `epoch cache stats|clear|prune`, size cap with LRU eviction.
-- [ ] **`pnpm bench`:** copies a repo to a temp dir, applies 1, 5, and 50-file edits, and reports cold full, warm unchanged, and incremental times, including how long resolution takes (ADR-004 uses this to decide whether resolution caching is ever needed). Median of at least 5 runs, hardware recorded. Results to `docs/benchmarks/`.
+- [x] Run on 2 or 3 real TS repos (candidates below). Fix resolution gaps you find, each with a new fixture.
+- [x] **Measure accuracy** with `pnpm bench:accuracy <repo>` against a ground-truth tool (table below): precision and recall for file-level import edges, with disagreements classified (tool wrong, we're wrong, ambiguous or dynamic). Write to `docs/benchmarks/typescript.md` with method, repo SHAs, and tool versions.
+- [x] **CacheStore (SQLite, `better-sqlite3`)** in `engine`: WAL mode, schema versioning with migrations, owner-only permissions, location from the shared resolver in `core`. ADR-004.
+- [x] **Cache `FileFacts`** keyed by hash(contents + adapter id + adapter version + `extractorConfigHash`). Plumb `extractorConfigHash` now (constant until M5 gives it content). **Recompute resolution, graph, and findings every run** from cached facts. Never store file contents or code excerpts.
+- [x] **Incremental:** change detection via `git diff` against the last analyzed commit, with a content-hash fallback for non-git folders; per-repo index stores the manifest and last commit; handle uncommitted changes.
+- [x] **Early cutoff mechanism** for downstream outputs (used by M6/M7 scores and summaries): generic "if the recomputed input equals the previous one, stop propagating", tested with a stub.
+- [x] CLI: `--since <commit>`, `epoch cache stats|clear|prune`, size cap with LRU eviction.
+- [x] **`pnpm bench`:** copies a repo to a temp dir, applies 1, 5, and 50-file edits, and reports cold full, warm unchanged, and incremental times, including how long resolution takes (ADR-004 uses this to decide whether resolution caching is ever needed). Median of at least 5 runs, hardware recorded. Results to `docs/benchmarks/`.
 
 **Acceptance**
 - Re-running on unchanged input is a 100% cache hit for `FileFacts`.
@@ -167,12 +176,12 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Architecture, `EpochApi`, Electron security, App UX basics, Known hard problems (Python).
 
 **Tasks**
-- [ ] ADR-005 (Electron vs Tauri) and ADR-006 (precision upgrades; before writing the Python adapter).
-- [ ] Electron via `electron-vite`: main, preload, renderer. The analysis host is a `utilityProcess` using a `piscina` worker pool. Heavy work never runs in main or renderer.
-- [ ] `EpochApi` implemented over IPC (zod-validated payloads, sender verification, no generic channels) plus a static-JSON stub for the future demo site.
-- [ ] **Security config and tests first**, before feature work: `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content, navigation and `window.open` denied, external links via allowlist to the default browser, path checks restricted to the opened folder (including symlink escape).
-- [ ] **UI:** open-folder (dialog, drag-drop, recent list), streaming progress, Cytoscape graph with directory compound nodes (collapsed by default for large graphs), layout (fcose or ELK) in a Web Worker, search, node details panel, solid edges for facts and dashed for hints, toggle for `via-barrel` edges (hidden by default).
-- [ ] **Python adapter** (`extract`, `resolveImport`, `isTestFile`; flags, constants, and entry points come in M5): absolute and relative imports, `__init__.py` packages, namespace packages, src layouts and `pyproject.toml` roots, stdlib vs third-party vs internal (bundle a stdlib module list; `sys.stdlib_module_names` exists only on Python 3.10+, so don't depend on a runtime Python), `from . import x` ambiguity (submodule vs name). Conformance cases for each.
+- [x] ADR-005 (Electron vs Tauri) and ADR-006 (precision upgrades; before writing the Python adapter).
+- [x] Electron via `electron-vite`: main, preload, renderer. The analysis host is a `utilityProcess` using a `piscina` worker pool. Heavy work never runs in main or renderer.
+- [x] `EpochApi` implemented over IPC (zod-validated payloads, sender verification, no generic channels) plus a static-JSON stub for the future demo site.
+- [x] **Security config and tests first**, before feature work: `contextIsolation`, `sandbox`, no `nodeIntegration`, strict CSP, no remote content, navigation and `window.open` denied, external links via allowlist to the default browser, path checks restricted to the opened folder (including symlink escape).
+- [x] **UI:** open-folder (dialog, drag-drop, recent list), streaming progress, Cytoscape graph with directory compound nodes (collapsed by default for large graphs), layout (fcose or ELK) in a Web Worker, search, node details panel, solid edges for facts and dashed for hints, toggle for `via-barrel` edges (hidden by default).
+- [x] **Python adapter** (`extract`, `resolveImport`, `isTestFile`; flags, constants, and entry points come in M5): absolute and relative imports, `__init__.py` packages, namespace packages, src layouts and `pyproject.toml` roots, stdlib vs third-party vs internal (bundle a stdlib module list; `sys.stdlib_module_names` exists only on Python 3.10+, so don't depend on a runtime Python), `from . import x` ambiguity (submodule vs name). Conformance cases for each.
 
 **Acceptance**
 - Playwright e2e: open a fixture folder, graph renders, clicking a node shows details.
@@ -186,18 +195,41 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 
 ---
 
+## M3.5: UX pass (from the M3 gate review)
+
+**Goal:** any file can be understood from its neighbors, and the app looks and behaves like a desktop app, not a web page in a window. Added after the M3 gate review: the graph was hard to digest and the window felt like a web page.
+**Spec refs:** App UX basics, Electron security (unchanged), principles 3 and 9, Edge traversal policy (default display set).
+
+**Tasks**
+- [x] **Focus view:** the selected file in the center, its imports in columns to the right and its dependents to the left (1–3 hops), crowded columns grouped by folder, animated re-centering, Back/Forward history. Pure `neighborhood()` and `focusLayout()` with unit tests. It follows the default display edge set; beyond one hop the dependents side previews, but is not, blast radius (M4).
+- [x] **Neighbors** tab in the inspector; hover highlighting with direction colors in the full graph; color by folder or language; projects open as a folder map (folders open breadth-first within a node budget).
+- [x] **Desktop shell:** the UI draws the title bar (macOS inset traffic lights; Windows and Linux native buttons through the Window Controls Overlay, plus a menu button for the hidden menu bar); sidebar with project switcher, views and file tree; resizable inspector; status bar with each language's tier; welcome screen; progress inside the window.
+- [x] **Command palette** (⌘K / Ctrl+K) with a tested fuzzy matcher; View menu commands reach the window; one command registry for keys, menu and palette.
+- [x] Design tokens shared by chrome and canvas, light and dark. No `webPreferences` change; new IPC (`show-app-menu`, `menu-command`) zod-validated and sender-checked.
+- [x] **Optional 3D overview** (after the review of the above): ADR-012 with a measured prototype (CSP compatibility, bundle size, layout time, frame rate and picking on Flask and vitest), then a 2D/3D toggle in the graph view, off by default and lazily loaded. Cytoscape stays the main renderer. Rendering on a real GPU is not measured yet.
+
+**Acceptance**
+- Unit tests for the neighborhood, focus layout, fuzzy matching, shortcuts, colors and preferences.
+- e2e (dev and packaged, three OSes): the focus view and neighbors, the palette, menu commands, the app-menu channel's payload checks, the window-controls check, and every earlier e2e and security test, with no CSP violations.
+- e2e for 3D, with software WebGL: the files are drawn, clicking picks a file, double-clicking opens the focus view, no CSP violations; without WebGL the option is disabled with its reason.
+
+**Gate:** I review the shell and the focus view (done), then the 3D overview; then M4.
+
+---
+
 ## M4: Watcher, blast radius, risk score, Go adapter
 
 **Goal:** the core value, blast radius with risk, live as files change.
 **Spec refs:** Blast radius, Risk score, Edge traversal policy, Known hard problems (Go).
 
 **Tasks**
-- [ ] **Watcher** (`chokidar`) in the analysis host: debounce and batch events, respect ignore rules, handle renames and editor temp/swap files, and mass changes (branch switch) by falling back to a git-diff-driven re-analysis. Feeds the M2 incremental path and emits `onGraphDelta`.
-- [ ] **Blast radius** in `core`: reverse BFS over the traversal policy, cycle-safe; certain and likely modes (likely arrives usable in M6); type-only toggle; results: total affected, max depth, grouping by directory and language, count depending on hint edges. UI highlight with depth control.
-- [ ] **Git churn** in `engine`: last 90 days of `git log` with machine-readable output (`-z`, rename detection); skip merge commits; warn on shallow clones.
-- [ ] **Coverage ingestion:** lcov and Cobertura XML parsers; map to repo-relative paths (strip CI absolute prefixes).
-- [ ] **Risk score** per the CLAUDE.md formula (percentile rank, reweight when coverage is missing, deterministic ties); UI breakdown of each component.
-- [ ] **Go adapter** (`extract`, `resolveImport`, `isTestFile`): `go.mod` module path, import path to package directory, packages as nodes (`kind: "package"`, `id: "pkg:..."`), `internal/` rules, `_test.go`, `vendor/`, `go.work`. Build tags are recorded but not evaluated; document as a limitation. Conformance cases.
+- [x] **Watcher** (`chokidar`) in the analysis host: debounce and batch events, respect ignore rules, handle renames and editor temp/swap files, and mass changes (branch switch) by falling back to a git-diff-driven re-analysis. Feeds the M2 incremental path and emits `onGraphDelta`. (chokidar 5.0.0; batches of 300 ms quiet, 2 s at most; only directories Discover walks are watched; HEAD is polled, and a moved HEAD re-reads `git diff` paths; the OS watch limit stops watching with a clear message. Main applies the deltas, so `getGraph` stays current.)
+- [x] **Blast radius** in `core`: reverse BFS over the traversal policy, cycle-safe; certain and likely modes (likely arrives usable in M6); type-only toggle; results: total affected, max depth, grouping by directory and language, count depending on hint edges. UI highlight with depth control. (Impact tab and Blast radius toggle; packages and files counted separately.)
+- [x] **Git churn** in `engine`: last 90 days of `git log` with machine-readable output (`-z`, rename detection); skip merge commits; warn on shallow clones. (The window ends at HEAD's commit date, so the graph stays a function of the repository.)
+- [x] **Coverage ingestion:** lcov and Cobertura XML parsers; map to repo-relative paths (strip CI absolute prefixes). (Conventional report paths in the project, or `--coverage` in the CLI.)
+- [x] **Risk score** per the CLAUDE.md formula (percentile rank, reweight when coverage is missing, deterministic ties); UI breakdown of each component. (No git history: no score, and the UI says why; Color by Risk.) Replaced by risk tiers in M6.5 (ADR-015).
+- [x] **Go adapter** (`extract`, `resolveImport`, `isTestFile`): `go.mod` module path, import path to package directory, packages as nodes (`kind: "package"`, `id: "pkg:..."`), `internal/` rules, `_test.go`, `vendor/`, `go.work`. Build tags are not evaluated (and not recorded: `FileFacts` has no field for them); the accuracy report measures the cost. Conformance cases. (ADR-013: 15 conformance cases checked against `go list`; test files stay file nodes linked to their package.)
+- [x] **Accuracy of Python and Go** against ground-truth tools (added to M4): Python vs grimp 3.17 on Flask 3.1.3, Go vs `go list` on cli/cli v2.82.0. Both met the tier A bar (precision and recall at least 95%, every disagreement explained) and moved to tier A. Python's raw precision is 71.6%: grimp does not see Flask's `sansio` namespace subpackage (`docs/benchmarks/python-accuracy.md`).
 
 **Acceptance**
 - Blast radius tests on fixtures: chain, diamond, cycle, the M1 barrel case, type-only toggle, `via-barrel` excluded, certain vs likely.
@@ -217,19 +249,19 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Dead-feature detection (all subsections), Confidence rubric, `epoch.config.json`, Alerts and review, Data contracts (`FileFacts`, `FlagUsage`, `ConstantCondition`, `Finding`, `FlagPattern`, `GitHistoryProvider`), Edge traversal policy (reachability row).
 
 **Tasks**
-- [ ] **ADR-007** (flag pattern sources, entry-point rules, framework list, history strategy and measured cost, `staleAfterDays` default, rubric tuning). Ask the M5 questions first.
-- [ ] **Config loader** in `engine` for `epoch.config.json`: zod validation, size cap, unknown keys warn, JSON only, never written. Globs through a glob matcher; `envPrefixes` are plain prefix matches. Feeds `ExtractorConfig` and its hash.
-- [ ] **Pattern packs** in `packages/findings/packs/` (data, zod-validated; every entry requires a `source` docs URL). Start with OpenFeature plus the vendor SDKs I choose, for each supported language. Read the official docs for each; do not use memory.
-- [ ] **Adapters (TS/JS, Python, Go):** implement `extract` for `flagUsages` (pattern match with `strong`/`weak` by import evidence; user wrappers and env reads are `strong`; non-literal keys give `flagName: null`) and `constantConditions` (literal conditions; never-reassigned boolean constants at local, module, and exported scope used as conditions; exclusion of typing-only guards and environment-derived values), and `isGenerated`. `detectEntryPoints` per language: TS (`package.json` `main`/`module`/`bin`/`exports` mapped from build output back to source using tsconfig `outDir`/`rootDir`, files referenced by `scripts`, config files, conventions, `entryPoints` from config), Python (`__main__.py`, `if __name__ == "__main__"`, console-script entries in `pyproject.toml`, `manage.py`/`wsgi.py`/`asgi.py`), Go (`package main`). Test files are roots. If a manifest entry cannot be mapped to source, record it as unmapped (this triggers the Medium cap).
-- [ ] **Framework detection** (data list from ADR-007): mark convention directories; show the notice.
-- [ ] **`GitHistoryProvider` in `engine`:** report `usable`/`reason` (not a repo, shallow, history shorter than `staleAfterDays`); `firstIntroduced` and `lastTouched` scoped to the files that contain the flag; uncommitted lines count as "now"; honor a `.git-blame-ignore-revs` file if present (verify the flag in git's docs); cache lookups by path and blob hash; measure cost on a real repo and record it in ADR-007.
-- [ ] **Detectors in `findings`** (pure; take `Graph`, `FileFacts`, `GitHistoryProvider`, config): `dead-branch`, `stale-flag`, `unreachable-file`, exactly per the CLAUDE.md rubric. Stable ids with no line numbers. Evidence, caveats, suggested action text, and `caps` recorded on every finding. Run as the last pipeline stage.
-- [ ] **Dismissals store** in `engine` (Epoch app data, per project, keyed by finding id, optional note).
-- [ ] **UI:** non-modal alert banner, Findings panel (filters, sorting, dismiss/undismiss), node badges and graph filter, node panel evidence/caveats/suggested action with a read-only code preview (via `getCodePreview`, inside the project root), notices for unusable history and for detected convention frameworks, and the "unassessable flag usages" count.
-- [ ] **CLI:** `epoch findings` with `--json`, `--min-confidence`, `--fail-on`, `--include-dismissed`, and exit codes 0/1/2.
-- [ ] **Docs:** `docs/findings.md` (kinds, rubric, configuration, limits, how to reduce false positives).
-- [ ] **Evaluation, `pnpm bench:findings <repo>`** (protocol below).
-- [ ] Extend the equivalence property test to include findings.
+- [x] **ADR-007** (flag pattern sources, entry-point rules, framework list, history strategy and measured cost, `staleAfterDays` default, rubric tuning). Ask the M5 questions first.
+- [x] **Config loader** in `engine` for `epoch.config.json`: zod validation, size cap, unknown keys warn, JSON only, never written. Globs through a glob matcher; `envPrefixes` are plain prefix matches. Feeds `ExtractorConfig` and its hash.
+- [x] **Pattern packs** in `packages/findings/packs/` (data, zod-validated; every entry requires a `source` docs URL). Start with OpenFeature plus the vendor SDKs I choose, for each supported language. Read the official docs for each; do not use memory.
+- [x] **Adapters (TS/JS, Python, Go):** implement `extract` for `flagUsages` (pattern match with `strong`/`weak` by import evidence; user wrappers and env reads are `strong`; non-literal keys give `flagName: null`) and `constantConditions` (literal conditions; never-reassigned boolean constants at local, module, and exported scope used as conditions; exclusion of typing-only guards and environment-derived values), and `isGenerated`. `detectEntryPoints` per language: TS (`package.json` `main`/`module`/`bin`/`exports` mapped from build output back to source using tsconfig `outDir`/`rootDir`, files referenced by `scripts`, config files, conventions, `entryPoints` from config), Python (`__main__.py`, `if __name__ == "__main__"`, console-script entries in `pyproject.toml`, `manage.py`/`wsgi.py`/`asgi.py`), Go (`package main`). Test files are roots. If a manifest entry cannot be mapped to source, record it as unmapped (this triggers the Medium cap).
+- [x] **Framework detection** (data list from ADR-007): mark convention directories; show the notice.
+- [x] **`GitHistoryProvider` in `engine`:** report `usable`/`reason` (not a repo, shallow, history shorter than `staleAfterDays`); `firstIntroduced` and `lastTouched` scoped to the files that contain the flag; uncommitted lines count as "now"; honor a `.git-blame-ignore-revs` file if present (verify the flag in git's docs); cache lookups by path and blob hash; measure cost on a real repo and record it in ADR-007.
+- [x] **Detectors in `findings`** (pure; take `Graph`, `FileFacts`, `GitHistoryProvider`, config): `dead-branch`, `stale-flag`, `unreachable-file`, exactly per the CLAUDE.md rubric. Stable ids with no line numbers. Evidence, caveats, suggested action text, and `caps` recorded on every finding. Run as the last pipeline stage.
+- [x] **Dismissals store** in `engine` (Epoch app data, per project, keyed by finding id, optional note).
+- [x] **UI:** non-modal alert banner, Findings panel (filters, sorting, dismiss/undismiss), node badges and graph filter, node panel evidence/caveats/suggested action with a read-only code preview (via `getCodePreview`, inside the project root), notices for unusable history and for detected convention frameworks, and the "unassessable flag usages" count.
+- [x] **CLI:** `epoch findings` with `--json`, `--min-confidence`, `--fail-on`, `--include-dismissed`, and exit codes 0/1/2.
+- [x] **Docs:** `docs/findings.md` (kinds, rubric, configuration, limits, how to reduce false positives).
+- [x] **Evaluation, `pnpm bench:findings <repo>`** (protocol below).
+- [x] Extend the equivalence property test to include findings.
 
 **Findings fixtures** (`fixtures/<lang>/findings/<case>/` with `expected` findings; use a fake `GitHistoryProvider` for git-dependent cases):
 - *dead-branch:* literal `false` condition (High); local const (High); module const (High); exported const (Medium); reassigned variable (none); Python `TYPE_CHECKING` guard (none); Go `const debug = false` (Low); environment-derived value (none); debug-like name (Low).
@@ -248,12 +280,12 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Evaluation protocol (`bench:findings`)**
 1. **Comparison:** TS/JS `unreachable-file` vs a unused-files report from an existing tool (knip; verify version and flags). Classify disagreements. No comparable file-level tool is assumed for Python or Go.
 2. **Hindsight test:** check out a historical commit T of a real repo into a temp worktree, analyze, then at HEAD check what happened: for `unreachable-file`, was the file deleted? For `stale-flag`, do the call sites still exist? Report rates per confidence level next to the baseline rate for unflagged items. State plainly that this is a proxy (many dead things are never removed; some live things are deleted).
-3. **Human review:** generate `docs/benchmarks/findings-review.csv` with up to 50 sampled High and Medium findings (stratified by language and kind) with repo links, evidence, and an empty `verdict` column. I fill the verdicts; do NOT fill them yourself. A script computes precision per confidence level.
+3. **Human review:** generate `docs/benchmarks/findings-review.csv` with up to 50 sampled High and Medium findings (stratified by language and kind) with repo links, evidence, and an empty `verdict` column. I fill the verdicts; do NOT fill them yourself. A script computes precision per confidence level. (2026-10-16: at my request, Claude filled the verdicts instead, checking each finding at its pinned commit; the reports label them as Claude's, not a human's. See ADR-007 "Rubric tuning".)
 4. If High-confidence precision on the reviewed sample is below the bar I set, tune the rubric by tightening caps (record it in ADR-007) and re-run before the gate.
 
 **Pitfalls:** pickaxe/blame cost on large histories (scope to files containing the flag; measure); mass-reformat commits make everything look recently touched (honor the blame ignore file); monorepo packages with several manifests; files used only by non-code (Dockerfile, templates, CI scripts) will look unreachable (the caveat text says so); renamed or moved files losing history.
 
-**Gate:** I review `docs/benchmarks/findings.md` and the review sheet results.
+**Gate:** I review `docs/benchmarks/findings.md` and the review sheet results. (Passed 2026-10-16: I accepted Claude's review and the tuned rubric; see ADR-007.)
 
 ---
 
@@ -263,13 +295,13 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** RelationScorer, Edge traversal policy, Blast radius, Confidence rubric (hint cap).
 
 **Tasks**
-- [ ] **Co-change hints** from commit file-sets: skip merge commits and very large commits (configurable cutoff); compute support and conditional confidence P(B|A); minimum-support threshold; evidence like "changed together in 42 of 51 commits".
-- [ ] **Shared-string hints:** extract literals that look like event names, routes, topics, and config keys; inverted index weighted by rarity so common strings don't link everything.
-- [ ] **Local embeddings** via ONNX/transformers.js for candidate generation (nearest neighbors, never all-pairs), cached by content hash. ADR-008: model choice (size, quality, license, CPU speed, measured) and the default hint threshold for "likely" mode.
-- [ ] **`RelationScorer` implementations:** `HeuristicScorer` (baseline, offline default), `LocalScorer`, `JevScorer`, `LlmScorer`. For Jev read its current docs (docs.typesafe.ai); it needs the user's own key. Without access, keep the stub and mark results "not run".
-- [ ] **Finding caps from hints:** in the `findings` rubric, a candidate with a hint edge to a reachable file at or above the default threshold is capped at Medium and lists the hint in caveats.
-- [ ] **Evaluation `pnpm bench:scorers`:** temporal holdout. Use history up to time T to propose hint edges, then check whether the linked files co-change after T. Precision/recall at thresholds and calibration (reliability diagram, ECE) per scorer, method and limits documented in `docs/benchmarks/scorers.md`.
-- [ ] **UI:** hint-edge toggle, confidence slider, evidence on hover; blast radius "likely" mode uses the slider.
+- [x] **Co-change hints** from commit file-sets: skip merge commits and very large commits (configurable cutoff); compute support and conditional confidence P(B|A); minimum-support threshold; evidence like "changed together in 42 of 51 commits".
+- [x] **Shared-string hints:** extract literals that look like event names, routes, topics, and config keys; inverted index weighted by rarity so common strings don't link everything.
+- [x] **Local embeddings** via ONNX/transformers.js for candidate generation (nearest neighbors, never all-pairs), cached by content hash. ADR-008: model choice (size, quality, license, CPU speed, measured) and the default hint threshold for "likely" mode. (ONNX Runtime directly, not transformers.js, which defaults to a run-time CDN request; all-MiniLM-L6-v2 chosen over bge-small-en-v1.5 and jina-embeddings-v2-small-en on measured CPU time and holdout quality.)
+- [x] **`RelationScorer` implementations:** `HeuristicScorer` (baseline, offline default), `LocalScorer`, `JevScorer`, `LlmScorer`. For Jev read its current docs (docs.typesafe.ai); it needs the user's own key. Without access, keep the stub and mark results "not run".
+- [x] **Finding caps from hints:** in the `findings` rubric, a candidate with a hint edge to a reachable file at or above the default threshold is capped at Medium and lists the hint in caveats.
+- [x] **Evaluation `pnpm bench:scorers`:** temporal holdout. Use history up to time T to propose hint edges, then check whether the linked files co-change after T. Precision/recall at thresholds and calibration (reliability diagram, ECE) per scorer, method and limits documented in `docs/benchmarks/scorers.md`.
+- [x] **UI:** hint-edge toggle, confidence slider, evidence on hover; blast radius "likely" mode uses the slider.
 
 **Acceptance:** the harness produces a report; `HeuristicScorer` is the baseline for all others; no hint edge is emitted without evidence; scorers never change fact edges or findings except through the documented cap (test both); the hint-cap fixture passes.
 
@@ -279,18 +311,39 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 
 ---
 
+## M6.5: Feedback pass (risk tiers, large graphs, zoom)
+
+**Goal:** act on the maintainer's hands-on review during M6: risk that explains itself, and an app that stays fast on large repositories.
+**Spec refs:** Risk tiers (new, ADR-015), Data contracts (`GraphNode.metrics`), App UX basics (large graphs).
+
+**Tasks**
+- [x] **Large graphs:** expand-all on vitest (3,116 nodes) drew after 99.7 s and then stalled for seconds on hover. Above 800 drawn files (150 since round two, below) the worker packs the folder tree (deterministic, about 35 ms) and the canvas draws open folders as plain frames instead of Cytoscape compounds, measured with a CPU profile; e2e on a 900-file project.
+- [x] **Zoom:** a mouse-wheel notch moved the 2D view 0.8% and the 3D view 5%; now about 15% and 14%.
+- [x] **Risk tiers** (ADR-015, approved): CLAUDE.md and the contract changed in one commit; `metrics.dependents` and `metrics.risk` replace `riskScore`; schema version 2; core rules with a fixture per rule; Score stage; CLI tier counts; details panel shows tier, archetype and facts; Risk color mode by tier; e2e.
+- [x] **`pnpm bench:risk`:** later fix commits per tier on a check window that shares no data with the window the thresholds were chosen on; the removed v1 score recomputed for comparison; `docs/benchmarks/risk.md`.
+- [x] **Round two, mid-size graphs:** expand-all was still slow below the 800-file line, and fcose drew nested folders as large, mostly empty boxes from about 250 files on. Packing now starts above 150 drawn files. On zod (589 nodes, measured in the e2e harness on the 4-core VM, software rendering): expand-all 5.0 s to 0.76 s, main thread blocked during a hover sweep 4.8 s to 0.12 s, during wheel zoom 3.7 s to 0.13 s, during a pan 3.0 s to 0.
+- [x] **Round two, very large graphs:** on vitest (3,116 nodes) most of a pointer move went to Cytoscape hit-testing every edge (CPU profile). Fact edges no longer answer the pointer, a hovered file is highlighted after the pointer rests on it for 0.1 s, and above 2,000 edges, zoomed out below 0.25, only the edges around what is highlighted are drawn. Blocked time: hover sweep zoomed out 3.3 s to 0, zoomed in 1.3 s to 0, wheel zoom in 2.8 s to 0.9 s, pan 1.0 s to 0.
+- [x] **Round two, names:** in a large graph, file names appear only zoomed in close (a zoom of 1.2), also around a hovered file; the hovered or selected file still shows its own name.
+- [x] **Round two, layout stability:** showing a folder from the file tree laid the whole graph out again although nothing opened (`expandTo` returned a new set), which moved and squeezed everything. Now it returns the same set, and the canvas keeps recent layouts by structure: an unchanged structure keeps its picture, and folders shown before come back where they were. A toolbar button and command, "Back to the starting view", restores the folders the project opened with, in the same places. e2e for both.
+
+**Acceptance:** core tests cover every rule and the missing-data cases; no numeric risk score remains in the contract, the UI or the CLI; e2e for the risk panel and the large-graph mode on three OSes; the benchmark report exists and its numbers are in ADR-015.
+
+**Gate:** I review the risk panel and docs/benchmarks/risk.md, together with the M6 gate.
+
+---
+
 ## M7: Keys, cost control, summaries, offline mode
 
 **Goal:** opt-in model features that are safe, cost-aware, and provably absent when offline.
 **Spec refs:** Privacy and data flow, Bring your own keys, Local cache (summaries, early cutoff).
 
 **Tasks**
-- [ ] `SecretStore` implementations: Electron `safeStorage` for the app (check encryption availability; on Linux check the selected backend and warn if weak), OS keychain or env vars for the CLI (ADR-009; must be a maintained library). Settings → Keys UI; the renderer only learns "configured or not".
-- [ ] LLM provider interface (Anthropic first). Token usage from the API's reported usage. Pricing is user-configurable data with no prices hardcoded from memory.
-- [ ] **Cost guardrails:** estimate before bulk jobs, confirmation above a threshold, spend cap (`--max-spend` and settings), running cost display.
-- [ ] **Consent flow:** first use of any remote model feature shows exactly what will be sent; secret-pattern files are never sent even with consent.
-- [ ] **Lazy summaries:** prompt grounded in file source plus neighbor summaries; cached; hierarchical (directory summaries from child summaries); invalidated through the early-cutoff mechanism. Text LLM or local model, never Jev.
-- [ ] **Offline mode:** setting and `--offline`. Enforce through the single network wrapper (main and analysis host) and at the Electron session level; disable update checks.
+- [x] `SecretStore` implementations: Electron `safeStorage` for the app (check encryption availability; on Linux check the selected backend and warn if weak), OS keychain or env vars for the CLI (ADR-009; must be a maintained library). Settings → Keys UI; the renderer only learns "configured or not". (App: async `safeStorage`, ciphertext in Epoch's data dir; Linux `basic_text` warns and keeps the key for the session unless told otherwise. CLI: `epoch auth` with `@napi-rs/keyring`, env first.)
+- [x] LLM provider interface (Anthropic first). Token usage from the API's reported usage. Pricing is user-configurable data with no prices hardcoded from memory. (`TextModel` for Anthropic, OpenAI, Gemini (ADR-019) and Ollama; each default model's price ships, read from Anthropic's pricing page with its date, and any price can be replaced in Settings or given on the command line.)
+- [x] **Cost guardrails:** estimate before bulk jobs, confirmation above a threshold, spend cap (`--max-spend` and settings), running cost display. (Each request reserves its worst case before it is sent; a monthly cap, a session budget and an ask-first amount, each with a default; raises confirmed in main's dialog; spend in the status bar.)
+- [x] **Consent flow:** first use of any remote model feature shows exactly what will be sent; secret-pattern files are never sent even with consent. (Per project, in main's own dialog; single-use approvals bound to the window and project, asked again when the plan grew.)
+- [x] **Lazy summaries:** prompt grounded in file source plus neighbor summaries; cached; hierarchical (directory summaries from child summaries); invalidated through the early-cutoff mechanism. Text LLM or local model, never Jev. (Content-addressed, with the summaries each one used recorded by hash: a summary regenerated to the same text leaves its dependents fresh. Made on open under the auto rules; folders are confirmed jobs. `pnpm bench:summaries` compares a full and an incremental run; real token counts await a run with a key, `docs/benchmarks/summaries.md`.)
+- [x] **Offline mode:** setting and `--offline`. Enforce through the single network wrapper (main and analysis host) and at the Electron session level; disable update checks. (A local model the user chose keeps working, loopback only; ADR-016 and the CLAUDE.md clause.)
 
 **Acceptance**
 - Zero-network test: a full analysis with outbound network blocked makes no requests (CI step).
@@ -308,15 +361,17 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Distribution, Definition of done for MVP.
 
 **Tasks**
-- [ ] `electron-builder` config for macOS (dmg), Windows (NSIS), Linux (AppImage/deb). `asarUnpack` for native modules and WASM. Verify on a packaged build per OS.
-- [ ] GitHub Actions release matrix (one runner per OS so native modules build correctly); tagged releases publish to GitHub Releases.
-- [ ] Auto-update with opt-out, listed in the data-flow table.
-- [ ] Signing: ship unsigned early builds with first-run instructions; document the status. Ask me before spending money on signing.
-- [ ] **Site** (`apps/site`): landing page, downloads, and an in-browser demo viewer using the static `EpochApi`, with graphs and findings precomputed by the CLI for public OSS repos (record repo, SHA, and license/attribution). No backend, no model features.
-- [ ] **README:** problem, demo GIF, architecture diagram, privacy model and data-flow table, how findings work with their limits and measured precision, tradeoffs, signing status, and benchmark tables copied from `docs/benchmarks/` (never retyped).
-- [ ] Final smoke test on a clean machine or VM per OS: install, open a real repo, blast radius, findings banner, offline mode.
+- [x] `electron-builder` config for macOS (dmg), Windows (NSIS), Linux (AppImage/deb). Native modules are unpacked; grammar WASM stays in the asar because it is read with `fs` (ADR-018). Packaged e2e and installer smoke tests passed on all three OSes in [run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655).
+- [x] GitHub Actions release matrix (one runner per OS so native modules build correctly); a matching version tag creates a draft GitHub Release after smoke tests. The `v0.1.0` tag's [release run](https://github.com/JJUN-SEO/Epoch/actions/runs/39748194064) passed every job and drafted the release.
+- [x] Check and notify for a newer release, with opt-out and no download or install, listed in the data-flow table (ADR-018).
+- [x] Signing: unsigned early builds with first-run and checksum instructions. macOS is ad hoc signed only; no signing money spent. Maintainer decision (2026-10-22): stay unsigned (ADR-018).
+- [x] **Site** (`apps/site`): landing page, downloads, and in-browser demo viewer using the static `EpochApi`, with graphs and findings precomputed by the CLI for zod, Flask and cli/cli at pinned SHAs with license/attribution. No backend or model features. Pages deploy is configured in `site.yml`; the repository's Pages source must be set to GitHub Actions before its first deploy.
+- [x] **README:** problem, demo GIF, architecture diagram, privacy and data-flow table, findings and their limits, tradeoffs, signing, and a results table whose numbers `scripts/readme-tables.mjs` fills from the reports (checked in lint). Every full table is in `docs/results.md`; the CLI and contributor docs are `docs/cli.md` and `docs/development.md`.
+- [x] Fresh-runner installer smoke tests per OS: install, open zod, blast radius, findings banner, offline mode, and zero-network log, [run 39096906655](https://github.com/JJUN-SEO/Epoch/actions/runs/39096906655).
 
 **Acceptance:** CI-built installers for macOS and Windows (Linux if time) from a tag; clean-machine smoke test passes; every README number traces to a script.
+
+**Release gate:** the tag run passed and drafted `v0.1.0`. Still open: review and publish the draft, enable the GitHub Actions source in Pages, and merge to `main`, since `site.yml` deploys only from `main`. No Pages URL is claimed live before its first deploy.
 
 ---
 
@@ -365,7 +420,7 @@ Always classify disagreements (tool wrong, we're wrong, ambiguous or dynamic) be
 | Jev access delayed or API changes | `RelationScorer` interface, heuristic and LLM fallbacks, mark "not run" |
 | Scope creep (languages, findings, hints, load tests) | MVP/v2 boundary, milestone gates, scope-cut order, no building ahead |
 | Surprise costs for users | Estimates, confirmations, spend cap, model features off by default |
-| Unsigned installers scare users | Document first-run steps; decide on signing before a public launch |
+| Unsigned installers scare users | Document first-run steps; decided to stay unsigned for now (ADR-018); revisit before a wide public launch |
 
 ## Kickoff prompts (copy and paste into Claude Code in plan mode)
 

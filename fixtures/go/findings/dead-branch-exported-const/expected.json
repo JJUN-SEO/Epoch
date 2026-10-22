@@ -1,0 +1,23 @@
+{
+  "findings": [
+    {
+      "kind": "dead-branch",
+      "subject": {
+        "type": "file",
+        "name": "main.go"
+      },
+      "confidence": "medium",
+      "caps": [
+        "exported-constant"
+      ],
+      "locations": [
+        {
+          "file": "main.go",
+          "line": 6,
+          "endLine": 8
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}

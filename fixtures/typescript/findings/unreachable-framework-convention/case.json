@@ -1,0 +1,10 @@
+{
+  "description": "A file in a detected framework's convention directory: capped at Low (and Medium: only convention roots).",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "name": "@acme/util",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}

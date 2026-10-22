@@ -1,0 +1,10 @@
+{
+  "description": "A barrel whose importers are all traced through it stays reachable (via-barrel): no finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

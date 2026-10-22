@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+/*
+ * Epoch's design tokens. The app follows the OS light/dark theme (CLAUDE.md
+ * "App UX basics"); the graph canvas reads the same variables (graph/theme.ts),
+ * so chrome and canvas always match.
+ */
+:root {
+  color-scheme: light dark;
+  --epoch-canvas: #ffffff;
+  --epoch-chrome: #f4f4f6;
+  --epoch-raised: #ffffff;
+  --epoch-sunken: #ececf0;
+  --epoch-hover: rgb(0 0 0 / 0.05);
+  --epoch-active: rgb(91 91 214 / 0.12);
+  --epoch-border: #e2e2e7;
+  --epoch-strong-border: #cfcfd6;
+  --epoch-text: #1c1c21;
+  --epoch-muted: #6b6b76;
+  --epoch-faint: #a3a3ad;
+  --epoch-accent: #5b5bd6;
+  --epoch-accent-text: #ffffff;
+  --epoch-imports: #0f9d8f;
+  --epoch-dependents: #dd6b20;
+  --epoch-danger: #c4320a;
+  --epoch-edge: #b9bcc6;
+  --epoch-shadow:
+    0 8px 28px rgb(15 15 30 / 0.14), 0 1px 3px rgb(15 15 30 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --epoch-canvas: #121215;
+    --epoch-chrome: #1a1a1e;
+    --epoch-raised: #232328;
+    --epoch-sunken: #0e0e11;
+    --epoch-hover: rgb(255 255 255 / 0.06);
+    --epoch-active: rgb(139 140 248 / 0.18);
+    --epoch-border: #2a2a30;
+    --epoch-strong-border: #3a3a42;
+    --epoch-text: #ececf1;
+    --epoch-muted: #9c9ca8;
+    --epoch-faint: #5f5f6a;
+    --epoch-accent: #8b8cf8;
+    --epoch-accent-text: #101018;
+    --epoch-imports: #2dd4bf;
+    --epoch-dependents: #f6a35c;
+    --epoch-danger: #ff8a65;
+    --epoch-edge: #4a4c56;
+    --epoch-shadow: 0 10px 32px rgb(0 0 0 / 0.5), 0 1px 3px rgb(0 0 0 / 0.4);
+  }
+}
+
+@theme inline {
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --color-canvas: var(--epoch-canvas);
+  --color-chrome: var(--epoch-chrome);
+  --color-raised: var(--epoch-raised);
+  --color-sunken: var(--epoch-sunken);
+  --color-hover: var(--epoch-hover);
+  --color-active: var(--epoch-active);
+  --color-line: var(--epoch-border);
+  --color-strong-line: var(--epoch-strong-border);
+  --color-fg: var(--epoch-text);
+  --color-muted: var(--epoch-muted);
+  --color-faint: var(--epoch-faint);
+  --color-accent: var(--epoch-accent);
+  --color-on-accent: var(--epoch-accent-text);
+  --color-imports: var(--epoch-imports);
+  --color-dependents: var(--epoch-dependents);
+  --color-danger: var(--epoch-danger);
+  --shadow-pop: var(--epoch-shadow);
+}
+
+/* Base rules sit in Tailwind's base layer, so utilities (outline-none, ...) override them. */
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  /* A desktop app, not a page: no page scroll, no text selection in the chrome. */
+  body {
+    @apply bg-canvas text-fg antialiased;
+    overflow: hidden;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.4;
+    user-select: none;
+    cursor: default;
+  }
+
+  button,
+  [role="option"],
+  [role="treeitem"] {
+    cursor: default;
+  }
+
+  input,
+  textarea,
+  .selectable {
+    user-select: text;
+  }
+
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--epoch-accent);
+    outline-offset: 1px;
+    border-radius: 4px;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--epoch-strong-border) transparent;
+  }
+}
+
+/* The custom title bar moves the window (Electron reads app-region). */
+.drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/*
+ * Window Controls Overlay (Windows and Linux): the native buttons sit on the
+ * right of the title bar, outside titlebar-area. macOS: the traffic lights sit
+ * on the left (hiddenInset), and the variables are unset.
+ */
+.titlebar {
+  height: 40px;
+  padding-left: env(titlebar-area-x, 0px);
+  padding-right: calc(
+    100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw)
+  );
+}
+
+.titlebar.mac-inset {
+  padding-left: 78px;
+}
+
+/* Cytoscape's container rule, which it would otherwise inject (graph/cy.ts). */
+.__________cytoscape_container {
+  position: relative;
+}

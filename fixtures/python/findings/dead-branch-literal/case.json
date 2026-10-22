@@ -1,0 +1,6 @@
+{
+  "description": "A literal False condition (High).",
+  "adapters": [
+    "python"
+  ]
+}

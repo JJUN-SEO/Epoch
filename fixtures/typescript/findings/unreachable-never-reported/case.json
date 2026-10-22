@@ -1,0 +1,10 @@
+{
+  "description": "Test files, generated files and declaration files are never reported.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

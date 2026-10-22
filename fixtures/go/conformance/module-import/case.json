@@ -1,0 +1,6 @@
+{
+  "description": "An import path under the go.mod module path resolves to the package in that directory; packages are nodes.",
+  "adapters": [
+    "go"
+  ]
+}

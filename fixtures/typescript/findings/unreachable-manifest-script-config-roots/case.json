@@ -1,0 +1,10 @@
+{
+  "description": "main mapped from dist/ back to src/, a script-referenced file and a config file are roots: no finding.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

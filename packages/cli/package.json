@@ -5,6 +5,9 @@
   "description": "Epoch CLI: the headless `epoch` command for analysis, benchmarks and CI.",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "epoch": "dist/bin.js"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -23,5 +26,13 @@
     "eslint": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@epoch-dev/core": "workspace:*",
+    "@epoch-dev/engine": "workspace:*",
+    "@epoch-dev/scorers": "workspace:*"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "2.1.0"
   }
 }
