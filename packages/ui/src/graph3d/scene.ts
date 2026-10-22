@@ -124,8 +124,14 @@ export class Scene3D {
   private flight: Flight | undefined;
   private frame = 0;
   private fitted = false;
-  /** Fly to the whole graph when the layout finishes (a fresh layout, not a warm one). */
-  private refitWhenDone = true;
+  /**
+   * The camera keeps the graph framed while a fresh layout spreads it out,
+   * until the layout finishes or the user moves the camera. A warm layout
+   * (from where the files were) leaves the camera alone.
+   */
+  private following = true;
+  /** False until a fresh layout's first frame: every file is still at one point. */
+  private placed = true;
   private lost = false;
   private down: { x: number; y: number } | undefined;
   private labeled: number[] = [];
@@ -158,7 +164,7 @@ export class Scene3D {
     // About 14% per mouse-wheel notch; the default (5%) barely moves.
     this.controls.zoomSpeed = 3;
     this.controls.addEventListener("change", this.requestRender);
-    this.controls.addEventListener("start", this.clearHover);
+    this.controls.addEventListener("start", this.onControlsStart);
 
     const canvas = this.renderer.domElement;
     canvas.addEventListener("pointermove", this.onPointerMove);
@@ -186,11 +192,13 @@ export class Scene3D {
     if (initial?.length === data.ids.length * 3) {
       this.positions = initial.slice();
       this.fitted = true;
-      this.refitWhenDone = false;
+      this.following = false;
+      this.placed = true;
     } else {
       this.positions = new Float32Array(data.ids.length * 3);
       this.fitted = false;
-      this.refitWhenDone = true;
+      this.following = true;
+      this.placed = false;
     }
 
     this.spheres = createSphereBatch(data.ids.length);
@@ -219,6 +227,7 @@ export class Scene3D {
 
     this.setColors(colors);
     this.writePositions();
+    this.showPlaced();
   }
 
   /**
@@ -227,10 +236,12 @@ export class Scene3D {
    * layout still running.
    */
   redraw(data: Graph3DData, colors: NodeColors): void {
-    const { positions, fitted, refitWhenDone } = this;
+    const { positions, fitted, following, placed } = this;
     this.setData(data, colors, positions);
     this.fitted = fitted;
-    this.refitWhenDone = refitWhenDone;
+    this.following = following;
+    this.placed = placed;
+    this.showPlaced();
   }
 
   /** New positions from the layout (x, y, z per node). */
@@ -238,12 +249,16 @@ export class Scene3D {
     if (!this.data || positions.length !== this.data.ids.length * 3) return;
     this.positions = positions;
     this.writePositions();
-    if (!this.fitted) {
+    this.placed = true;
+    this.showPlaced();
+    // Framed once at the start, then each frame while the layout spreads the
+    // files out: framing only the start would leave the camera inside the
+    // graph, among huge spheres, until the layout finished.
+    if (!this.fitted || this.following) {
       this.fit(false);
       this.fitted = true;
-    } else if (done && this.refitWhenDone) {
-      this.fit(true);
     }
+    if (done) this.following = false;
     this.requestRender();
   }
 
@@ -346,7 +361,7 @@ export class Scene3D {
     canvas.removeEventListener("webglcontextlost", this.onContextLost);
     canvas.removeEventListener("webglcontextrestored", this.onContextRestored);
     this.controls.removeEventListener("change", this.requestRender);
-    this.controls.removeEventListener("start", this.clearHover);
+    this.controls.removeEventListener("start", this.onControlsStart);
     this.controls.dispose();
     this.removeMeshes();
     this.nodeMaterial.dispose();
@@ -505,7 +520,8 @@ export class Scene3D {
     const v = new Vector3();
     for (const [k, label] of this.labelPool.entries()) {
       const i = this.labeled[k];
-      const p = i === undefined ? undefined : this.positionOf(i);
+      const p =
+        i === undefined || !this.placed ? undefined : this.positionOf(i);
       if (!p) {
         label.hidden = true;
         continue;
@@ -555,7 +571,21 @@ export class Scene3D {
     }
   };
 
+  private showPlaced(): void {
+    if (this.mesh) this.mesh.visible = this.placed;
+    if (this.lines) this.lines.visible = this.placed;
+    this.requestRender();
+  }
+
+  /** The user took the camera (drag, wheel): it stops following the layout. */
+  private readonly onControlsStart = (): void => {
+    this.following = false;
+    this.clearHover();
+  };
+
+  /** Flights are the user's too (zoom buttons, fit, a file to reveal). */
   private startFlight(to: Vector3, toTarget: Vector3, ms: number): void {
+    this.following = false;
     this.clearHover();
     this.flight = {
       from: this.camera.position.clone(),

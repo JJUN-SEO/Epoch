@@ -19,7 +19,7 @@ function clock() {
 }
 
 describe("simulate3d", () => {
-  it("shows the starting positions at once, then streams by time, then finishes", () => {
+  it("streams frames by time, then finishes", () => {
     const frames: { positions: Float32Array; done: boolean }[] = [];
     const ticks = simulate3d(
       ring(40),
@@ -27,13 +27,28 @@ describe("simulate3d", () => {
       { now: clock(), frameMs: 100 },
     );
     expect(frames.length).toBeGreaterThan(2);
-    // The first frame comes before any tick: the starting spiral, not zeros.
     expect(frames[0]?.done).toBe(false);
-    expect(frames[0]?.positions.some((v) => v !== 0)).toBe(true);
     // One intermediate frame per 100 ms of (fake) time, about every 10 ticks.
-    expect(frames.length).toBeLessThanOrEqual(2 + Math.ceil(ticks / 9));
+    expect(frames.length).toBeLessThanOrEqual(1 + Math.ceil(ticks / 9));
     expect(frames.at(-1)?.done).toBe(true);
     expect(frames.filter((f) => f.done)).toHaveLength(1);
+  });
+
+  it("does not show a fresh layout's starting spiral", () => {
+    // d3's starting spiral is packed far tighter than any layout, so drawn
+    // with the files' sphere sizes it is a ball of huge spheres. A fresh
+    // layout's first frame comes once time has passed, after it has ticked.
+    let reads = 0;
+    const now = () => ++reads * 10;
+    let readsAtFirstFrame: number | undefined;
+    simulate3d(
+      ring(40),
+      () => {
+        readsAtFirstFrame ??= reads;
+      },
+      { now, frameMs: 100 },
+    );
+    expect(readsAtFirstFrame).toBeGreaterThanOrEqual(10);
   });
 
   it("starts from given positions, and settles in fewer steps", () => {
