@@ -168,7 +168,9 @@ export default defineConfig(
     // The renderer shows strings from untrusted repositories (file names,
     // flag names, evidence): render them as text, never as HTML (CLAUDE.md
     // "Electron security"). It also never imports Node or Electron modules.
-    files: ["packages/ui/src/**/*.{ts,tsx}"],
+    // The static demo runs the same UI in a browser, under the same rules.
+    files: ["packages/ui/src/**/*.{ts,tsx}", "apps/site/src/**/*.{ts,tsx}"],
+    ignores: ["apps/site/src/**/*.test.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",

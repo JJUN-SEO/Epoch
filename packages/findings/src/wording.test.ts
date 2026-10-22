@@ -16,6 +16,7 @@ import {
  */
 
 const PACKAGES = fileURLToPath(new URL("../../", import.meta.url));
+const ROOT = path.dirname(PACKAGES);
 
 /** Phrases that state something is dead or unused as a fact. */
 const CERTAIN =
@@ -39,6 +40,10 @@ const FILES = [
   path.join(PACKAGES, "findings/src/dead-branch.ts"),
   path.join(PACKAGES, "findings/src/stale-flag.ts"),
   path.join(PACKAGES, "findings/src/unreachable.ts"),
+  // The static site and the README describe findings to visitors.
+  ...sources(path.join(ROOT, "apps/site/src")),
+  path.join(ROOT, "apps/site/index.html"),
+  path.join(ROOT, "README.md"),
 ];
 
 describe("finding wording", () => {

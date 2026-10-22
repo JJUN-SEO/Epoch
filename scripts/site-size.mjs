@@ -19,7 +19,10 @@ const chunk = (prefix, ext) => {
 
 // Measured gzip baselines, in bytes: landing 133157 (including the screenshot), demo JS 287704,
 // 3D view 139841, 2D layout worker 177617, 3D layout worker 8761, CSS 6594,
-// zod data 64582, Flask data 12832, cli data 146470.
+// zod data 64582, Flask data 12832, cli data 146470. Re-measured 2026-10-22,
+// after the attribution bar named the copyright and the screenshot became a
+// 256-colour PNG (apps/site/scripts/record-demo.mjs): landing 79641, demo JS
+// 287482, CSS 6619; the landing budget follows it.
 const measured = {
   landing: ["index.html", "site.css", "icon.svg", "demo.png"].reduce(
     (sum, file) => sum + bytes(path.join(dir, file)),
@@ -35,7 +38,7 @@ const measured = {
   cli: chunk("cli.graph-", ".js"),
 };
 const limits = {
-  landing: 154000,
+  landing: 91600,
   app: 331000,
   graph3d: 161000,
   layout2d: 205000,
