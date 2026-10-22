@@ -1,0 +1,8 @@
+{
+  "name": "fx",
+  "private": true,
+  "main": "src/index.ts",
+  "scripts": {
+    "bench": "pnpm build && node packages/bench/dist/perf.js"
+  }
+}

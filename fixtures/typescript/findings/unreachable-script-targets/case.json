@@ -1,0 +1,10 @@
+{
+  "description": "Package scripts reach files in three more ways: a root script running another package's build output (node packages/bench/dist/perf.js, mapped back to src), a runner given a folder (tsx watch src, its index file), and tsc --project on a nested tsconfig (the files it includes). A file nothing reaches is still reported.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}
