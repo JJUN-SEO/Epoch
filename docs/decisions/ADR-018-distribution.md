@@ -1,6 +1,6 @@
 # ADR-018: Distribution: installers, fuses, release, update check
 
-- **Status:** Proposed (implementation and installer smoke tests pass; tagged draft and maintainer publication pending)
+- **Status:** Accepted (2026-10-22: the `v0.1.0` tag's [release run](https://github.com/JJUN-SEO/Epoch/actions/runs/39748194064) built, smoke-tested and drafted the release; the maintainer publishes it)
 - **Date:** 2026-10-18
 - **Milestone:** M8
 
@@ -8,7 +8,7 @@
 
 CLAUDE.md ("Distribution") asks for installers for macOS, Windows and Linux built by CI on one runner per OS and published on GitHub Releases, unsigned early builds with documented first-run steps, and a static site. ADR-005 left two things for M8: the size work, and Electron's fuses, which it tied to M8 because turning off Node's inspector also stops Playwright's Electron launcher.
 
-This ADR records how Epoch is packaged and released. It grew through M8: fuses, installers, the release workflow and the update check. The release workflow still needs its first version tag and maintainer review before this ADR is accepted.
+This ADR records how Epoch is packaged and released. It grew through M8: fuses, installers, the release workflow and the update check. It was accepted once the first version tag ran the whole release workflow.
 
 ## Sources
 
