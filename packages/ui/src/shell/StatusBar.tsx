@@ -220,10 +220,12 @@ export function StatusBar(props: {
           title={
             coverage
               ? `Coverage from ${coverage.source} (${coverage.format}): ${String(coverage.files)} files matched${coverage.unmatched > 0 ? `, ${String(coverage.unmatched)} unmatched` : ""}. The report may be older than the code.`
-              : "No coverage report found (coverage/lcov.info, coverage/cobertura-coverage.xml, coverage.xml or lcov.info); risk uses fan-in and churn only."
+              : "Test coverage is the share of a file's lines your tests run. Epoch never runs your tests: it reads a report your test runner already wrote (for example vitest or jest --coverage, pytest --cov), found at coverage/lcov.info, coverage/cobertura-coverage.xml, coverage.xml or lcov.info. None was found, so risk judges fragility by file size alone."
           }
         >
-          {coverage ? `Coverage: ${coverage.source}` : "No coverage report"}
+          {coverage
+            ? `Test coverage: ${coverage.source}`
+            : "No test coverage report"}
         </span>
       )}
       <span

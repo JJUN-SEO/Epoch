@@ -290,7 +290,7 @@ function RiskSection(props: {
       label: a.fragility === "fragile" ? "Fragile" : "Sturdy",
       text:
         m.coverage === undefined
-          ? `${plural(node.loc, "line")}, no coverage report (fragile above ${String(t.fragileAboveLoc)} lines)`
+          ? `${plural(node.loc, "line")} (fragile above ${String(t.fragileAboveLoc)}); judged by size, since no test coverage report was found`
           : `${plural(node.loc, "line")}, ${(m.coverage * 100).toFixed(0)}% covered (fragile above ${String(t.fragileAboveLoc)} lines or below ${String(t.fragileBelowCoverage * 100)}% coverage)`,
     },
   ];
