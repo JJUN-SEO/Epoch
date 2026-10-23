@@ -22,9 +22,19 @@ const chunk = (prefix, ext) => {
 // zod data 64582, Flask data 12832, cli data 146470. Re-measured 2026-10-22,
 // after the attribution bar named the copyright and the screenshot became a
 // 256-colour PNG (apps/site/scripts/record-demo.mjs): landing 79641, demo JS
-// 287482, CSS 6619; the landing budget follows it.
+// 287482, CSS 6619; the landing budget follows it. With the landing CSS and
+// screenshot hashed by Vite and the screenshot re-recorded: landing 79236;
+// re-recorded after the demo data moved to adapter version 9: 72707.
+// The landing page's stylesheet and screenshot go through Vite (hashed
+// names, so a new deploy never meets an old cached copy); index.html names them.
+const landingAssets = [
+  ...fs
+    .readFileSync(path.join(dir, "index.html"), "utf8")
+    .matchAll(/(?:href|src)="\/Epoch\/(assets\/[^"]+\.(?:css|png))"/g),
+].map((m) => m[1]);
+assert.equal(landingAssets.length, 2, "the landing CSS and screenshot");
 const measured = {
-  landing: ["index.html", "site.css", "icon.svg", "demo.png"].reduce(
+  landing: ["index.html", "icon.svg", ...landingAssets].reduce(
     (sum, file) => sum + bytes(path.join(dir, file)),
     0,
   ),

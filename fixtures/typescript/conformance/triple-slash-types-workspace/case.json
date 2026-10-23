@@ -1,0 +1,6 @@
+{
+  "description": "A types reference directive that names a workspace package is a type-only dependency on its source, like an import type; one that names a third-party package records that package.",
+  "adapters": [
+    "typescript"
+  ]
+}

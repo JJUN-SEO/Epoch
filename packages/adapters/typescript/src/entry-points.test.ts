@@ -139,6 +139,79 @@ describe("typescript entry points", () => {
     ]);
   });
 
+  it("maps a script's build output back to source through the package that owns it", () => {
+    expect(
+      roots({
+        "package.json": JSON.stringify({
+          scripts: {
+            bench: "pnpm build && node packages/bench/dist/perf.js",
+            other: "node packages/bench/dist/missing.js",
+          },
+        }),
+        "packages/bench/package.json": JSON.stringify({ name: "bench" }),
+        "packages/bench/src/perf.ts": "",
+      }),
+    ).toEqual([
+      ["packages/bench/src/perf.ts", "script", "package.json scripts.bench"],
+    ]);
+  });
+
+  it("takes a folder a runner is given as its index file, and only for runners", () => {
+    expect(
+      roots({
+        "package.json": JSON.stringify({
+          scripts: {
+            dev: "NODE_ENV=development tsx watch src",
+            lint: "eslint lib",
+          },
+        }),
+        "src/index.ts": "",
+        "lib/index.ts": "",
+      }),
+    ).toEqual([["src/index.ts", "script", "package.json scripts.dev"]]);
+  });
+
+  it("counts the files a nested tsconfig type-checked by a script includes", () => {
+    expect(
+      roots({
+        "package.json": JSON.stringify({
+          scripts: {
+            "test:types":
+              "tsc --project fixtures/ai/tsconfig.json && tsc -p fixtures/cjs",
+            build: "tsc -p tsconfig.json",
+          },
+        }),
+        "tsconfig.json": JSON.stringify({ include: ["src"] }),
+        "src/unused.ts": "",
+        "fixtures/ai/tsconfig.json": JSON.stringify({
+          compilerOptions: { noEmit: true },
+          include: ["./**/*.ts"],
+        }),
+        "fixtures/ai/index.ts": "",
+        "fixtures/ai/helper.ts": "",
+        "fixtures/cjs/tsconfig.json": JSON.stringify({ files: ["a.cts"] }),
+        "fixtures/cjs/a.cts": "",
+        "fixtures/cjs/b.cts": "",
+      }),
+    ).toEqual([
+      [
+        "fixtures/ai/helper.ts",
+        "script",
+        "package.json scripts.test:types (tsc --project fixtures/ai/tsconfig.json)",
+      ],
+      [
+        "fixtures/ai/index.ts",
+        "script",
+        "package.json scripts.test:types (tsc --project fixtures/ai/tsconfig.json)",
+      ],
+      [
+        "fixtures/cjs/a.cts",
+        "script",
+        "package.json scripts.test:types (tsc --project fixtures/cjs/tsconfig.json)",
+      ],
+    ]);
+  });
+
   it("finds files GitHub workflows run or import", () => {
     expect(
       roots({

@@ -172,7 +172,7 @@ describe("extract: imports", () => {
       "const a = import.meta.resolve(`./${name}`);", // 1
       'const b = require.resolve("./plugins/" + id);', // 2
       "const c = new URL(`./workers/${id}.js`, import.meta.url);", // 3
-      'const d = import.meta.resolve("./literal.js");', // 4: not recorded yet
+      'const d = import.meta.resolve("./literal.js");', // 4: a literal module
       "const e = import.meta.resolve(name);", // 5: no prefix
       "const f = new URL(`./x/${id}`, base);", // 6: not a module URL
       "const g = other.resolve(`./${id}`);", // 7: not a resolver
@@ -203,6 +203,62 @@ describe("extract: imports", () => {
           names: [],
           line: 3,
         },
+        {
+          kind: "dynamic",
+          specifier: "./literal.js",
+          typeOnly: false,
+          names: [],
+          line: 4,
+        },
+      ]);
+    }
+  });
+
+  it("records literal source files loaded at run time, and paths built from the module's own folder", () => {
+    const src = [
+      'const w = new Worker(new URL("./layout.worker.ts", import.meta.url));', // 1
+      'const p = new URL("../python/edges.py", import.meta.url);', // 2
+      'const r = require.resolve("./loader");', // 3: resolution adds the extension
+      'const a = path.join(__dirname, "run-once.js");', // 4
+      'const b = resolve(import.meta.dirname, "scripts", "x.mjs");', // 5
+      "const c = path.join(__dirname, `${fixture}.ts`);", // 6: any file in this folder
+      'const d = path.join(__dirname, "fixtures", name);', // 7
+      'const img = new URL("./logo.png", import.meta.url);', // 8: an asset
+      'const pkg = path.resolve(__dirname, "../package.json");', // 9: an asset
+      'const out = new URL("./out", import.meta.url);', // 10: no extension
+      'const x = path.join(root, "a.js");', // 11: not this module's folder
+      'const y = require.resolve("some-package");', // 12: a package, not a path
+      'const z = new URL("https://example.com/a.js");', // 13: not a module URL
+      "const e = path.resolve(__dirname, `../../packages/${p}/src`);", // 14: the computed part is a folder
+      'const f = path.join(__dirname, "node_modules", "zod", "index.js");', // 15: third-party
+      "const g = path.join(__dirname, `${dir}/${name}.ts`);", // 16: a computed folder too
+      'const h = path.resolve(import.meta.dirname, "../../packages", file);', // 17: computed, outside this folder
+      "const i = path.resolve(__dirname, pkgBase);", // 18: nothing says which files
+    ].join("\n");
+    const literal = (specifier: string, line: number) => ({
+      kind: "dynamic",
+      specifier,
+      typeOnly: false,
+      names: [],
+      line,
+    });
+    const prefix = (dynamicPrefix: string, line: number) => ({
+      kind: "dynamic",
+      specifier: null,
+      dynamicPrefix,
+      typeOnly: false,
+      names: [],
+      line,
+    });
+    for (const file of ["run.ts", "run.js", "run.mjs"]) {
+      expect(facts(file, src).imports, file).toEqual([
+        literal("./layout.worker.ts", 1),
+        literal("../python/edges.py", 2),
+        literal("./loader", 3),
+        literal("./run-once.js", 4),
+        literal("./scripts/x.mjs", 5),
+        prefix("./", 6),
+        prefix("./fixtures/", 7),
       ]);
     }
   });

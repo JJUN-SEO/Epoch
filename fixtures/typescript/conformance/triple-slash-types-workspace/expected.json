@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    "packages/app/src/index.ts",
+    "packages/lib/src/index.ts"
+  ],
+  "edges": [
+    {
+      "source": "packages/app/src/index.ts",
+      "target": "packages/lib/src/index.ts",
+      "kind": "type-only",
+      "evidence": []
+    }
+  ],
+  "externals": {
+    "packages/app/src/index.ts": ["node"]
+  },
+  "unresolved": []
+}

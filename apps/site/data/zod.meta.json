@@ -9,12 +9,12 @@
   "copyright": "Copyright (c) 2025 Colin McDonnell",
   "licenseFile": "zod.LICENSE.txt",
   "madeWith": {
-    "epochCommit": "02fb5da44cfbbed9eb390a2fcd299a4202c6e443",
+    "epochCommit": "d22a5d44d4baf78066d8489c23c164793f0d4ef2",
     "command": "epoch --offline analyze <repository> --json"
   },
   "counts": {
     "nodes": 526,
-    "edges": 1322,
-    "findings": 155
+    "edges": 1327,
+    "findings": 149
   }
 }

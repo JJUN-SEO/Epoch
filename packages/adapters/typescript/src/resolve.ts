@@ -417,6 +417,12 @@ class Resolver {
           if (this.files.has(key(rel + ext))) return this.fileTarget(rel + ext);
         }
       }
+      // A path into a tsconfig outDir that is not built (`../dist/cli.js`
+      // from a test): the file it will be is built from this source.
+      const source = this.toSource(target);
+      const sourceRel = source === undefined ? undefined : this.rel(source);
+      if (sourceRel !== undefined && this.files.has(key(sourceRel)))
+        return this.fileTarget(sourceRel);
       if (this.repo.reader.fileExists(target))
         return { kind: "unresolved", reason: "outside-project" };
       return { kind: "unresolved", reason: "not-found" };
@@ -537,6 +543,30 @@ class Resolver {
 
 const resolvers = new WeakMap<ResolveContext, Resolver>();
 
+function resolverFor(ctx: ResolveContext): Resolver {
+  let r = resolvers.get(ctx);
+  if (!r) {
+    r = new Resolver(ctx);
+    resolvers.set(ctx, r);
+  }
+  return r;
+}
+
+/**
+ * The repo files a tsconfig includes (its files, include and exclude, with
+ * extends followed), parsed as data by the same reader resolution uses;
+ * undefined when the tsconfig cannot be read.
+ */
+export function tsconfigFiles(
+  ctx: ResolveContext,
+  tsconfig: string,
+): string[] | undefined {
+  const r = resolverFor(ctx);
+  const cfg = r.config(r.abs(tsconfig));
+  if (!cfg) return undefined;
+  return ctx.repo.files.filter((f) => cfg.fileNames.has(key(r.abs(f))));
+}
+
 /**
  * resolveImport for TS/JS: TypeScript's own module resolution (tsconfig
  * paths/baseUrl, package.json exports, .js -> .ts mapping, directory index)
@@ -549,10 +579,5 @@ export function resolveImport(
   from: string,
   ctx: ResolveContext,
 ): Resolution {
-  let r = resolvers.get(ctx);
-  if (!r) {
-    r = new Resolver(ctx);
-    resolvers.set(ctx, r);
-  }
-  return r.resolve(imp, from);
+  return resolverFor(ctx).resolve(imp, from);
 }

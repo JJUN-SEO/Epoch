@@ -4077,7 +4077,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 2,
-        "dependents": 2,
+        "dependents": 3,
         "churn90d": 5,
         "risk": {
           "tier": "moderate",
@@ -9135,7 +9135,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 6,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 14,
         "risk": {
           "tier": "critical",
@@ -9231,7 +9231,7 @@
       "metrics": {
         "fanIn": 69,
         "fanOut": 5,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 11,
         "risk": {
           "tier": "critical",
@@ -9259,7 +9259,7 @@
       "metrics": {
         "fanIn": 6,
         "fanOut": 7,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 26,
         "risk": {
           "tier": "critical",
@@ -9294,7 +9294,7 @@
       "metrics": {
         "fanIn": 10,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 12,
         "risk": {
           "tier": "high",
@@ -9316,7 +9316,7 @@
       "metrics": {
         "fanIn": 3,
         "fanOut": 0,
-        "dependents": 336,
+        "dependents": 338,
         "churn90d": 2,
         "risk": {
           "tier": "moderate",
@@ -9372,7 +9372,7 @@
       "metrics": {
         "fanIn": 71,
         "fanOut": 5,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 10,
         "risk": {
           "tier": "critical",
@@ -9400,7 +9400,7 @@
       "metrics": {
         "fanIn": 42,
         "fanOut": 18,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -9423,7 +9423,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 5,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 4,
         "risk": {
           "tier": "high",
@@ -9486,7 +9486,7 @@
       "metrics": {
         "fanIn": 5,
         "fanOut": 7,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 24,
         "risk": {
           "tier": "critical",
@@ -9519,7 +9519,7 @@
       "metrics": {
         "fanIn": 6,
         "fanOut": 0,
-        "dependents": 336,
+        "dependents": 338,
         "churn90d": 1,
         "risk": {
           "tier": "moderate",
@@ -9544,7 +9544,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 11,
         "risk": {
           "tier": "high",
@@ -9606,7 +9606,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 4,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -9689,9 +9689,9 @@
       "externals": [],
       "flags": [],
       "metrics": {
-        "fanIn": 8,
+        "fanIn": 9,
         "fanOut": 1,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 17,
         "risk": {
           "tier": "high",
@@ -9720,7 +9720,7 @@
       "metrics": {
         "fanIn": 6,
         "fanOut": 2,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 1,
         "risk": {
           "tier": "moderate",
@@ -10034,7 +10034,7 @@
       "metrics": {
         "fanIn": 15,
         "fanOut": 11,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 66,
         "risk": {
           "tier": "critical",
@@ -10060,7 +10060,7 @@
       "metrics": {
         "fanIn": 5,
         "fanOut": 0,
-        "dependents": 336,
+        "dependents": 338,
         "churn90d": 0,
         "risk": {
           "tier": "low-moderate",
@@ -10745,7 +10745,7 @@
       "metrics": {
         "fanIn": 5,
         "fanOut": 6,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 16,
         "risk": {
           "tier": "critical",
@@ -10911,7 +10911,7 @@
       "metrics": {
         "fanIn": 91,
         "fanOut": 4,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 34,
         "risk": {
           "tier": "critical",
@@ -10933,7 +10933,7 @@
       "metrics": {
         "fanIn": 3,
         "fanOut": 0,
-        "dependents": 337,
+        "dependents": 339,
         "churn90d": 13,
         "risk": {
           "tier": "high",
@@ -11040,7 +11040,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11062,7 +11062,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11084,7 +11084,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11106,7 +11106,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11128,7 +11128,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11150,7 +11150,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11172,7 +11172,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11194,7 +11194,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11216,7 +11216,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -11238,7 +11238,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11260,7 +11260,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -11282,7 +11282,7 @@
       "metrics": {
         "fanIn": 4,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 8,
         "risk": {
           "tier": "high",
@@ -11304,7 +11304,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11326,7 +11326,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -11348,7 +11348,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11370,7 +11370,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11392,7 +11392,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11414,7 +11414,7 @@
       "metrics": {
         "fanIn": 4,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 9,
         "risk": {
           "tier": "high",
@@ -11436,7 +11436,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -11458,7 +11458,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -11480,7 +11480,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11502,7 +11502,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -11524,7 +11524,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11546,7 +11546,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11568,7 +11568,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11652,7 +11652,7 @@
       "metrics": {
         "fanIn": 4,
         "fanOut": 63,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 10,
         "risk": {
           "tier": "high",
@@ -11674,7 +11674,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11696,7 +11696,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11718,7 +11718,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11740,7 +11740,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11762,7 +11762,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 2,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 0,
         "risk": {
           "tier": "low-moderate",
@@ -11784,7 +11784,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11806,7 +11806,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11828,7 +11828,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11850,7 +11850,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -11872,7 +11872,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11894,7 +11894,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11916,7 +11916,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -11938,7 +11938,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -11960,7 +11960,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 8,
         "risk": {
           "tier": "high",
@@ -11982,7 +11982,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -12004,7 +12004,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12026,7 +12026,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12048,7 +12048,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12070,7 +12070,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -12092,7 +12092,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12114,7 +12114,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -12136,7 +12136,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12158,7 +12158,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12180,7 +12180,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12202,7 +12202,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -12224,7 +12224,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12246,7 +12246,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12268,7 +12268,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12290,7 +12290,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 7,
         "risk": {
           "tier": "high",
@@ -12312,7 +12312,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12334,7 +12334,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 2,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 0,
         "risk": {
           "tier": "low-moderate",
@@ -12356,7 +12356,7 @@
       "metrics": {
         "fanIn": 2,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12378,7 +12378,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12400,7 +12400,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 5,
         "risk": {
           "tier": "high",
@@ -12422,7 +12422,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12444,7 +12444,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12466,7 +12466,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -12488,7 +12488,7 @@
       "metrics": {
         "fanIn": 1,
         "fanOut": 3,
-        "dependents": 335,
+        "dependents": 337,
         "churn90d": 6,
         "risk": {
           "tier": "high",
@@ -13520,9 +13520,9 @@
       "externals": [],
       "flags": [],
       "metrics": {
-        "fanIn": 0,
+        "fanIn": 1,
         "fanOut": 2,
-        "dependents": 0,
+        "dependents": 1,
         "churn90d": 1,
         "risk": {
           "tier": "low",
@@ -13542,13 +13542,13 @@
       ],
       "flags": [],
       "metrics": {
-        "fanIn": 0,
+        "fanIn": 3,
         "fanOut": 0,
-        "dependents": 0,
+        "dependents": 7,
         "churn90d": 0,
         "risk": {
-          "tier": "low",
-          "archetype": "stable-leaf"
+          "tier": "low-moderate",
+          "archetype": "frozen-core"
         }
       }
     },
@@ -13591,7 +13591,7 @@
       "flags": [],
       "metrics": {
         "fanIn": 0,
-        "fanOut": 0,
+        "fanOut": 1,
         "dependents": 0,
         "churn90d": 3,
         "risk": {
@@ -13640,7 +13640,7 @@
       "flags": [],
       "metrics": {
         "fanIn": 0,
-        "fanOut": 0,
+        "fanOut": 2,
         "dependents": 0,
         "churn90d": 2,
         "risk": {
@@ -13666,7 +13666,7 @@
       "flags": [],
       "metrics": {
         "fanIn": 2,
-        "fanOut": 0,
+        "fanOut": 1,
         "dependents": 2,
         "churn90d": 1,
         "risk": {
@@ -13692,7 +13692,7 @@
       "flags": [],
       "metrics": {
         "fanIn": 2,
-        "fanOut": 0,
+        "fanOut": 1,
         "dependents": 2,
         "churn90d": 0,
         "risk": {
@@ -24955,6 +24955,46 @@
       "provenance": "resolver",
       "confidence": 1,
       "evidence": []
+    },
+    {
+      "source": "scripts/update-iso-4217.ts",
+      "target": "packages/zod/src/v4/core/regexes.ts",
+      "kind": "dynamic-import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "vitest.compile.config.ts",
+      "target": "scripts/enable-compile.ts",
+      "kind": "dynamic-import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "vitest.compile.config.ts",
+      "target": "scripts/fail-on-console.ts",
+      "kind": "dynamic-import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "vitest.config.ts",
+      "target": "scripts/fail-on-console.ts",
+      "kind": "dynamic-import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
+    },
+    {
+      "source": "vitest.root.mjs",
+      "target": "scripts/fail-on-console.ts",
+      "kind": "dynamic-import",
+      "provenance": "resolver",
+      "confidence": 1,
+      "evidence": []
     }
   ],
   "roots": [
@@ -25072,6 +25112,46 @@
       "file": "packages/docs/vitest.config.ts",
       "reason": "config",
       "source": "vitest.config.ts (tool configuration)"
+    },
+    {
+      "file": "packages/integration/fixtures/ai-sdk/index.ts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:source (tsc --project packages/integration/fixtures/ai-sdk/tsconfig.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/drizzle-zod/index.ts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:source (tsc --project packages/integration/fixtures/drizzle-zod/tsconfig.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/internal-types/cjs-test.cts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:built (tsc --project packages/integration/fixtures/internal-types/tsconfig.node16-cjs.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/internal-types/index.ts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:built (tsc --project packages/integration/fixtures/internal-types/tsconfig.bundler.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/internal-types/index.ts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:built (tsc --project packages/integration/fixtures/internal-types/tsconfig.nodenext.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/internal-types/mini-cjs-test.cts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:built (tsc --project packages/integration/fixtures/internal-types/tsconfig.node16-cjs.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/internal-types/mini.ts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:built (tsc --project packages/integration/fixtures/internal-types/tsconfig.bundler.json)"
+    },
+    {
+      "file": "packages/integration/fixtures/internal-types/mini.ts",
+      "reason": "script",
+      "source": "packages/integration/package.json scripts.test:built (tsc --project packages/integration/fixtures/internal-types/tsconfig.nodenext.json)"
     },
     {
       "file": "packages/mini/src/index.ts",
@@ -26521,7 +26601,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26550,7 +26630,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26581,7 +26661,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -26611,7 +26691,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26642,7 +26722,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/bench/array.ts, packages/bench/boolean.ts, packages/bench/datetime.ts, packages/bench/discriminated-union.ts, packages/bench/error-handling.ts and 16 more.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26673,7 +26753,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -26703,7 +26783,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26734,7 +26814,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26765,7 +26845,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26796,7 +26876,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26827,7 +26907,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26858,7 +26938,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26889,7 +26969,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26922,7 +27002,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26953,7 +27033,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -26984,7 +27064,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27015,7 +27095,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27046,7 +27126,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27077,7 +27157,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27108,7 +27188,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27139,7 +27219,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27170,7 +27250,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27201,7 +27281,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27232,7 +27312,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27263,7 +27343,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -27293,7 +27373,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -27323,7 +27403,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27354,7 +27434,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27385,7 +27465,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -27415,7 +27495,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27446,7 +27526,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27477,7 +27557,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -27507,7 +27587,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -27537,7 +27617,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -27567,7 +27647,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -27597,7 +27677,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -27627,7 +27707,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -27657,7 +27737,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27688,7 +27768,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27719,7 +27799,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27750,7 +27830,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27781,7 +27861,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/bench/memory/breakdown.ts, packages/bench/memory/calibrate.ts, packages/bench/memory/compiled-slope.ts, packages/bench/memory/dict-mode.ts, packages/bench/memory/indent-leak.ts and 8 more.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27812,7 +27892,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27843,7 +27923,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27874,7 +27954,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27905,7 +27985,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27936,7 +28016,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27967,7 +28047,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -27998,7 +28078,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/bench/memory/prop-arrays.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28029,7 +28109,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28060,7 +28140,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/bench/memory/breakdown.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28091,7 +28171,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28122,7 +28202,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28153,7 +28233,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/bench/array.ts, packages/bench/bench-invalid.ts, packages/bench/boolean.ts, packages/bench/compile-array-build.ts, packages/bench/compile-base64-inline-vs-hoist.ts and 41 more.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28184,7 +28264,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28215,7 +28295,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28245,7 +28325,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28275,7 +28355,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28305,7 +28385,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28335,7 +28415,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28366,7 +28446,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28397,7 +28477,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28427,7 +28507,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28457,7 +28537,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/bench/object-async.ts, packages/bench/object-fail.ts, packages/bench/object-safe.ts, packages/bench/object-safeasync.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28488,7 +28568,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -28518,7 +28598,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28548,7 +28628,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -28578,7 +28658,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -28608,7 +28688,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -28638,7 +28718,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 361 days ago."
       ],
       "caveats": [
@@ -28668,7 +28748,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28698,7 +28778,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28729,7 +28809,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28760,7 +28840,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28790,7 +28870,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28821,7 +28901,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28852,7 +28932,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28883,7 +28963,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/not-found.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28914,7 +28994,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -28945,7 +29025,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -28975,7 +29055,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29006,7 +29086,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29037,7 +29117,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29068,7 +29148,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29099,7 +29179,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/layout.tsx, packages/docs/app/blog/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29130,7 +29210,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29161,7 +29241,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 441 days ago."
       ],
       "caveats": [
@@ -29191,7 +29271,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 441 days ago."
       ],
       "caveats": [
@@ -29221,7 +29301,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 168 days ago."
       ],
       "caveats": [
@@ -29251,7 +29331,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29282,7 +29362,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -29310,7 +29390,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/blog/[slug]/page.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29341,7 +29421,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 416 days ago."
       ],
       "caveats": [
@@ -29369,7 +29449,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/[[...slug]]/page.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 402 days ago."
       ],
       "caveats": [
@@ -29399,7 +29479,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -29427,7 +29507,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/blog/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29458,7 +29538,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/[[...slug]]/page.tsx, packages/docs/app/blog/[slug]/page.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 166 days ago."
       ],
       "caveats": [
@@ -29488,7 +29568,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -29516,7 +29596,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 504 days ago."
       ],
       "caveats": [
@@ -29546,7 +29626,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
@@ -29576,7 +29656,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29607,7 +29687,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29638,7 +29718,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/layout.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 483 days ago."
       ],
       "caveats": [
@@ -29668,7 +29748,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/[[...slug]]/page.tsx, packages/docs/app/blog/[slug]/page.tsx.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29699,7 +29779,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/docs/app/(doc)/[[...slug]]/page.tsx, packages/docs/app/llms-full.txt/route.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 336 days ago."
       ],
       "caveats": [
@@ -29729,7 +29809,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 446 days ago."
       ],
       "caveats": [
@@ -29741,176 +29821,6 @@
       "caps": [
         "convention-roots-only",
         "framework-convention"
-      ]
-    },
-    {
-      "id": "f7bd5794d2ccde27926ce919f0444f34894ed98e85817937d34d7c0937d69874",
-      "kind": "unreachable-file",
-      "subject": {
-        "type": "file",
-        "name": "packages/integration/fixtures/ai-sdk/index.ts"
-      },
-      "confidence": "medium",
-      "locations": [
-        {
-          "file": "packages/integration/fixtures/ai-sdk/index.ts"
-        }
-      ],
-      "evidence": [
-        "No entry point reaches it through imports.",
-        "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
-        "Last changed 285 days ago."
-      ],
-      "caveats": [
-        "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
-        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
-      ],
-      "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
-      "caps": [
-        "convention-roots-only"
-      ]
-    },
-    {
-      "id": "964e39fac810172245cec6e2924ea13be5bd4100dd5dd1d3f740f689beea1f47",
-      "kind": "unreachable-file",
-      "subject": {
-        "type": "file",
-        "name": "packages/integration/fixtures/drizzle-zod/index.ts"
-      },
-      "confidence": "medium",
-      "locations": [
-        {
-          "file": "packages/integration/fixtures/drizzle-zod/index.ts"
-        }
-      ],
-      "evidence": [
-        "No entry point reaches it through imports.",
-        "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
-        "Last changed 285 days ago."
-      ],
-      "caveats": [
-        "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
-        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
-      ],
-      "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
-      "caps": [
-        "convention-roots-only"
-      ]
-    },
-    {
-      "id": "38d7f68edb717a286c6726e133b1ee171db3daa7e92330659127b694388de64e",
-      "kind": "unreachable-file",
-      "subject": {
-        "type": "file",
-        "name": "packages/integration/fixtures/internal-types/cjs-test.cts"
-      },
-      "confidence": "medium",
-      "locations": [
-        {
-          "file": "packages/integration/fixtures/internal-types/cjs-test.cts"
-        }
-      ],
-      "evidence": [
-        "No entry point reaches it through imports.",
-        "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
-        "Last changed 285 days ago."
-      ],
-      "caveats": [
-        "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
-        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
-      ],
-      "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
-      "caps": [
-        "convention-roots-only"
-      ]
-    },
-    {
-      "id": "f5eceb8d2af925d0d3e502ca55587b187a52a141f258ab847c38ec5eb48600ae",
-      "kind": "unreachable-file",
-      "subject": {
-        "type": "file",
-        "name": "packages/integration/fixtures/internal-types/index.ts"
-      },
-      "confidence": "medium",
-      "locations": [
-        {
-          "file": "packages/integration/fixtures/internal-types/index.ts"
-        }
-      ],
-      "evidence": [
-        "No entry point reaches it through imports.",
-        "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
-        "Last changed 285 days ago."
-      ],
-      "caveats": [
-        "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
-        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
-      ],
-      "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
-      "caps": [
-        "convention-roots-only"
-      ]
-    },
-    {
-      "id": "cf595fca96e7717a8b528884dc47b4b930d8ee2a6807c1afab03de9e854458db",
-      "kind": "unreachable-file",
-      "subject": {
-        "type": "file",
-        "name": "packages/integration/fixtures/internal-types/mini-cjs-test.cts"
-      },
-      "confidence": "medium",
-      "locations": [
-        {
-          "file": "packages/integration/fixtures/internal-types/mini-cjs-test.cts"
-        }
-      ],
-      "evidence": [
-        "No entry point reaches it through imports.",
-        "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
-      ],
-      "caveats": [
-        "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
-        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable.",
-        "It changed 44 days ago, so it may be new work that is not wired in yet."
-      ],
-      "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
-      "caps": [
-        "convention-roots-only",
-        "recently-touched"
-      ]
-    },
-    {
-      "id": "38eb28c7cbcd29feb02cef8907ad7136554f2745caadbc36fc8dedff81690cd5",
-      "kind": "unreachable-file",
-      "subject": {
-        "type": "file",
-        "name": "packages/integration/fixtures/internal-types/mini.ts"
-      },
-      "confidence": "medium",
-      "locations": [
-        {
-          "file": "packages/integration/fixtures/internal-types/mini.ts"
-        }
-      ],
-      "evidence": [
-        "No entry point reaches it through imports.",
-        "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
-      ],
-      "caveats": [
-        "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
-        "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable.",
-        "It changed 44 days ago, so it may be new work that is not wired in yet."
-      ],
-      "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
-      "caps": [
-        "convention-roots-only",
-        "recently-touched"
       ]
     },
     {
@@ -29929,7 +29839,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -29949,7 +29859,7 @@
         "type": "file",
         "name": "packages/treeshake/example-mini.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/example-mini.ts"
@@ -29958,16 +29868,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -29977,7 +29889,7 @@
         "type": "file",
         "name": "packages/treeshake/example.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/example.ts"
@@ -29986,16 +29898,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30005,7 +29919,7 @@
         "type": "file",
         "name": "packages/treeshake/valibot-boolean.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/valibot-boolean.ts"
@@ -30014,16 +29928,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30033,7 +29949,7 @@
         "type": "file",
         "name": "packages/treeshake/valibot-object.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/valibot-object.ts"
@@ -30042,16 +29958,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30061,7 +29979,7 @@
         "type": "file",
         "name": "packages/treeshake/valibot-simple-object.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/valibot-simple-object.ts"
@@ -30070,16 +29988,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 446 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30089,7 +30009,7 @@
         "type": "file",
         "name": "packages/treeshake/valibot-string.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/valibot-string.ts"
@@ -30098,16 +30018,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30117,7 +30039,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-boolean.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-boolean.ts"
@@ -30126,16 +30048,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30145,7 +30069,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-default-import.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-default-import.ts"
@@ -30154,16 +30078,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable.",
         "It changed 60 days ago, so it may be new work that is not wired in yet."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
         "convention-roots-only",
+        "dynamic-import-prefix",
         "recently-touched"
       ]
     },
@@ -30174,7 +30100,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-full.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-full.ts"
@@ -30183,16 +30109,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30202,7 +30130,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-locale.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-locale.ts"
@@ -30211,16 +30139,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 302 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30230,7 +30160,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-locales.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-locales.ts"
@@ -30239,16 +30169,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30258,7 +30190,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-mini-boolean.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-mini-boolean.ts"
@@ -30267,16 +30199,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30286,7 +30220,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-mini-full.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-mini-full.ts"
@@ -30295,16 +30229,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30314,7 +30250,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-mini-object.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-mini-object.ts"
@@ -30323,16 +30259,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30342,7 +30280,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-mini-simple-object.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-mini-simple-object.ts"
@@ -30351,16 +30289,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 446 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30370,7 +30310,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-mini-string.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-mini-string.ts"
@@ -30379,16 +30319,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30398,7 +30340,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-named-import.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-named-import.ts"
@@ -30407,16 +30349,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable.",
         "It changed 60 days ago, so it may be new work that is not wired in yet."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
         "convention-roots-only",
+        "dynamic-import-prefix",
         "recently-touched"
       ]
     },
@@ -30427,7 +30371,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-object.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-object.ts"
@@ -30436,16 +30380,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 480 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30455,7 +30401,7 @@
         "type": "file",
         "name": "packages/treeshake/zod-string.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod-string.ts"
@@ -30464,16 +30410,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 302 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30483,7 +30431,7 @@
         "type": "file",
         "name": "packages/treeshake/zod3-boolean.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod3-boolean.ts"
@@ -30492,16 +30440,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30511,7 +30461,7 @@
         "type": "file",
         "name": "packages/treeshake/zod3-full.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod3-full.ts"
@@ -30520,16 +30470,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30539,7 +30491,7 @@
         "type": "file",
         "name": "packages/treeshake/zod3-object.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod3-object.ts"
@@ -30548,16 +30500,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30567,7 +30521,7 @@
         "type": "file",
         "name": "packages/treeshake/zod3-string.ts"
       },
-      "confidence": "medium",
+      "confidence": "low",
       "locations": [
         {
           "file": "packages/treeshake/zod3-string.ts"
@@ -30576,16 +30530,18 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 512 days ago."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
+        "A dynamic import or a path resolved at run time with the prefix `packages/treeshake/` may load it.",
         "Its package declares no entry point in a manifest (such as package.json main, exports or bin) or in entryPoints in epoch.config.json, so its entry points come from scripts, tool configuration, naming conventions and tests. Listing them in entryPoints makes this more reliable."
       ],
       "suggestedAction": "This file looks unused. If nothing outside the analyzed code loads it (tooling, configuration, reflection), it may be safe to remove. Check before deleting.",
       "caps": [
-        "convention-roots-only"
+        "convention-roots-only",
+        "dynamic-import-prefix"
       ]
     },
     {
@@ -30604,7 +30560,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -30635,7 +30591,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -30666,7 +30622,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -30697,7 +30653,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -30728,7 +30684,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -30759,7 +30715,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 480 days ago."
       ],
       "caveats": [
@@ -30787,7 +30743,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30812,7 +30768,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30837,7 +30793,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30862,7 +30818,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30887,7 +30843,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30912,7 +30868,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30937,7 +30893,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30962,7 +30918,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -30987,7 +30943,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Only imported by code that is not reached either: packages/zod/src/v3/benchmarks/index.ts.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -31012,7 +30968,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 467 days ago."
       ],
       "caveats": [
@@ -31037,7 +30993,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test).",
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test).",
         "Last changed 460 days ago."
       ],
       "caveats": [
@@ -31065,7 +31021,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -31094,7 +31050,7 @@
       "evidence": [
         "No entry point reaches it through imports.",
         "Nothing in the analyzed code imports it.",
-        "Checked from 309 entry points (17 config, 51 convention, 17 manifest, 20 script, 204 test)."
+        "Checked from 317 entry points (17 config, 51 convention, 17 manifest, 28 script, 204 test)."
       ],
       "caveats": [
         "Not referenced by analyzed code; may be loaded by tooling, reflection, or runtime configuration.",
@@ -31141,10 +31097,29 @@
       "line": 9
     },
     {
+      "from": "packages/treeshake/bundle-size.test.ts",
+      "specifier": null,
+      "reason": "dynamic-specifier",
+      "pathPrefix": "packages/treeshake/",
+      "line": 84
+    },
+    {
+      "from": "packages/treeshake/default-locale.test.ts",
+      "specifier": "./__default_locale_entry__.mjs",
+      "reason": "not-found",
+      "line": 44
+    },
+    {
       "from": "packages/treeshake/default-locale.test.ts",
       "specifier": null,
       "reason": "dynamic-specifier",
       "line": 64
+    },
+    {
+      "from": "packages/treeshake/locale-treeshake.test.ts",
+      "specifier": "./__entry__.mjs",
+      "reason": "not-found",
+      "line": 34
     },
     {
       "from": "packages/tsc/bench/index.ts",

@@ -1,7 +1,7 @@
 import ts from "typescript";
 import type { EntryPoint, ProjectContext } from "@epoch-dev/core";
 import { EXTENSIONS } from "./files.js";
-import { resolveImport } from "./resolve.js";
+import { resolveImport, tsconfigFiles } from "./resolve.js";
 
 /*
  * Entry points for TS/JS (CLAUDE.md "Unreachable files", ADR-007): the roots
@@ -55,6 +55,24 @@ const SOURCE_FOR: Readonly<Record<string, readonly string[]>> = {
 };
 
 const BUNDLER_OUT_DIRS = ["dist", "lib", "build", "out", "esm", "cjs"] as const;
+
+/** Commands that run a JS/TS file (or a folder's index file) they are given. */
+const RUNNERS = new Set([
+  "node",
+  "tsx",
+  "ts-node",
+  "ts-node-esm",
+  "bun",
+  "deno",
+  "vite-node",
+  "nodemon",
+  "jiti",
+  "esno",
+  "esrun",
+]);
+
+/** TypeScript's type checkers, whose -p/--project names the tsconfig to check. */
+const TYPE_CHECKERS = new Set(["tsc", "tsgo", "vue-tsc"]);
 const ANY_SOURCE = [
   ".ts",
   ".tsx",
@@ -237,6 +255,53 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
   const add = (file: string, reason: EntryPoint["reason"], source: string) => {
     if (files.has(file)) out.push({ file, reason, source });
   };
+  const packageDirs = new Set(
+    ctx.repo.files.filter((f) => baseOf(f) === "package.json").map(dirOf),
+  );
+  /** The closest folder with a package.json at or above a path. */
+  const ownerOf = (p: string): string | undefined => {
+    for (let d = dirOf(p); ; d = dirOf(d)) {
+      if (packageDirs.has(d)) return d;
+      if (d === "") return undefined;
+    }
+  };
+  /**
+   * The source file a package script token names: the file itself; for a
+   * runner (node, tsx...), a folder's index file; or build output mapped back
+   * to source by the package that owns it (a root script may run
+   * packages/x/dist/cli.js).
+   */
+  const scriptTarget = (
+    token: string,
+    dir: string,
+    runner: boolean,
+  ): string | undefined => {
+    const target = join(dir, token);
+    if (files.has(target)) return target;
+    if (runner) {
+      const index = ANY_SOURCE.map((e) => `${target}/index${e}`).find((c) =>
+        files.has(c),
+      );
+      if (index !== undefined) return index;
+    }
+    const owner = ownerOf(target);
+    return owner === undefined
+      ? undefined
+      : sourceFor(target, files, tsconfigDirs(ctx, owner), owner);
+  };
+  /**
+   * `tsc --project <tsconfig>`: the files a nested tsconfig includes are what
+   * the script checks, so they are used. A package's own tsconfig is left
+   * out: it compiles used and unused files alike.
+   */
+  const typeChecked = (value: string, source: string) => {
+    const config = value.endsWith(".json")
+      ? value
+      : join(value, "tsconfig.json");
+    if (packageDirs.has(dirOf(config))) return;
+    for (const f of tsconfigFiles(ctx, config) ?? [])
+      add(f, "script", `${source} (tsc --project ${config})`);
+  };
   for (const manifest of ctx.repo.files) {
     if (baseOf(manifest) !== "package.json") continue;
     const text = ctx.repo.reader.readFile(`${ctx.repo.root}/${manifest}`);
@@ -259,9 +324,23 @@ export function detectEntryPoints(ctx: ProjectContext): EntryPoint[] {
     if (isRecord(pkg.scripts)) {
       for (const [name, script] of Object.entries(pkg.scripts)) {
         if (typeof script !== "string") continue;
-        for (const token of script.split(/[\s;&|()<>"'=]+/)) {
-          if (token === "" || token.startsWith("-")) continue;
-          add(join(dir, token), "script", `${manifest} scripts.${name}`);
+        const source = `${manifest} scripts.${name}`;
+        for (const command of script.split(/[;&|()]+/)) {
+          const tokens = command.split(/[\s<>"'=]+/).filter((t) => t !== "");
+          let runner = false;
+          for (const [i, token] of tokens.entries()) {
+            if (TYPE_CHECKERS.has(baseOf(token))) {
+              const flag = tokens.findIndex(
+                (t, j) => j > i && (t === "-p" || t === "--project"),
+              );
+              const value = flag === -1 ? undefined : tokens[flag + 1];
+              if (value !== undefined) typeChecked(join(dir, value), source);
+            }
+            if (RUNNERS.has(baseOf(token))) runner = true;
+            if (token.startsWith("-")) continue;
+            const hit = scriptTarget(token, dir, runner);
+            if (hit !== undefined) add(hit, "script", source);
+          }
         }
       }
     }

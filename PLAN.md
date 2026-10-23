@@ -400,7 +400,7 @@ Removal assistance (patch export for high-confidence mechanical findings), unuse
 | Purpose | Language | Tool |
 |---|---|---|
 | Edge accuracy | TS/JS | dependency-cruiser; `tsc` file lists for sanity checks |
-| Edge accuracy | Python | grimp (import graph used by import-linter) |
+| Edge accuracy | Python | grimp (import graph used by import-linter); CPython's path-entry finders as a second reference for namespace packages (ADR-006) |
 | Edge accuracy | Go | `go list` with JSON output of imports |
 | Unreachable-file comparison | TS/JS | knip (unused files report) |
 

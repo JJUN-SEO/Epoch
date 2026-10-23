@@ -53,6 +53,53 @@ Read from each tool's current documentation on 2026-10-15.
 - What static resolution cannot see (runtime `sys.path` edits, import hooks, `importlib` with computed names, plugin systems) stays `unresolved` with a reason, and the UI says so (CLAUDE.md: honest about coverage).
 - Tier A claims still need a measured accuracy number per language (CLAUDE.md). For Python that measurement is scheduled for M4.
 
+## Amendment (2026-10-22): benchmark references set up like the repository
+
+**Why.** Raw precision had been measured against a handicapped reference. Every TS/JS disagreement on zod and vitest was an edge Epoch found and dependency-cruiser could not:
+
+- it ran without `node_modules`, so the repo's own workspace packages were invisible;
+- it read only the root tsconfig.
+
+So raw precision said more about the reference than about Epoch. Both repos map their package names to source through a custom export condition (`@zod/source`, `__vitest_source__`), switched on by `customConditions` in their tsconfigs. A reference given the environment the repo declares can therefore check Epoch's targets on its own.
+
+**What changed in `pnpm bench:accuracy`.** The rule: only what the repository declares, applied to every file the same way, and read by the benchmark itself rather than taken from Epoch's resolver.
+
+- **Scratch copy.** The tool runs on a scratch copy whose root `node_modules` links each workspace package (root `workspaces` and `pnpm-workspace.yaml`).
+- **Per-file tsconfig.** Each file is cruised with the tsconfig that owns it: the closest `tsconfig.json` that includes it, else the root one.
+- **Conditions.** That tsconfig's `customConditions` are passed as `conditionNames`.
+- **Still never run.** Nothing is installed, built or run. Third-party packages stay absent.
+
+**Classifier rules added.** Each one was checked against the tools, not assumed:
+
+- **Unbuilt workspace output.** A workspace import the linked tool still cannot resolve (its exports point at output that isn't built, under the importer's own conditions) counts as Epoch right only if Epoch's target is one of that package's own `exports` for the subpath. TypeScript's `.ts` face of a `.js` target counts.
+- **Two exported files.** Two different files that the package exports for one subpath are _ambiguous_: which one applies depends on the conditions in effect.
+- **paths without baseUrl.** A tsconfig `paths` alias without `baseUrl` is the tool's limit. TypeScript allows this since 4.1, and dependency-cruiser applies `paths` only with a `baseUrl` (checked: the same tsconfig with a `baseUrl` added resolves).
+
+**Results** (raw = the tool as truth):
+
+| Repository                                                  | Before: raw precision / recall | After: raw precision / recall | After: adjusted |
+| ----------------------------------------------------------- | ------------------------------ | ----------------------------- | --------------- |
+| zod `680d19f7`                                              | 66.6% / 100.0%                 | 92.9% / 100.0%                | 100.0% / 100.0% |
+| vitest `2899eb3e`                                           | 55.2% / 99.2%                  | 94.0% / 99.3%                 | 100.0% / 100.0% |
+| vuejs/core `0ff253bf` (held out: never used to design this) | not measured                   | 100.0% / 100.0%               | 100.0% / 100.0% |
+
+The "after" figures are with TS adapter version 9. Its runtime-path references (`new URL(…, import.meta.url)`, `require.resolve`, `path.join(__dirname, …)`) are edges dependency-cruiser does not model, so they count against Epoch in raw precision. A classifier rule names them only when the call's own lines show one of those APIs.
+
+**Epoch fixes it revealed.** A `/// <reference types="…">` naming a workspace package was skipped, on the assumption that package names are third-party type packages. It now resolves like an import: a type-only edge to the workspace source, or an external package (conformance case `triple-slash-types-workspace`; TS adapter version 8).
+
+**Python: a second reference next to grimp.**
+
+- **Why.** grimp 3.17 does not descend into a folder without `__init__.py` inside a regular package (checked on Flask: it lists 21 modules and none under `flask/sansio/`). Asking it to include `flask.sansio` explicitly imports Flask, which runs project code. So against grimp alone, Flask's raw precision stays at 71.6% however right Epoch is.
+- **The second reference** is `packages/bench/python/pathfinder_edges.py`:
+  - it scans import statements with `ast`, the way grimp does;
+  - it resolves each name with the path-entry finders Python's import system uses (`sys.path_hooks`), combining namespace portions as `PathFinder` does (PEP 420);
+  - it walks each parent's search locations itself, so nothing is imported. `PathFinder` itself is not called: for a namespace package it builds a path that looks the parent up in `sys.modules`.
+
+| Repository                  | vs grimp: raw precision / recall | vs CPython's finders: raw precision / recall |
+| --------------------------- | -------------------------------- | -------------------------------------------- |
+| Flask `22d92470`            | 71.6% / 100.0%                   | 100.0% / 100.0%                              |
+| httpx `b5addb64` (held out) | 100.0% / 100.0%                  | 100.0% / 100.0%                              |
+
 ## Sources
 
 - https://github.com/sourcegraph/scip-typescript (README: installation and usage)

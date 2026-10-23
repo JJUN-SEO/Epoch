@@ -11,8 +11,10 @@ import {
  * The 3D force layout (d3-force-3d), run by layout3d.worker.ts off the UI
  * thread. Links pull imports together, every node repels the others, and a
  * weak pull toward each folder's center keeps folders together. Frames
- * stream back by time, starting with the starting positions, so the graph
- * is on screen at once and settles while you watch. Pure, for the tests.
+ * stream back by time, so the graph settles while you watch: from its
+ * previous layout at once, when it has one; otherwise from the first
+ * ticks, since d3's starting spiral is no layout (drawn, it is a ball of
+ * huge spheres). Pure, for the tests.
  */
 
 type Node = SimulationNode & { x: number; y: number; z: number };
@@ -118,9 +120,9 @@ function positionsOf(nodes: readonly Node[]): Float32Array {
 }
 
 /**
- * Lays out the graph, calling `emit` with the starting positions, then at
- * most once per `frameMs` while it runs, then once with `done`. Returns the
- * number of ticks it ran.
+ * Lays out the graph, calling `emit` with the given starting positions (if
+ * it uses them), then at most once per `frameMs` while it runs, then once
+ * with `done`. Returns the number of ticks it ran.
  */
 export function simulate3d(
   input: Simulation3DInput,
@@ -164,7 +166,7 @@ export function simulate3d(
     Math.log(simulation.alphaMin() / simulation.alpha()) /
       Math.log(1 - simulation.alphaDecay()),
   );
-  emit(positionsOf(nodes), false);
+  if (warm) emit(positionsOf(nodes), false);
   let last = opts.now();
   for (let t = 1; t <= ticks; t++) {
     simulation.tick();

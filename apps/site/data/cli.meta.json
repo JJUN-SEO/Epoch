@@ -9,7 +9,7 @@
   "copyright": "Copyright (c) 2019 GitHub Inc.",
   "licenseFile": "cli.LICENSE.txt",
   "madeWith": {
-    "epochCommit": "02fb5da44cfbbed9eb390a2fcd299a4202c6e443",
+    "epochCommit": "d22a5d44d4baf78066d8489c23c164793f0d4ef2",
     "command": "epoch --offline analyze <repository> --json"
   },
   "counts": {

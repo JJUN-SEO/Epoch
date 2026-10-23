@@ -6,16 +6,22 @@
  * dependency-cruiser is driven through its API with options built here: it
  * never loads a .dependency-cruiser config, webpack or babel config from the
  * analyzed repo; its tsconfig reading parses JSON only.
+ *
+ * The tool works on a scratch copy set up the way the repository sets itself
+ * up (ADR-006, benchmark references): its workspace packages linked into
+ * node_modules, each file cruised with the tsconfig that owns it, and that
+ * tsconfig's customConditions as export conditions.
  */
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 import { parseArgs } from "node:util";
 import { cruise, type ICruiseResult } from "dependency-cruiser";
 import extractTSConfig from "dependency-cruiser/config-utl/extract-ts-config";
 import ts from "typescript";
-import { ROOT_KINDS, typescriptAdapter } from "@epoch-dev/adapter-typescript";
-import { FsReader, analyze, discover } from "@epoch-dev/engine";
+import { typescriptAdapter } from "@epoch-dev/adapter-typescript";
+import { analyze, discover } from "@epoch-dev/engine";
 import {
   compareEdges,
   scores,
@@ -23,6 +29,11 @@ import {
   type EpochImport,
   type ToolDependency,
 } from "./edges.js";
+import {
+  nearestTsconfig,
+  pnpmWorkspaceGlobs,
+  workspaceGlobs,
+} from "./reference.js";
 import { applyReviews } from "./reviewed.js";
 import {
   hostInfo,
@@ -37,7 +48,12 @@ import {
 interface RepoResult {
   readonly repo: RepoInfo;
   readonly files: number;
+  /** The root tsconfig, for files no nearer tsconfig.json includes. */
   readonly tsconfig: string | null;
+  /** How many tsconfigs the files were cruised with, and how many files fell back to the root one. */
+  readonly tsconfigs: number;
+  readonly fallbackFiles: number;
+  readonly workspacePackages: number;
   readonly epochMs: number;
   readonly toolMs: number;
   readonly comparison: Comparison;
@@ -50,6 +66,17 @@ async function measure(dir: string): Promise<RepoResult> {
   const repo = repoInfo(dir);
   const epochImports: EpochImport[] = [];
   let t = performance.now();
+  const lines = new Map<string, readonly string[]>();
+  /** Whether a dynamic import's call loads a file by path rather than import()ing it. */
+  const isRuntimePath = (from: string, line: number): boolean => {
+    let text = lines.get(from);
+    if (text === undefined) {
+      text = fs.readFileSync(path.join(repo.root, from), "utf8").split("\n");
+      lines.set(from, text);
+    }
+    // The call's first lines: `resolve(\n  import.meta.dirname, ...` spans lines.
+    return RUNTIME_PATH.test(text.slice(line - 1, line + 2).join("\n"));
+  };
   const { graph } = await analyze(repo.root, {
     history: false,
     onResolution: (from, imp, res) =>
@@ -58,6 +85,9 @@ async function measure(dir: string): Promise<RepoResult> {
         specifier: imp.specifier,
         kind: imp.kind,
         res,
+        ...(imp.kind === "dynamic" && isRuntimePath(from, imp.line)
+          ? { runtimePath: true }
+          : {}),
       }),
   });
   const epochMs = performance.now() - t;
@@ -66,84 +96,95 @@ async function measure(dir: string): Promise<RepoResult> {
   );
 
   const found = discover(repo.root, { isSource });
-  const roots = typescriptAdapter.detectProjectRoots({
-    root: repo.root,
-    files: found.files,
-    reader: new FsReader(repo.root),
-  });
-  const workspacePackages = new Set(
-    roots
-      .filter(
-        (r) => r.kind === ROOT_KINDS.workspacePackage && r.name !== undefined,
-      )
-      .map((r) => r.name ?? ""),
-  );
+  const workspacePackages = readWorkspacePackages(repo.root);
 
   // The repo's root tsconfig (tsconfig.json, else tsconfig.base.json), read as data.
   const tsconfig =
     ["tsconfig.json", "tsconfig.base.json"].find((f) =>
       fs.existsSync(path.join(repo.root, f)),
     ) ?? null;
+
+  const copy = referenceCopy(repo.root, workspacePackages);
   const cwd = process.cwd();
-  process.chdir(repo.root);
   t = performance.now();
-  let out: ICruiseResult;
+  const toolDependencies: ToolDependency[] = [];
+  let groups: Map<string | null, string[]>;
   try {
-    const result = await cruise(
-      [...sources],
-      {
-        baseDir: repo.root,
-        tsPreCompilationDeps: true,
-        doNotFollow: { path: "node_modules" },
-        outputType: "json",
-        ...(tsconfig ? { tsConfig: { fileName: tsconfig } } : {}),
-      },
-      {},
-      tsconfig ? { tsConfig: extractTSConfig(tsconfig) } : {},
-    );
-    out = (
-      typeof result.output === "string"
-        ? JSON.parse(result.output)
-        : result.output
-    ) as ICruiseResult;
+    groups = groupByTsconfig(copy, [...sources], tsconfig);
+    process.chdir(copy);
+    for (const [config, files] of groups) {
+      const abs = config === null ? undefined : path.join(copy, config);
+      const conditions =
+        abs === undefined ? [] : (parsedTsconfig(abs)?.customConditions ?? []);
+      const result = await cruise(
+        files,
+        {
+          baseDir: copy,
+          tsPreCompilationDeps: true,
+          doNotFollow: { path: "node_modules" },
+          // No depth limit: with one, a file of the group that another one
+          // imports is visited first as a dependency, and its own imports are
+          // never read. Modules outside the group are dropped below.
+          outputType: "json",
+          ...(abs ? { tsConfig: { fileName: abs } } : {}),
+        },
+        {
+          exportsFields: ["exports"],
+          conditionNames: [...conditions, ...DEFAULT_CONDITIONS],
+        },
+        abs ? { tsConfig: extractTSConfig(abs) } : {},
+      );
+      const out = (
+        typeof result.output === "string"
+          ? JSON.parse(result.output)
+          : result.output
+      ) as ICruiseResult;
+      const own = new Set(files);
+      for (const m of out.modules) {
+        const from = m.source.split(path.sep).join("/");
+        if (!own.has(from)) continue;
+        for (const d of m.dependencies) {
+          const rel = d.resolved.split(path.sep).join("/");
+          const inRepo =
+            !d.couldNotResolve &&
+            !d.coreModule &&
+            !rel.startsWith("../") &&
+            !path.isAbsolute(rel) &&
+            !rel.split("/").includes("node_modules");
+          toolDependencies.push({
+            from,
+            specifier: d.module,
+            resolved: inRepo ? rel : null,
+            couldNotResolve: d.couldNotResolve,
+            types: d.dependencyTypes,
+          });
+        }
+      }
+    }
   } finally {
     process.chdir(cwd);
+    fs.rmSync(copy, { recursive: true, force: true });
   }
   const toolMs = performance.now() - t;
 
-  const toolDependencies: ToolDependency[] = [];
-  for (const m of out.modules) {
-    for (const d of m.dependencies) {
-      const rel = d.resolved.split(path.sep).join("/");
-      const inRepo =
-        !d.couldNotResolve &&
-        !d.coreModule &&
-        !rel.startsWith("../") &&
-        !path.isAbsolute(rel) &&
-        !rel.split("/").includes("node_modules");
-      toolDependencies.push({
-        from: m.source.split(path.sep).join("/"),
-        specifier: d.module,
-        resolved: inRepo ? rel : null,
-        couldNotResolve: d.couldNotResolve,
-        types: d.dependencyTypes,
-      });
-    }
-  }
-  // `paths` patterns of every other tsconfig, read as JSON text (never executed).
-  const otherAliases: { pattern: string; dir: string }[] = [];
+  // `paths` patterns of every tsconfig, parsed by TypeScript (extends
+  // followed, so an inherited baseUrl counts; nothing executed).
+  const aliases: { pattern: string; dir: string; baseUrl: boolean }[] = [];
   for (const f of found.files) {
-    if (!/(?:^|\/)(?:tsconfig|jsconfig)[^/]*\.json$/.test(f) || f === tsconfig)
-      continue;
-    const { config } = ts.parseConfigFileTextToJson(
-      f,
-      fs.readFileSync(path.join(repo.root, f), "utf8"),
-    ) as {
-      config?: { compilerOptions?: { paths?: Record<string, unknown> } };
-    };
-    for (const pattern of Object.keys(config?.compilerOptions?.paths ?? {})) {
-      const dir = path.posix.dirname(f);
-      otherAliases.push({ pattern, dir: dir === "." ? "" : dir });
+    if (!/(?:^|\/)(?:tsconfig|jsconfig)[^/]*\.json$/.test(f)) continue;
+    const config = ts.getParsedCommandLineOfConfigFile(
+      path.join(repo.root, f),
+      undefined,
+      { ...ts.sys, onUnRecoverableConfigFileDiagnostic: () => undefined },
+    );
+    const dir = path.posix.dirname(f);
+    for (const pattern of Object.keys(config?.options.paths ?? {})) {
+      aliases.push({
+        pattern,
+        dir: dir === "." ? "" : dir,
+        // eslint-disable-next-line @typescript-eslint/no-deprecated -- deprecated in TS 6, still honoured by its resolver
+        baseUrl: config?.options.baseUrl !== undefined,
+      });
     }
   }
 
@@ -153,7 +194,7 @@ async function measure(dir: string): Promise<RepoResult> {
     toolDependencies,
     context: {
       workspacePackages,
-      otherAliases,
+      aliases,
       packages: found.files
         .filter((f) => f === "package.json" || f.endsWith("/package.json"))
         .map((f) => packageFacts(repo.root, f)),
@@ -163,10 +204,149 @@ async function measure(dir: string): Promise<RepoResult> {
     repo,
     files: sources.size,
     tsconfig,
+    tsconfigs: [...groups.keys()].filter((k) => k !== null).length,
+    fallbackFiles:
+      tsconfig === null
+        ? (groups.get(null)?.length ?? 0)
+        : [...groups.entries()]
+            .filter(([k]) => k === tsconfig || k === null)
+            .reduce((n, [, f]) => n + f.length, 0),
+    workspacePackages: workspacePackages.size,
     epochMs,
     toolMs,
     comparison: applyReviews(repo.name, comparison),
   };
+}
+
+/** APIs that load a file by path at run time, as they appear on its line. */
+const RUNTIME_PATH =
+  /import\.meta\.url|import\.meta\.resolve|require\.resolve|__dirname|import\.meta\.dirname/;
+
+/** Export conditions TypeScript applies besides a tsconfig's customConditions. */
+const DEFAULT_CONDITIONS = ["types", "import", "require", "node", "default"];
+
+const readJson = (file: string): Record<string, unknown> => {
+  try {
+    return JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+};
+
+/**
+ * Workspace packages by name, from the root package.json `workspaces` and
+ * pnpm-workspace.yaml `packages` globs (read as data, expanded with
+ * fs.globSync), with each one's directory and `exports`.
+ */
+function readWorkspacePackages(
+  root: string,
+): Map<string, { dir: string; exports: unknown }> {
+  const yamlFile = path.join(root, "pnpm-workspace.yaml");
+  const globs = [
+    ...workspaceGlobs(readJson(path.join(root, "package.json"))),
+    ...(fs.existsSync(yamlFile)
+      ? pnpmWorkspaceGlobs(fs.readFileSync(yamlFile, "utf8"))
+      : []),
+  ];
+  const include = globs.filter((g) => !g.startsWith("!"));
+  const exclude = [
+    "**/node_modules/**",
+    ...globs.filter((g) => g.startsWith("!")).map((g) => g.slice(1)),
+  ];
+  const out = new Map<string, { dir: string; exports: unknown }>();
+  for (const glob of include) {
+    const manifests = fs.globSync(`${glob.replace(/\/+$/, "")}/package.json`, {
+      cwd: root,
+      exclude: (f: string) => exclude.some((x) => path.matchesGlob(f, x)),
+    });
+    for (const manifest of [...manifests].sort()) {
+      const rel = manifest.split(path.sep).join("/");
+      const pkg = readJson(path.join(root, rel));
+      if (typeof pkg.name !== "string" || out.has(pkg.name)) continue;
+      out.set(pkg.name, {
+        dir: path.posix.dirname(rel) === "." ? "" : path.posix.dirname(rel),
+        exports: pkg.exports,
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * A scratch copy of the checkout (without .git) whose root node_modules links
+ * each workspace package, as npm and Yarn workspaces link them. Nothing is
+ * installed or run; the pinned checkout itself is left untouched.
+ */
+function referenceCopy(
+  root: string,
+  workspacePackages: ReadonlyMap<string, { dir: string }>,
+): string {
+  const copy = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-bench-reference-"));
+  fs.cpSync(root, copy, {
+    recursive: true,
+    verbatimSymlinks: true,
+    filter: (src) => path.basename(src) !== ".git",
+  });
+  for (const [name, { dir }] of workspacePackages) {
+    const link = path.join(copy, "node_modules", ...name.split("/"));
+    if (fs.existsSync(link)) continue;
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.symlinkSync(
+      path.relative(path.dirname(link), path.join(copy, dir)),
+      link,
+    );
+  }
+  return copy;
+}
+
+const parsed = new Map<
+  string,
+  { files: ReadonlySet<string>; customConditions: string[] } | undefined
+>();
+
+/** A tsconfig parsed by TypeScript (extends followed, include globs expanded), cached. */
+function parsedTsconfig(
+  abs: string,
+): { files: ReadonlySet<string>; customConditions: string[] } | undefined {
+  if (parsed.has(abs)) return parsed.get(abs);
+  const config = ts.getParsedCommandLineOfConfigFile(abs, undefined, {
+    ...ts.sys,
+    onUnRecoverableConfigFileDiagnostic: () => undefined,
+  });
+  const value = config
+    ? {
+        files: new Set(config.fileNames.map((f) => path.resolve(f))),
+        customConditions: config.options.customConditions ?? [],
+      }
+    : undefined;
+  parsed.set(abs, value);
+  return value;
+}
+
+/**
+ * Files grouped by the tsconfig that owns them (the closest tsconfig.json
+ * that includes the file); the rest go with the root tsconfig, or null.
+ */
+function groupByTsconfig(
+  copy: string,
+  files: readonly string[],
+  rootTsconfig: string | null,
+): Map<string | null, string[]> {
+  const groups = new Map<string | null, string[]>();
+  for (const file of [...files].sort()) {
+    const owner =
+      nearestTsconfig(
+        file,
+        (c) => fs.existsSync(path.join(copy, c)),
+        (c, f) =>
+          parsedTsconfig(path.join(copy, c))?.files.has(path.join(copy, f)) ===
+          true,
+      ) ?? rootTsconfig;
+    const group = groups.get(owner);
+    if (group) group.push(file);
+    else groups.set(owner, [file]);
+  }
+  return groups;
 }
 
 /** Name and `imports` keys of a package.json, read as data. */
@@ -224,12 +404,13 @@ function render(results: readonly RepoResult[], toolVersion: string): string {
     "",
     "## Method",
     "",
-    `- **Ground truth:** dependency-cruiser ${toolVersion}, through its API with \`tsPreCompilationDeps: true\` (type-only imports count), \`doNotFollow: node_modules\`, and the repository's root \`tsconfig.json\` (else \`tsconfig.base.json\`). It never loads configuration code from the analyzed repository.`,
-    "- **Repositories** are pinned shallow clones, never installed, built or run, so there is no `node_modules`.",
+    `- **Ground truth:** dependency-cruiser ${toolVersion}, through its API with \`tsPreCompilationDeps: true\` (type-only imports count) and \`doNotFollow: node_modules\`. It never loads configuration code from the analyzed repository.`,
+    "- **Set up as the repository sets itself up** (ADR-006): the tool runs on a scratch copy whose root `node_modules` links each workspace package (from the root `package.json` `workspaces` and `pnpm-workspace.yaml`, as npm and Yarn workspaces link them). Each file is cruised with the tsconfig that owns it (the closest `tsconfig.json` that includes it, else the root `tsconfig.json` or `tsconfig.base.json`), and that tsconfig's `customConditions` are export conditions, next to TypeScript's own (types, import, require, node, default).",
+    "- **Repositories** are pinned clones, never installed, built or run: third-party packages are absent, and build output exists only where it is committed.",
     "- **Compared:** file-level physical imports (each import's resolved file, so Epoch's barrel tracing does not enter) from the source files Epoch analyzed, given to both tools as the same list. Imports of npm packages and Node built-ins are not edges on either side.",
     "- **Every disagreement is classified** by explicit rules (packages/bench/src/edges.ts): *tool wrong* (a real edge the tool missed), *Epoch wrong* (Epoch missed or invented an edge), *ambiguous* (left out of the scores) or *unclassified* (counted against Epoch until reviewed).",
     "- **Raw** scores treat the tool as truth. **Adjusted** scores use the reference set: agreed edges plus classified real edges.",
-    "- A *tool wrong* verdict says why the tool missed an edge (no node_modules, one tsconfig, …); it accepts Epoch's target as right. Each repository lists a fixed sample of those edges so a reader can trace the targets through package.json `exports`/`imports` and tsconfig `paths`.",
+    "- A *tool wrong* verdict says why the tool missed an edge (build output that is not there, …); it accepts Epoch's target as right. Each repository lists a fixed sample of those edges so a reader can trace the targets through package.json `exports`/`imports` and tsconfig `paths`.",
     `- **Host:** ${hostInfo()}.`,
     "",
     "## Results",
@@ -275,7 +456,7 @@ function render(results: readonly RepoResult[], toolVersion: string): string {
     lines.push(
       `## ${r.repo.name}`,
       "",
-      `Commit \`${r.repo.commit ?? "unknown"}\`, tool tsconfig: ${r.tsconfig ?? "none"}. Epoch ${(r.epochMs / 1000).toFixed(2)} s, tool ${(r.toolMs / 1000).toFixed(2)} s (one run each, not a benchmark).`,
+      `Commit \`${r.repo.commit ?? "unknown"}\`. The tool ran with ${String(r.workspacePackages)} workspace packages linked and ${String(r.tsconfigs)} tsconfigs; ${String(r.fallbackFiles)} files went with the root tsconfig (${r.tsconfig ?? "none"}). Epoch ${(r.epochMs / 1000).toFixed(2)} s, tool ${(r.toolMs / 1000).toFixed(2)} s (one run each, not a benchmark).`,
       "",
     );
     const groups = new Map<

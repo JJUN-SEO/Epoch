@@ -25,6 +25,10 @@
       "evidence": []
     }
   ],
-  "externals": {},
+  "externals": {
+    "src/a.ts": [
+      "node"
+    ]
+  },
   "unresolved": []
 }

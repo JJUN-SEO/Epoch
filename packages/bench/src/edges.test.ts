@@ -10,12 +10,30 @@ import {
 } from "./edges.js";
 
 const ctx: ComparisonContext = {
-  workspacePackages: new Set(["@ws/lib"]),
+  workspacePackages: new Map([
+    [
+      "@ws/lib",
+      {
+        dir: "lib",
+        exports: {
+          ".": { "@ws/source": "./src/index.ts", import: "./dist/index.js" },
+          "./config": {
+            "@ws/source": "./src/config.ts",
+            types: "./config.d.ts",
+          },
+          "./locales/*": { "@ws/source": "./src/locales/*" },
+        },
+      },
+    ],
+  ]),
   packages: [
     { name: "self", dir: "pkg", imports: ["#internal/*"] },
     { dir: "", imports: [] },
   ],
-  otherAliases: [{ pattern: "@/*", dir: "docs" }],
+  aliases: [
+    { pattern: "@/*", dir: "docs", baseUrl: false },
+    { pattern: "~/*", dir: "site", baseUrl: true },
+  ],
 };
 const file = (
   from: string,
@@ -105,6 +123,90 @@ describe("compareEdges", () => {
       "epoch-only docs/page.ts->docs/x.ts tool-wrong",
       "epoch-only pkg/t.ts->pkg/src/x.ts tool-wrong",
       "epoch-only pkg/t.ts->pkg/sub.ts tool-wrong",
+    ]);
+  });
+
+  it("accepts an unresolved workspace import only when Epoch's target is one of the package's own exports", () => {
+    const c = compareEdges({
+      sources: new Set(["a.ts", "b.ts"]),
+      epochImports: [
+        file("a.ts", "@ws/lib", "lib/src/index.ts"),
+        file("b.ts", "@ws/lib", "lib/src/other.ts"),
+      ],
+      toolDependencies: [
+        dep("a.ts", "@ws/lib", null),
+        dep("b.ts", "@ws/lib", null),
+      ],
+      context: ctx,
+    });
+    expect(c.disagreements.map((d) => `${d.from} ${d.verdict}`)).toEqual([
+      "a.ts tool-wrong",
+      "b.ts unclassified",
+    ]);
+  });
+
+  it("accepts TypeScript's .ts face of a .js export target", () => {
+    const c = compareEdges({
+      sources: new Set(["a.ts"]),
+      epochImports: [
+        file("a.ts", "@ws/lib/locales/fr.js", "lib/src/locales/fr.ts"),
+      ],
+      toolDependencies: [dep("a.ts", "@ws/lib/locales/fr.js", null)],
+      context: ctx,
+    });
+    expect(c.disagreements[0]?.verdict).toBe("tool-wrong");
+  });
+
+  it("calls two different exports of one workspace subpath ambiguous", () => {
+    const c = compareEdges({
+      sources: new Set(["a.ts"]),
+      epochImports: [file("a.ts", "@ws/lib/config", "lib/config.d.ts")],
+      toolDependencies: [dep("a.ts", "@ws/lib/config", "lib/src/config.ts")],
+      context: ctx,
+    });
+    expect(c.disagreements.map((d) => `${d.side} ${d.verdict}`)).toEqual([
+      "epoch-only ambiguous",
+      "tool-only ambiguous",
+    ]);
+  });
+
+  it("names a paths alias without baseUrl as the tool's limit, and leaves one with baseUrl for review", () => {
+    const c = compareEdges({
+      sources: new Set(["docs/page.ts", "site/page.ts"]),
+      epochImports: [
+        file("docs/page.ts", "@/x", "docs/x.ts"),
+        file("site/page.ts", "~/x", "site/x.ts"),
+      ],
+      toolDependencies: [
+        dep("docs/page.ts", "@/x", null),
+        dep("site/page.ts", "~/x", null),
+      ],
+      context: ctx,
+    });
+    expect(c.disagreements.map((d) => `${d.from} ${d.verdict}`)).toEqual([
+      "docs/page.ts tool-wrong",
+      "site/page.ts unclassified",
+    ]);
+    expect(c.disagreements[0]?.reason).toContain("baseUrl");
+  });
+
+  it("names a file loaded at run time by a literal path as outside the tool's scope", () => {
+    const c = compareEdges({
+      sources: new Set(["a.ts", "b.ts"]),
+      epochImports: [
+        {
+          ...file("a.ts", "./worker.ts", "worker.ts"),
+          kind: "dynamic",
+          runtimePath: true,
+        },
+        { ...file("b.ts", "./lazy.ts", "lazy.ts"), kind: "dynamic" },
+      ],
+      toolDependencies: [],
+      context: ctx,
+    });
+    expect(c.disagreements.map((d) => `${d.from} ${d.verdict}`)).toEqual([
+      "a.ts tool-wrong",
+      "b.ts unclassified",
     ]);
   });
 

@@ -1,0 +1,10 @@
+{
+  "description": "Files loaded at run time by a literal path to a source file are reached: a worker (new Worker(new URL('./x.ts', import.meta.url))) and a script run from path.join(__dirname, 'x.js'). A file nothing loads is still reported.",
+  "adapters": [
+    "typescript"
+  ],
+  "history": {
+    "status": "usable",
+    "now": "2026-06-01"
+  }
+}

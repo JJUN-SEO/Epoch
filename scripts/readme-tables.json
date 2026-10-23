@@ -27,6 +27,10 @@
       "file": "docs/benchmarks/findings.md",
       "heading": "Precision on the reviewed sample"
     },
+    "findings-heldout-precision": {
+      "file": "docs/benchmarks/findings-heldout.md",
+      "heading": "Precision on the reviewed sample"
+    },
     "risk": {
       "file": "docs/benchmarks/risk.md",
       "heading": "Check window: share of files fixed later, by tier"
@@ -59,13 +63,13 @@
           "[performance](docs/benchmarks/typescript-performance.md)"
         ],
         [
-          "TS/JS edges vs dependency-cruiser, precision / recall (adjusted: each disagreement classified)",
-          "zod {typescript-accuracy|https://github.com/colinhacks/zod.git|Adjusted precision} / {typescript-accuracy|https://github.com/colinhacks/zod.git|Adjusted recall}; vitest {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Adjusted precision} / {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Adjusted recall}",
+          "TS/JS edges vs dependency-cruiser, raw precision / recall (the tool as truth; vuejs/core held out)",
+          "zod {typescript-accuracy|https://github.com/colinhacks/zod.git|Raw precision} / {typescript-accuracy|https://github.com/colinhacks/zod.git|Raw recall}; vitest {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Raw precision} / {typescript-accuracy|https://github.com/vitest-dev/vitest.git|Raw recall}; vuejs/core {typescript-accuracy|https://github.com/vuejs/core.git|Raw precision} / {typescript-accuracy|https://github.com/vuejs/core.git|Raw recall}",
           "[TS/JS accuracy](docs/benchmarks/typescript.md)"
         ],
         [
-          "Python edges vs grimp on Flask, precision / recall (adjusted)",
-          "{python-accuracy|Module imports|Adjusted precision} / {python-accuracy|Module imports|Adjusted recall}",
+          "Python edges, raw precision / recall (httpx held out)",
+          "Flask vs CPython's finders {python-accuracy|flask vs CPython's finders|Raw precision} / {python-accuracy|flask vs CPython's finders|Raw recall}, vs grimp {python-accuracy|flask vs grimp|Raw precision} / {python-accuracy|flask vs grimp|Raw recall} (grimp skips namespace folders); httpx {python-accuracy|httpx vs CPython's finders|Raw precision} / {python-accuracy|httpx vs CPython's finders|Raw recall} vs both",
           "[Python accuracy](docs/benchmarks/python-accuracy.md)"
         ],
         [
@@ -74,9 +78,14 @@
           "[Go accuracy](docs/benchmarks/go.md)"
         ],
         [
-          "Findings precision on a reviewed sample",
+          "Findings precision, design sample (reviewed by Claude; the fixes were made against it, so it overstates)",
           "Worth a look {findings-precision|Worth a look|Precision} ({findings-precision|Worth a look|Yes} yes, {findings-precision|Worth a look|No} no); Maybe {findings-precision|Maybe|Precision} ({findings-precision|Maybe|Yes} yes, {findings-precision|Maybe|No} no)",
           "[findings](docs/benchmarks/findings.md)"
+        ],
+        [
+          "Findings precision, held-out sample (trpc, fastapi; for a person to review blind)",
+          "Worth a look {findings-heldout-precision|Worth a look|Precision}; Maybe {findings-heldout-precision|Maybe|Precision}",
+          "[held-out findings](docs/benchmarks/findings-heldout.md)"
         ],
         [
           "Risk tiers in hindsight: share of files fixed in a later window",

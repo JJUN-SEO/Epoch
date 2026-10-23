@@ -1,0 +1,21 @@
+{
+  "findings": [
+    {
+      "kind": "unreachable-file",
+      "subject": {
+        "type": "file",
+        "name": "src/fixtures/small.ts"
+      },
+      "confidence": "low",
+      "caps": [
+        "dynamic-import-prefix"
+      ],
+      "locations": [
+        {
+          "file": "src/fixtures/small.ts"
+        }
+      ]
+    }
+  ],
+  "unassessableFlags": 0
+}
