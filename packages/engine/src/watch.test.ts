@@ -284,4 +284,52 @@ describe("watchProject", () => {
     expect(seen).toContain("src/e.ts");
     expect(seen.filter((p) => noise.includes(p))).toEqual([]);
   }, 40_000);
+
+  it("re-analyzes when a coverage report is written, watching only the report in its folder", async () => {
+    const dir = project(FILES);
+    const { updates, batches } = await watched(dir);
+    // A test run writes its HTML report and its data files into coverage/.
+    write(dir, "coverage/lcov-report/index.html", "<html></html>");
+    write(dir, "coverage/lcov.info", "SF:src/b.ts\nDA:1,1\nend_of_record\n");
+    await vi.waitFor(
+      () => {
+        expect(updates.at(-1)?.meta.coverage.reports).toMatchObject([
+          { source: "coverage/lcov.info", files: 1 },
+        ]);
+      },
+      { timeout: 15_000, interval: 50 },
+    );
+    const seen = batches.flatMap((b) => [...b]);
+    expect(seen).not.toContain("coverage/lcov-report/index.html");
+  }, 40_000);
+
+  it("watches a chosen report in a folder Discover skips", async () => {
+    const dir = project({
+      ...FILES,
+      "build/reports/unit.lcov": "SF:src/b.ts\nDA:1,0\nend_of_record\n",
+    });
+    const { updates, watcher, cache } = await watched(dir);
+    const coverageOfB = () =>
+      updates.at(-1)?.graph.nodes.find((n) => n.id === "src/b.ts")?.metrics
+        .coverage;
+    await watcher.reconfigure({
+      cache,
+      history: false,
+      coverageReport: "build/reports/unit.lcov",
+    });
+    expect(coverageOfB()).toBe(0);
+    // chokidar sets the new watch up asynchronously: rewrite until it sees one.
+    await vi.waitFor(
+      () => {
+        if (coverageOfB() === 1) return;
+        write(
+          dir,
+          "build/reports/unit.lcov",
+          "SF:src/b.ts\nDA:1,1\nend_of_record\n",
+        );
+        throw new Error("the rewritten report has not been read yet");
+      },
+      { timeout: 15_000, interval: 250 },
+    );
+  }, 40_000);
 });

@@ -199,7 +199,7 @@ describe("contract schemas", () => {
       cycles: [],
       host: { platform: "linux", arch: "x64", node: "24.21.0" },
       git: { status: "off" },
-      coverage: null,
+      coverage: { reports: [] },
       config: { present: false, warnings: [] },
       findings: {
         history: "off",

@@ -1,5 +1,5 @@
+import fs, { type Stats } from "node:fs";
 import path from "node:path";
-import type { Stats } from "node:fs";
 import { watch, type FSWatcher } from "chokidar";
 import type { WatchStatus } from "@epoch-dev/core";
 import { analyze, type AnalyzeOptions, type AnalyzeResult } from "./analyze.js";
@@ -35,6 +35,17 @@ export function isEditorNoise(name: string): boolean {
 
 /** Never watched: installed third-party code and git's own data. */
 const NEVER_WATCHED = new Set(["node_modules", ".git"]);
+
+/** Coverage report paths and every folder above them. */
+function reportPaths(paths: readonly string[]): Set<string> {
+  const out = new Set<string>();
+  for (const p of paths) {
+    const parts = p.split("/");
+    for (let i = 1; i <= parts.length; i++)
+      out.add(parts.slice(0, i).join("/"));
+  }
+  return out;
+}
 
 /**
  * Collects paths and calls `flush` once no new path arrived for `quietMs`,
@@ -140,6 +151,8 @@ export async function watchProject(
   let running = Promise.resolve();
   const status = (s: WatchStatus) => opts.onStatus?.(s);
 
+  let reports = reportPaths(initial.coveragePaths);
+
   const ignored = (abs: string, stats?: Stats): boolean => {
     const rel = toPosix(path.relative(root, abs));
     if (rel === "") return false;
@@ -147,17 +160,21 @@ export async function watchProject(
       return true;
     const parts = rel.split("/");
     if (parts.some((p) => NEVER_WATCHED.has(p))) return true;
+    // A coverage report, or a folder on the way to one, even where Discover
+    // does not walk (coverage/): only the report itself is watched there.
+    if (reports.has(rel)) return false;
     for (let i = 1; i <= parts.length; i++) {
-      if (skipped.has(parts.slice(0, i).join("/"))) return true;
+      const dir = parts.slice(0, i).join("/");
+      if (skipped.has(dir)) return true;
+      if (
+        (i < parts.length || stats?.isFile() !== true) &&
+        DEFAULT_SKIPPED_DIRS.has(parts[i - 1] ?? "") &&
+        !walked.has(dir)
+      ) {
+        return true;
+      }
     }
     const name = parts[parts.length - 1] ?? "";
-    if (
-      stats?.isFile() !== true &&
-      DEFAULT_SKIPPED_DIRS.has(name) &&
-      !walked.has(rel)
-    ) {
-      return true;
-    }
     return stats?.isDirectory() !== true && isEditorNoise(name);
   };
 
@@ -193,10 +210,19 @@ export async function watchProject(
       );
       skipped = nowSkipped;
       walked = nowWalked;
+      // New report paths (a new project folder, a chosen report) start being
+      // watched where they exist; the rest are seen when they appear.
+      const nowReports = reportPaths(result.coveragePaths);
+      const newReports = [...nowReports].filter(
+        (p) => !reports.has(p) && fs.existsSync(path.join(root, p)),
+      );
+      reports = nowReports;
       if (!isClosed()) {
         if (unwatch.length > 0)
           watcher.unwatch(unwatch.map((d) => `${root}/${d}`));
         if (rewatch.length > 0) watcher.add(rewatch.map((d) => `${root}/${d}`));
+        if (newReports.length > 0)
+          watcher.add(newReports.map((p) => `${root}/${p}`));
         opts.onUpdate(result, changed);
         status({ state: "watching" });
       }

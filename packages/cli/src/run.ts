@@ -106,9 +106,9 @@ Options:
                      machine (--scorer local) still works
   --json             Print the canonical graph as JSON on stdout
   --since <commit>   Also re-read files changed between <commit> and HEAD
-  --coverage <file>  Use this lcov or Cobertura report (default: look for
-                     coverage/lcov.info, coverage/cobertura-coverage.xml,
-                     coverage.xml or lcov.info in the project)
+  --coverage <file>  Use this coverage report: lcov, Cobertura, Istanbul
+                     JSON, Clover or a Go profile (default: look for each
+                     test tool's usual report in the project and its packages)
   --min-confidence <level>
                      high, medium or low: the lowest level listed (default:
                      findings.minConfidence in epoch.config.json, else medium)

@@ -89,6 +89,12 @@ export interface AnalyzeOptions {
    */
   readonly coverageFile?: string;
   /**
+   * A coverage report inside the project to use instead of looking
+   * (repo-relative; chosen in the app), read through the root-confined
+   * reader. Ignored when coverageFile is set.
+   */
+  readonly coverageReport?: string;
+  /**
    * Overrides for the Findings stage (tests): a history provider instead of
    * the repository's git history, and the "now" ages are measured against
    * instead of HEAD's commit date.
@@ -118,6 +124,8 @@ export interface AnalyzeResult {
   };
   /** Package node id -> its member files, sorted (ADR-013, Go); what a package summary reads. */
   readonly packages: ReadonlyMap<string, readonly string[]>;
+  /** Coverage report paths the Score stage looked at (repo-relative), for the watcher. */
+  readonly coveragePaths: readonly string[];
 }
 
 export { DEFAULT_REGISTRATIONS };
@@ -509,12 +517,23 @@ export async function analyze(
     opts.history === false
       ? undefined
       : (opts.churnMemo ?? new ChurnMemo()).get(found.root, reader, opts.git);
-  const scored = scoreGraph(
-    enriched,
-    churn,
-    loadCoverage(found.root, reader, opts.coverageFile),
-    members,
+  const projectRoots = [...contexts].flatMap(([reg, c]) =>
+    c.projectRoots.map((r) => ({ adapter: reg.adapter.id, ...r })),
   );
+  const coverage = loadCoverage(found.root, reader, {
+    ...(opts.coverageFile !== undefined ? { explicit: opts.coverageFile } : {}),
+    ...(opts.coverageReport !== undefined
+      ? { chosen: opts.coverageReport }
+      : {}),
+    folders: projectRoots.map((r) => r.dir),
+  });
+  // Go profiles name files by import path: each go.mod's module maps its folder.
+  const goModules = projectRoots.flatMap((r) =>
+    r.adapter === "go" && r.package === true && r.name !== undefined
+      ? [{ path: r.name, dir: r.dir }]
+      : [],
+  );
+  const scored = scoreGraph(enriched, churn, coverage, members, goModules);
   const t7 = performance.now();
 
   // 8. Findings: entry points, then every detector over the scored graph.
@@ -676,5 +695,6 @@ export async function analyze(
     packages: new Map(
       [...members].map(([id, files]) => [id, [...files].sort()]),
     ),
+    coveragePaths: coverage.paths,
   };
 }

@@ -78,6 +78,8 @@ let queue = Promise.resolve();
 let watcher: ProjectWatcher | undefined;
 /** The open project's latest analysis, which summaries read. */
 let current: AnalyzeResult | undefined;
+/** The open project's analysis options, which the watcher's re-analyses use. */
+let options: AnalyzeOptions | undefined;
 /**
  * Plans whose answers may come back, by key: the source lines a stored
  * answer must not repeat stay here, never in main.
@@ -337,6 +339,7 @@ async function run(
   await watcher?.close();
   watcher = undefined;
   current = undefined;
+  options = undefined;
   plans.clear();
   let lastStage: Progress["stage"] | undefined;
   let lastSent = 0;
@@ -352,10 +355,18 @@ async function run(
       send({ type: "progress", id: request.id, progress });
     }
   };
-  const options: AnalyzeOptions = { cache, pool, churnMemo };
+  const first: AnalyzeOptions = {
+    cache,
+    pool,
+    churnMemo,
+    ...(request.coverageReport !== undefined
+      ? { coverageReport: request.coverageReport }
+      : {}),
+  };
+  options = first;
   let result: AnalyzeResult;
   try {
-    result = await analyze(request.root, { ...options, onProgress });
+    result = await analyze(request.root, { ...first, onProgress });
   } catch (error) {
     send({
       type: "error",
@@ -365,16 +376,16 @@ async function run(
     return;
   }
   current = result;
-  const first = infoOf(result);
+  const used = infoOf(result);
   const firstInfo: AnalysisInfo = embedder
     ? {
-        ...first,
+        ...used,
         hints: {
-          ...first.hints,
+          ...used.hints,
           embeddings: { status: "pending", model: embedder.modelId, pairs: 0 },
         },
       }
-    : first;
+    : used;
   send({
     type: "result",
     id: request.id,
@@ -384,7 +395,7 @@ async function run(
   let graph: Graph = result.graph;
   let info = JSON.stringify(firstInfo);
   watcher = await watchProject(result, {
-    analyze: options,
+    analyze: first,
     onUpdate: (next) => {
       current = next;
       const delta = diffGraphs(graph, next.graph);
@@ -399,11 +410,26 @@ async function run(
     },
   });
   if (embedder) {
-    await watcher.reconfigure({
-      ...options,
-      hints: { embeddings: { embedder } },
-    });
+    options = { ...first, hints: { embeddings: { embedder } } };
+    await watcher.reconfigure(options);
   }
+}
+
+/** Re-analyzes the open project with another coverage report; the watcher sends the change. */
+async function setCoverageReport(
+  request: Extract<HostRequest, { type: "coverage-report" }>,
+): Promise<void> {
+  if (!watcher || !options || !project(request.root)) {
+    send({ type: "error", id: request.id, message: "No project is open." });
+    return;
+  }
+  const { coverageReport: _previous, ...rest } = options;
+  options =
+    request.report === null
+      ? rest
+      : { ...rest, coverageReport: request.report };
+  await watcher.reconfigure(options);
+  send({ type: "coverage-report-set", id: request.id });
 }
 
 port.on("message", ({ data }) => {
@@ -415,6 +441,8 @@ port.on("message", ({ data }) => {
   else if (request.type === "summary-plan") summaryPlan(request);
   else if (request.type === "summary-store") summaryStore(request);
   else if (request.type === "summary-job") summaryJob(request);
+  else if (request.type === "coverage-report")
+    queue = queue.then(() => setCoverageReport(request));
   else queue = queue.then(() => run(request));
 });
 

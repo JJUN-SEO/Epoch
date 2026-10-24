@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   LANGUAGE_TIERS,
   isHintEdge,
@@ -6,6 +7,8 @@ import {
   type WatchStatus,
 } from "@epoch-dev/core";
 import { languageName } from "../languages";
+import { coverageSummary } from "./coverage";
+import { CoveragePanel, type CoverageActions } from "./CoveragePanel";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${String(n)} ${n === 1 ? one : many}`;
@@ -148,6 +151,8 @@ export function StatusBar(props: {
   readonly offline?: boolean | undefined;
   /** What model features spent this month, in dollars. */
   readonly monthUsd?: number | undefined;
+  /** Choosing a coverage report (the desktop app); opens the coverage panel. */
+  readonly coverageActions?: CoverageActions | undefined;
 }) {
   const { graph } = props;
   const byLanguage = new Map<string, number>();
@@ -160,7 +165,8 @@ export function StatusBar(props: {
   const hints = hintsSummary(props.analysis ?? null);
   let hintEdges = 0;
   for (const e of graph.edges) if (isHintEdge(e)) hintEdges++;
-  const coverage = props.analysis?.coverage;
+  const coverage = coverageSummary(props.analysis ?? null);
+  const [coverageOpen, setCoverageOpen] = useState(false);
   const watch = props.watch && watchLabel(props.watch, props.updatedAt);
   return (
     <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px] whitespace-nowrap">
@@ -214,20 +220,37 @@ export function StatusBar(props: {
           {hints.text}
         </span>
       )}
-      {props.analysis && (
-        <span
-          data-testid="coverage-status"
-          title={
-            coverage
-              ? `Coverage from ${coverage.source} (${coverage.format}): ${String(coverage.files)} files matched${coverage.unmatched > 0 ? `, ${String(coverage.unmatched)} unmatched` : ""}. The report may be older than the code.`
-              : "Test coverage is the share of a file's lines your tests run. Epoch never runs your tests: it reads a report your test runner already wrote (for example vitest or jest --coverage, pytest --cov), found at coverage/lcov.info, coverage/cobertura-coverage.xml, coverage.xml or lcov.info. None was found, so risk judges fragility by file size alone."
-          }
-        >
-          {coverage
-            ? `Test coverage: ${coverage.source}`
-            : "No test coverage report"}
-        </span>
-      )}
+      {coverage &&
+        (props.coverageActions && props.analysis ? (
+          <span className="relative">
+            <button
+              type="button"
+              data-testid="coverage-status"
+              title={coverage.title}
+              aria-haspopup="dialog"
+              aria-expanded={coverageOpen}
+              className="hover:text-fg"
+              onClick={() => {
+                setCoverageOpen((open) => !open);
+              }}
+            >
+              {coverage.text}
+            </button>
+            {coverageOpen && (
+              <CoveragePanel
+                coverage={props.analysis.coverage}
+                actions={props.coverageActions}
+                onClose={() => {
+                  setCoverageOpen(false);
+                }}
+              />
+            )}
+          </span>
+        ) : (
+          <span data-testid="coverage-status" title={coverage.title}>
+            {coverage.text}
+          </span>
+        ))}
       <span
         className="ml-auto flex min-w-0 items-center gap-3 overflow-hidden"
         aria-label="Languages"

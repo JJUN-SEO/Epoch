@@ -159,6 +159,15 @@ export function Workspace({
     refreshModelStatus();
     return shell?.onSettingsChanged(refreshModelStatus);
   }, [shell, refreshModelStatus]);
+  /** Choosing a coverage report in main's file dialog (the desktop app). */
+  const coverageActions = useMemo(
+    () =>
+      shell && {
+        choose: () => shell.chooseCoverageReport(),
+        clear: () => shell.clearCoverageReport(),
+      },
+    [shell],
+  );
   const nodeIds = useMemo(() => new Set(graph.nodes.map((n) => n.id)), [graph]);
   /** A file (or package) node, which can be the center of the focus view. */
   const isFileNode = useCallback(
@@ -1149,6 +1158,7 @@ export function Workspace({
         updatedAt={updatedAt}
         offline={modelStatus?.offline}
         monthUsd={modelStatus?.monthUsd}
+        coverageActions={coverageActions}
       />
 
       {palette && (

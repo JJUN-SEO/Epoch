@@ -91,8 +91,10 @@ test("the bridge exposes only its named functions", async () => {
   expect(surface).toEqual({
     keys: [
       "cancelSummaries",
+      "chooseCoverageReport",
       "chooseProject",
       "clearCache",
+      "clearCoverageReport",
       "dismissFinding",
       "generateSummary",
       "getAnalysisInfo",

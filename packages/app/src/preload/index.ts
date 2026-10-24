@@ -18,6 +18,7 @@ import type {
 } from "@epoch-dev/core";
 import type {
   CacheSummary,
+  CoverageChoice,
   DesktopBridge,
   AvailableUpdate,
 } from "@epoch-dev/ui/bridge";
@@ -88,6 +89,9 @@ const bridge: DesktopBridge = {
     return invoke<ProjectInfo>(CHANNELS.openDroppedFolder, folder);
   },
   recentProjects: () => invoke<string[]>(CHANNELS.recentProjects),
+  chooseCoverageReport: () =>
+    invoke<CoverageChoice>(CHANNELS.chooseCoverageReport),
+  clearCoverageReport: () => invoke<undefined>(CHANNELS.clearCoverageReport),
   onProjectOpened: (cb) => {
     const listener = (_event: IpcRendererEvent, project: ProjectInfo) => {
       cb(project);

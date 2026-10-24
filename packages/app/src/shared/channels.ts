@@ -48,6 +48,10 @@ export const CHANNELS = {
   clearCache: "epoch:clear-cache",
   /** A newer release, if the update check found one (ADR-018); no payload. */
   getUpdateStatus: "epoch:get-update-status",
+  /** Main's file dialog for the open project's coverage report (ADR-020); no payload. */
+  chooseCoverageReport: "epoch:choose-coverage-report",
+  /** Forgets the chosen coverage report and looks for reports again; no payload. */
+  clearCoverageReport: "epoch:clear-coverage-report",
 } as const;
 
 /** Main-to-renderer events. */

@@ -2,12 +2,13 @@ import { useEffect, useRef, type ReactNode } from "react";
 
 /**
  * A floating panel that closes on Escape or a click outside it. Used for
- * menus and the project switcher.
+ * menus, the project switcher and the coverage panel ("dialog").
  */
 export function Popover(props: {
   readonly onClose: () => void;
   readonly className?: string;
   readonly label: string;
+  readonly role?: "menu" | "dialog";
   readonly children: ReactNode;
 }) {
   const panel = useRef<HTMLDivElement>(null);
@@ -37,7 +38,7 @@ export function Popover(props: {
   return (
     <div
       ref={panel}
-      role="menu"
+      role={props.role ?? "menu"}
       aria-label={props.label}
       className={`no-drag border-line bg-raised shadow-pop absolute z-30 rounded-lg border p-1 ${props.className ?? ""}`}
     >

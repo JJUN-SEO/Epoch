@@ -90,16 +90,41 @@ export class HostClient {
     });
   }
 
-  analyze(root: string, onProgress: (p: Progress) => void): Promise<Analysis> {
+  /** `coverageReport`: the report chosen for this project (repo-relative), if any. */
+  analyze(
+    root: string,
+    onProgress: (p: Progress) => void,
+    coverageReport?: string,
+  ): Promise<Analysis> {
     if (this.exited) {
       return Promise.reject(new Error("The analysis host has stopped."));
     }
     const id = this.nextId++;
     return new Promise<Analysis>((resolve, reject) => {
       this.pending.set(id, { resolve, reject, onProgress });
-      const request: HostRequest = { type: "analyze", id, root };
+      const request: HostRequest = {
+        type: "analyze",
+        id,
+        root,
+        ...(coverageReport !== undefined ? { coverageReport } : {}),
+      };
       this.child.postMessage(request);
     });
+  }
+
+  /**
+   * Re-analyzes the open project with a chosen coverage report, or with
+   * none (null). Resolves once done; the change arrives as a delta.
+   */
+  async setCoverageReport(root: string, report: string | null): Promise<void> {
+    const event = await this.call((id) => ({
+      type: "coverage-report",
+      id,
+      root,
+      report,
+    }));
+    if (event.type !== "coverage-report-set")
+      throw new Error("Unexpected host answer.");
   }
 
   private call(make: (id: number) => HostRequest): Promise<HostEvent> {

@@ -503,7 +503,7 @@ Rules, first match wins:
 - No git history: no tier; the UI says why. No coverage report: fragility from size alone.
 - Wherever files are ordered by risk: by tier, then dependents, then churn.
 - The thresholds are defaults to tune with evidence (`pnpm bench:risk`), like `staleAfterDays`, not claims.
-- Coverage formats to support first: lcov and Cobertura XML, then Go cover profiles and JaCoCo.
+- Coverage formats: lcov, Cobertura XML, Istanbul JSON, Clover XML and Go cover profiles (ADR-020), then JaCoCo.
 
 ## Blast radius
 

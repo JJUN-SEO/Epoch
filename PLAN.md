@@ -70,6 +70,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-017 | M6 | JevScorer: TypeSafe's HTTP API through the network module (no SDK), a pair as a Noul plus a Choice, pinned `jev-1.13.0`, user's prices, fixed error codes; measured by `pnpm bench:scorers --scorer jev` |
 | ADR-018 | M8 | Distribution: size trims, Electron fuses (inspector off in installers, on only in the CI e2e build), installers per OS, the release workflow, the update check |
 | ADR-019 | M7 | OpenAI and Gemini as summary providers: plain fetch through the network module, keys in headers, `store: false`, consent per provider, shipped default-model prices; `bench:summaries --provider` |
+| ADR-020 | M4 | Coverage reports: Istanbul JSON, Clover XML and Go profiles added, coverage.py's SQLite file not read, reports found in every project folder (the most specific wins), live refresh, a report chosen in the app; a CLAUDE.md change |
 
 ## Questions to ask me
 
