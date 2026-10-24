@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   LANGUAGE_TIERS,
   isHintEdge,
@@ -6,6 +7,8 @@ import {
   type WatchStatus,
 } from "@epoch-dev/core";
 import { languageName } from "../languages";
+import { coverageSummary } from "./coverage";
+import { CoveragePanel, type CoverageActions } from "./CoveragePanel";
 
 const plural = (n: number, one: string, many = `${one}s`) =>
   `${String(n)} ${n === 1 ? one : many}`;
@@ -61,48 +64,6 @@ export function gitSummary(info: AnalysisInfo | null): {
     case "off":
       return null;
   }
-}
-
-const FORMAT_NAMES: Readonly<Record<string, string>> = {
-  lcov: "lcov",
-  cobertura: "Cobertura XML",
-  "istanbul-json": "Istanbul JSON",
-  clover: "Clover XML",
-  go: "Go profile",
-};
-
-/** One line on the coverage reports the analysis read (ADR-020), or why there is none. */
-export function coverageSummary(info: AnalysisInfo | null): {
-  text: string;
-  title: string;
-} | null {
-  const c = info?.coverage;
-  if (!c) return null;
-  const [first, ...rest] = c.reports;
-  if (first === undefined) {
-    const problem = c.chosen?.problem;
-    return problem === undefined
-      ? {
-          text: "No test coverage report",
-          title:
-            "Test coverage is the share of a file's lines your tests run. Epoch never runs your tests: it reads the report your test runner wrote (lcov, Cobertura or Clover XML, Istanbul JSON, or a Go profile), in the project folder or a package folder. None was found, so risk judges fragility by file size alone.",
-        }
-      : {
-          text: "Coverage report not read",
-          title: `The chosen report ${c.chosen?.path ?? ""} ${problem === "missing" ? "is missing" : problem === "too-large" ? "is too large to read" : "is not a format Epoch reads"}, so risk judges fragility by file size alone.`,
-        };
-  }
-  const lines = c.reports.map(
-    (r) =>
-      `${r.source} (${FORMAT_NAMES[r.format] ?? r.format}): ${plural(r.files, "file")}${r.unmatched > 0 ? `, ${String(r.unmatched)} not in this project` : ""}`,
-  );
-  return {
-    text:
-      rest.length === 0
-        ? `Test coverage: ${first.source}`
-        : `Test coverage: ${plural(c.reports.length, "report")}`,
-    title: `Coverage from ${lines.join("; ")}. A report may be older than the code.`,
-  };
 }
 
 /** One line on the hint edges (likely relations), and what they rest on. */
@@ -190,6 +151,8 @@ export function StatusBar(props: {
   readonly offline?: boolean | undefined;
   /** What model features spent this month, in dollars. */
   readonly monthUsd?: number | undefined;
+  /** Choosing a coverage report (the desktop app); opens the coverage panel. */
+  readonly coverageActions?: CoverageActions | undefined;
 }) {
   const { graph } = props;
   const byLanguage = new Map<string, number>();
@@ -203,6 +166,7 @@ export function StatusBar(props: {
   let hintEdges = 0;
   for (const e of graph.edges) if (isHintEdge(e)) hintEdges++;
   const coverage = coverageSummary(props.analysis ?? null);
+  const [coverageOpen, setCoverageOpen] = useState(false);
   const watch = props.watch && watchLabel(props.watch, props.updatedAt);
   return (
     <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px] whitespace-nowrap">
@@ -256,11 +220,37 @@ export function StatusBar(props: {
           {hints.text}
         </span>
       )}
-      {coverage && (
-        <span data-testid="coverage-status" title={coverage.title}>
-          {coverage.text}
-        </span>
-      )}
+      {coverage &&
+        (props.coverageActions && props.analysis ? (
+          <span className="relative">
+            <button
+              type="button"
+              data-testid="coverage-status"
+              title={coverage.title}
+              aria-haspopup="dialog"
+              aria-expanded={coverageOpen}
+              className="hover:text-fg"
+              onClick={() => {
+                setCoverageOpen((open) => !open);
+              }}
+            >
+              {coverage.text}
+            </button>
+            {coverageOpen && (
+              <CoveragePanel
+                coverage={props.analysis.coverage}
+                actions={props.coverageActions}
+                onClose={() => {
+                  setCoverageOpen(false);
+                }}
+              />
+            )}
+          </span>
+        ) : (
+          <span data-testid="coverage-status" title={coverage.title}>
+            {coverage.text}
+          </span>
+        ))}
       <span
         className="ml-auto flex min-w-0 items-center gap-3 overflow-hidden"
         aria-label="Languages"

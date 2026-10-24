@@ -29,6 +29,7 @@ import { APP_ENTRY_URL, devServerOrigin } from "./policy";
 import { ProjectSession } from "./project";
 import { Projects } from "./projects";
 import { registerAppScheme, serveUi } from "./protocol";
+import { CoverageChoices } from "./coverage-report";
 import { RecentProjects } from "./recent";
 import { REPOSITORY_URL } from "./release";
 import { GrantedRoots } from "./roots";
@@ -75,6 +76,8 @@ const hostArgs = hostModelArgs(
 
 /** One project session per window, keyed by its web contents. */
 const sessions = new Map<WebContents, ProjectSession>();
+/** Each project's chosen coverage report, in app data (set in start()). */
+let coverageChoices: CoverageChoices | undefined;
 
 function sessionFor(win: BrowserWindow): ProjectSession {
   const s = sessions.get(win.webContents);
@@ -125,6 +128,8 @@ async function openWindow(stateFile: string): Promise<BrowserWindow> {
           if (!contents.isDestroyed()) contents.send(EVENTS.analysisInfo, info);
         },
       },
+      undefined,
+      coverageChoices,
     ),
   );
   win.on("close", () => {
@@ -174,6 +179,9 @@ async function start(): Promise<void> {
   const roots = new GrantedRoots();
   const recent = new RecentProjects(
     path.join(userData, "recent-projects.json"),
+  );
+  coverageChoices = new CoverageChoices(
+    path.join(userData, "coverage-reports.json"),
   );
   for (const folder of recent.projects) roots.grantStored(folder);
   const settings = new SettingsStore(path.join(userData, "settings.json"));

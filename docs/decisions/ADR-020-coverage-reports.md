@@ -23,7 +23,7 @@ Why nothing showed, from the code at `7d1f1c1`:
 ## Sources (read 2026-10-24)
 
 - **vitest 5.0.4:** `coverageConfigDefaults` in the installed package: `reportsDirectory: "./coverage"`, `reporter: ["text", "html", "clover", "json"]`.
-- **Jest:** `docs/Configuration.md` at jestjs/jest `61050e93`: `coverageReporters` default `["clover", "json", "lcov", "text"]`.
+- **Jest** at jestjs/jest `61050e93`: `docs/Configuration.md` gives the `coverageReporters` default `["clover", "json", "lcov", "text"]`, and `packages/jest-config/src/normalize.ts` sets an unset `coverageDirectory` to `<rootDir>/coverage`.
 - **Istanbul's line rule:** `FileCoverage.getLineCoverage()` in @vitest/istanbul-lib-coverage 1.0.2, vitest's copy of istanbul-lib-coverage. A statement counts on its start line, and a line keeps the highest count of the statements starting there.
 - **Clover:**
   - Istanbul's Clover reporter: its output, in the fixtures.
@@ -72,6 +72,9 @@ Why nothing showed, from the code at `7d1f1c1`:
    - It is read through the root-confined reader like any other file, so a path outside the project reads as missing.
    - A missing, oversized or unrecognized report is reported in `AnalysisMeta`, never thrown, and the analysis goes on without coverage.
    - The CLI's `--coverage <file>` keeps its meaning: any path, and an unusable file is an error.
+   - **In the app,** the status bar's coverage item opens a panel: the reports used, the commands that write one, **Choose report…** and **Look for reports again**.
+     - Main picks the file in its native dialog and keeps it only if its real path is inside the project, so the renderer never sends a path.
+     - The choice is kept per project in Epoch's app data (`coverage-reports.json`), never in the project, and re-analyzes at once.
 7. **Live refresh.** The watcher watches every report path the analysis looked at, inside folders Discover skips too. There it watches only the report files, not the HTML report beside them.
 
 ## Consequences

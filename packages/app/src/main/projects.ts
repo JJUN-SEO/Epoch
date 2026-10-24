@@ -1,5 +1,6 @@
 import { dialog, type BrowserWindow } from "electron";
 import type { ProjectInfo } from "@epoch-dev/core";
+import { reportInside, type CoverageChoice } from "./coverage-report";
 import type { ProjectSession } from "./project";
 import type { RecentProjects } from "./recent";
 import { realFolder, type GrantedRoots } from "./roots";
@@ -54,6 +55,39 @@ export class Projects {
     const [folder] = choice.filePaths;
     if (choice.canceled || folder === undefined) return null;
     return this.open(win, this.roots.grant(folder));
+  }
+
+  /**
+   * Main's file dialog for the window's project coverage report (ADR-020).
+   * Only a file inside the project is kept; the renderer never sends a path.
+   */
+  async chooseCoverageReport(win: BrowserWindow): Promise<CoverageChoice> {
+    const session = this.sessionFor(win);
+    const root = session.root();
+    if (root === undefined) throw new Error("No project is open.");
+    const choice = await dialog.showOpenDialog(win, {
+      title: "Choose a Coverage Report",
+      defaultPath: root,
+      properties: ["openFile"],
+      filters: [
+        {
+          name: "Coverage reports",
+          extensions: ["info", "lcov", "json", "xml", "out"],
+        },
+        { name: "All files", extensions: ["*"] },
+      ],
+    });
+    const [file] = choice.filePaths;
+    if (choice.canceled || file === undefined) return { state: "canceled" };
+    const report = reportInside(root, file);
+    if (report === undefined) return { state: "outside-project" };
+    await session.setCoverageReport(report);
+    return { state: "chosen", path: report };
+  }
+
+  /** Forgets the window's chosen report and looks for reports again. */
+  clearCoverageReport(win: BrowserWindow): Promise<void> {
+    return this.sessionFor(win).setCoverageReport(undefined);
   }
 
   /** Recent projects that still exist as the same real folders. */

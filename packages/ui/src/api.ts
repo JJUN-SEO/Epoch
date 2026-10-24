@@ -10,7 +10,12 @@ import {
   type SpendStatus,
   type WatchStatus,
 } from "@epoch-dev/core";
-import type { CacheSummary, DesktopBridge, AvailableUpdate } from "./bridge";
+import type {
+  CacheSummary,
+  CoverageChoice,
+  DesktopBridge,
+  AvailableUpdate,
+} from "./bridge";
 
 /**
  * App-only functions that grant access to a folder. The static demo site has
@@ -20,6 +25,10 @@ export interface Shell {
   chooseProject(): Promise<ProjectInfo | null>;
   openDroppedFolder(file: File): Promise<ProjectInfo>;
   recentProjects(): Promise<string[]>;
+  /** Main's file dialog for the open project's coverage report (ADR-020). */
+  chooseCoverageReport(): Promise<CoverageChoice>;
+  /** Forgets the chosen report and looks for reports again. */
+  clearCoverageReport(): Promise<void>;
   /** Projects opened from the native menu. */
   onProjectOpened(cb: (project: ProjectInfo) => void): () => void;
   /** The native application menu, popped up from the title bar (Windows, Linux). */
@@ -91,6 +100,8 @@ export function createIpcApi(bridge: DesktopBridge): {
       chooseProject: () => bridge.chooseProject(),
       openDroppedFolder: (file) => bridge.openDroppedFolder(file),
       recentProjects: () => bridge.recentProjects(),
+      chooseCoverageReport: () => bridge.chooseCoverageReport(),
+      clearCoverageReport: () => bridge.clearCoverageReport(),
       onProjectOpened: (cb) => bridge.onProjectOpened(cb),
       showAppMenu: (x, y) => {
         void bridge.showAppMenu(x, y);

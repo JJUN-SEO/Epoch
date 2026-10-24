@@ -33,6 +33,12 @@ export interface AvailableUpdate {
   readonly url: string;
 }
 
+/** What choosing a coverage report in main's file dialog came to (ADR-020). */
+export type CoverageChoice =
+  | { readonly state: "chosen"; readonly path: string }
+  | { readonly state: "canceled" }
+  | { readonly state: "outside-project" };
+
 /**
  * What the desktop app's preload script exposes as `window.epoch`: the M3
  * subset of EpochApi over IPC, plus the shell functions that grant access to
@@ -67,6 +73,13 @@ export interface DesktopBridge {
   /** A folder dropped on the window. Only real drops carry a path. */
   openDroppedFolder(file: File): Promise<ProjectInfo>;
   recentProjects(): Promise<string[]>;
+  /**
+   * Main's file dialog for the open project's coverage report; only a file
+   * inside the project is kept, and the project is analyzed again with it.
+   */
+  chooseCoverageReport(): Promise<CoverageChoice>;
+  /** Forgets the chosen report and looks for reports again. */
+  clearCoverageReport(): Promise<void>;
   /** A project opened from the native menu (File > Open Project…). */
   onProjectOpened(cb: (project: ProjectInfo) => void): Unsubscribe;
   /**

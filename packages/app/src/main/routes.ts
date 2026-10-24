@@ -110,6 +110,17 @@ export function registerRoutes(
     args: z.tuple([]),
     handle: (win) => projects.choose(win),
   });
+  handle(CHANNELS.chooseCoverageReport, {
+    args: z.tuple([]),
+    handle: (win) => projects.chooseCoverageReport(win),
+  });
+  handle(CHANNELS.clearCoverageReport, {
+    args: z.tuple([]),
+    handle: async (win) => {
+      await projects.clearCoverageReport(win);
+      return undefined;
+    },
+  });
   handle(CHANNELS.recentProjects, {
     args: z.tuple([]),
     handle: () => Promise.resolve(projects.recentProjects()),

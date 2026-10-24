@@ -13,7 +13,20 @@ import {
   type WatchStatus,
 } from "@epoch-dev/core";
 import { DismissalStore } from "@epoch-dev/engine/dismissals";
+import type { CoverageChoiceStore } from "./coverage-report";
 import type { Analysis, HostClient, HostListeners } from "./host-client";
+
+/** Choices kept for this run only (tests; the app keeps them in its data). */
+function memoryChoices(): CoverageChoiceStore {
+  const reports = new Map<string, string>();
+  return {
+    get: (root) => reports.get(root),
+    set: (root, report) => {
+      if (report === undefined) reports.delete(root);
+      else reports.set(root, report);
+    },
+  };
+}
 
 /** What a session tells its window about the open project. */
 export interface SessionListeners {
@@ -33,6 +46,7 @@ export class ProjectSession {
   private readonly spawnHost: (listeners: HostListeners) => HostClient;
   private readonly listeners: SessionListeners;
   private readonly dismissalsFor: (root: string) => DismissalStore;
+  private readonly coverage: CoverageChoiceStore;
   private host: HostClient | undefined;
   private current:
     | {
@@ -47,10 +61,12 @@ export class ProjectSession {
     listeners: SessionListeners,
     dismissalsFor: (root: string) => DismissalStore = (root) =>
       DismissalStore.forProject(root),
+    coverage: CoverageChoiceStore = memoryChoices(),
   ) {
     this.spawnHost = spawnHost;
     this.listeners = listeners;
     this.dismissalsFor = dismissalsFor;
+    this.coverage = coverage;
   }
 
   /** Starts analyzing a granted folder (a real path) and returns at once. */
@@ -67,7 +83,11 @@ export class ProjectSession {
     });
     this.host = host;
     const info: ProjectInfo = { root, name: path.basename(root) };
-    const analysis = host.analyze(root, this.listeners.onProgress);
+    const analysis = host.analyze(
+      root,
+      this.listeners.onProgress,
+      this.coverage.get(root),
+    );
     const current: NonNullable<typeof this.current> = { info, analysis };
     analysis.then(
       (a) => {
@@ -125,6 +145,23 @@ export class ProjectSession {
     return root === undefined || !this.host
       ? undefined
       : { root, host: this.host };
+  }
+
+  /** The open project's folder; undefined when none is open. */
+  root(): string | undefined {
+    return this.current?.info.root;
+  }
+
+  /**
+   * Uses a coverage report inside the open project (repo-relative, checked
+   * by main), or looks for reports again (undefined); remembered for the
+   * project and re-analyzed at once (ADR-020).
+   */
+  async setCoverageReport(report: string | undefined): Promise<void> {
+    const root = this.openRoot();
+    if (!this.host) throw new Error("No project is open.");
+    this.coverage.set(root, report);
+    await this.host.setCoverageReport(root, report ?? null);
   }
 
   private openRoot(): string {

@@ -152,6 +152,15 @@ export const HostRequest = z.discriminatedUnion("type", [
     id: z.number().int().nonnegative(),
     /** Absolute path of a folder main has checked against the granted roots. */
     root: z.string().min(1),
+    /** The coverage report chosen for this project, if any (ADR-020). */
+    coverageReport: RepoRelativePath.optional(),
+  }),
+  /** Re-analyzes the open project with a chosen coverage report, or none (null: look for reports). */
+  z.object({
+    type: z.literal("coverage-report"),
+    id: z.number().int().nonnegative(),
+    root: z.string().min(1),
+    report: RepoRelativePath.nullable(),
   }),
   /** Read-only lines of a file inside the open project, for the Details panel. */
   z.object({
@@ -242,6 +251,11 @@ export const HostEvent = z.discriminatedUnion("type", [
     type: z.literal("summary-job"),
     id: z.number().int().nonnegative(),
     items: z.array(SummaryJobItem).max(100_000),
+  }),
+  /** The open project was re-analyzed with the coverage report asked for. */
+  z.object({
+    type: z.literal("coverage-report-set"),
+    id: z.number().int().nonnegative(),
   }),
   /** The host's tripwire refused a network attempt (it must never use the network). */
   z.object({

@@ -53,6 +53,10 @@ function fakeBridge() {
     chooseProject: vi.fn(() => Promise.resolve(null)),
     openDroppedFolder: vi.fn(() => Promise.resolve(project)),
     recentProjects: vi.fn(() => Promise.resolve(["/p"])),
+    chooseCoverageReport: vi.fn(() =>
+      Promise.resolve({ state: "canceled" as const }),
+    ),
+    clearCoverageReport: vi.fn(() => Promise.resolve()),
     onProjectOpened: vi.fn(() => () => undefined),
     showAppMenu: showAppMenu,
     onMenuCommand: vi.fn(() => () => undefined),

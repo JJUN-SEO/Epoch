@@ -123,6 +123,7 @@ Requirements, running the app, the end-to-end tests, benchmarks, the static site
 - [docs/architecture.md](docs/architecture.md): processes, pipeline, network policy and release flow.
 - [docs/privacy.md](docs/privacy.md): what leaves the machine, feature by feature.
 - [docs/findings.md](docs/findings.md): finding kinds, rubric, configuration and limits.
+- [docs/coverage.md](docs/coverage.md): test coverage reports: which formats, where Epoch looks, choosing one.
 - [docs/development.md](docs/development.md): building, testing, releasing, repository layout.
 - [docs/decisions/](docs/decisions/): architecture decision records.
 - [CLAUDE.md](CLAUDE.md) and [PLAN.md](PLAN.md): the rules and data contracts, and the build plan.
