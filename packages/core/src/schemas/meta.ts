@@ -77,20 +77,31 @@ export const AnalysisMeta = z.strictObject({
     churnSince: z.number().int().optional(),
     churnUntil: z.number().int().optional(),
   }),
-  /** The coverage report behind metrics.coverage, if one was found. */
-  coverage: z
-    .strictObject({
-      /** Repo-relative when found in the project; as given otherwise. */
-      source: z.string(),
-      format: z.enum(["lcov", "cobertura"]),
-      /** Analyzed files the report covers. */
-      files: Count,
-      /** Report entries matching no analyzed file. */
-      unmatched: Count,
-      /** Report entries matching several analyzed files equally. */
-      ambiguous: Count,
-    })
-    .nullable(),
+  /** The coverage reports behind metrics.coverage (ADR-020). */
+  coverage: z.strictObject({
+    /** Most specific folder first; empty when none was found or could be used. */
+    reports: z.array(
+      z.strictObject({
+        /** Repo-relative when found or chosen in the project; as given otherwise. */
+        source: z.string(),
+        format: z.enum(["lcov", "cobertura", "istanbul-json", "clover", "go"]),
+        /** Analyzed files whose coverage comes from this report. */
+        files: Count,
+        /** Report entries matching no analyzed file (for Go, in no module here). */
+        unmatched: Count,
+        /** Report entries matching several analyzed files equally. */
+        ambiguous: Count,
+      }),
+    ),
+    /** The report chosen in the app (repo-relative), used instead of looking. */
+    chosen: z
+      .strictObject({
+        path: z.string(),
+        /** Why it could not be used. */
+        problem: z.enum(["missing", "too-large", "unrecognized"]).optional(),
+      })
+      .optional(),
+  }),
   /** epoch.config.json: whether one was found, and its problems (defaults apply). */
   config: z.strictObject({
     present: z.boolean(),

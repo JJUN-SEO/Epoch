@@ -1,34 +1,63 @@
 /*
- * Coverage ingestion (PLAN.md M4): lcov and Cobertura XML reports, mapped to
- * repo-relative paths. Pure: text in, line counts out. The XML is read by a
- * small linear scanner written here (no regex from any repo file, no
- * backtracking), enough for the elements Cobertura reports use.
+ * Coverage ingestion (PLAN.md M4, ADR-020): lcov, Cobertura XML, Istanbul
+ * JSON, Clover XML and Go cover profiles, mapped to repo-relative paths.
+ * Pure: text in, line counts out. The XML is read by a small linear scanner
+ * written here (no regex from any repo file, no backtracking), enough for the
+ * elements these reports use.
  */
 
 export interface FileCoverage {
-  /** Instrumented lines. */
+  /** Instrumented lines (statements, for Go profiles). */
   readonly lines: number;
   /** Instrumented lines hit at least once. */
   readonly covered: number;
 }
 
-export type CoverageFormat = "lcov" | "cobertura";
+export type CoverageFormat =
+  "lcov" | "cobertura" | "istanbul-json" | "clover" | "go";
 
 /** Reports larger than this are not read. */
 export const MAX_COVERAGE_BYTES = 64 * 1024 * 1024;
 
-/** Where a coverage report is looked for, inside the project. */
-export const COVERAGE_CANDIDATES = [
-  "coverage/lcov.info",
-  "coverage/cobertura-coverage.xml",
-  "coverage.xml",
-  "lcov.info",
-] as const;
+/**
+ * Where coverage reports are looked for, relative to the repository root and
+ * to every project folder (package.json, pyproject.toml, go.mod...). Each
+ * group is one tool's output from one run, so only the first report found in
+ * a group is read.
+ */
+export const COVERAGE_GROUPS: readonly (readonly string[])[] = [
+  // Jest, vitest, c8 and nyc write into coverage/; Jest's and vitest's
+  // default reporters include json (coverage-final.json) and clover.
+  [
+    "coverage/lcov.info",
+    "coverage/coverage-final.json",
+    "coverage/clover.xml",
+    "coverage/cobertura-coverage.xml",
+  ],
+  // coverage.py: `coverage xml` and `coverage lcov`.
+  ["coverage.xml", "coverage.lcov"],
+  // go test -coverprofile: cover.out in `go help testflag`, coverage.out by habit.
+  ["cover.out", "coverage.out"],
+  // A plain lcov tracefile.
+  ["lcov.info"],
+];
+
+const GO_MODES = new Set(["set", "count", "atomic"]);
 
 export function detectFormat(text: string): CoverageFormat | undefined {
   const head = text.slice(0, 4096).trimStart();
-  if (head.startsWith("<"))
-    return /<coverage[\s>]/.test(head) ? "cobertura" : undefined;
+  if (head.startsWith("<")) {
+    if (!/<coverage[\s>]/.test(head)) return undefined;
+    // Clover puts a <project> under <coverage>; Cobertura has none.
+    return /<project[\s>/]/.test(head) ? "clover" : "cobertura";
+  }
+  if (head.startsWith("{"))
+    return head.includes('"statementMap"') ? "istanbul-json" : undefined;
+  if (head.startsWith("mode:")) {
+    const nl = head.indexOf("\n");
+    const mode = head.slice(5, nl === -1 ? undefined : nl).trim();
+    return GO_MODES.has(mode) ? "go" : undefined;
+  }
   return /^(TN|SF):/m.test(head) ? "lcov" : undefined;
 }
 
@@ -252,6 +281,177 @@ export function parseCobertura(text: string): {
   return { sources, files: set.result() };
 }
 
+/**
+ * Clover XML (Istanbul's and PHPUnit's reporters): per <file>, its
+ * statement and condition <line num count> elements. Method lines mark a
+ * declaration, not an executable line, and are skipped. The path is the
+ * `path` attribute (Istanbul) or else `name` (PHPUnit writes the full path
+ * there).
+ */
+export function parseClover(text: string): Map<string, FileCoverage> {
+  const set = new LineSet();
+  let file: string | undefined;
+  for (const { tag } of xmlTags(text)) {
+    if (tag.name === "file") {
+      const path = tag.attrs.get("path") ?? tag.attrs.get("name");
+      file = tag.closing || path === undefined ? undefined : slashes(path);
+    } else if (tag.name === "line" && !tag.closing && file !== undefined) {
+      const type = tag.attrs.get("type");
+      if (type !== "stmt" && type !== "cond") continue;
+      const number = Number(tag.attrs.get("num"));
+      if (Number.isInteger(number) && number > 0) {
+        set.line(file, number, Number(tag.attrs.get("count") ?? "0") > 0);
+      }
+    }
+  }
+  return set.result();
+}
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * Istanbul JSON (coverage-final.json, from vitest, jest, nyc and c8): a
+ * statement counts on its start line, and a line is hit if any statement
+ * starting there is, as istanbul-lib-coverage's getLineCoverage does.
+ */
+export function parseIstanbulJson(text: string): Map<string, FileCoverage> {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return new Map();
+  }
+  const set = new LineSet();
+  if (!isRecord(data)) return set.result();
+  for (const [key, entry] of Object.entries(data)) {
+    if (!isRecord(entry)) continue;
+    const { statementMap, s } = entry;
+    if (!isRecord(statementMap) || !isRecord(s)) continue;
+    const file = slashes(typeof entry.path === "string" ? entry.path : key);
+    for (const [id, count] of Object.entries(s)) {
+      const statement = statementMap[id];
+      const start = isRecord(statement) ? statement.start : undefined;
+      const line = isRecord(start) ? start.line : undefined;
+      if (typeof line !== "number" || !Number.isInteger(line) || line < 1)
+        continue;
+      set.line(file, line, typeof count === "number" && count > 0);
+    }
+  }
+  return set.result();
+}
+
+const isBlockRange = (range: string): boolean => {
+  const parts = range.split(/[.,]/);
+  return parts.length === 4 && parts.every((p) => /^\d+$/.test(p));
+};
+
+/**
+ * Go cover profile (`go test -coverprofile`): `mode:` then one block per
+ * line, `import/path/file.go:startLine.col,endLine.col statements count`.
+ * The unit is the statement, as in go test's percentages. A block repeated
+ * by several test binaries counts once, hit if any run hit it.
+ */
+export function parseGoProfile(text: string): Map<string, FileCoverage> {
+  const blocks = new Map<
+    string,
+    Map<string, { stmts: number; hit: boolean }>
+  >();
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line === "" || line.startsWith("mode:")) continue;
+    const colon = line.lastIndexOf(":");
+    if (colon <= 0) continue;
+    const [range, stmts, count, extra] = line.slice(colon + 1).split(" ");
+    const n = Number(stmts);
+    if (
+      range === undefined ||
+      extra !== undefined ||
+      !isBlockRange(range) ||
+      !Number.isInteger(n) ||
+      n < 0 ||
+      !/^\d+$/.test(count ?? "")
+    )
+      continue;
+    const file = slashes(line.slice(0, colon));
+    let fileBlocks = blocks.get(file);
+    if (!fileBlocks) {
+      fileBlocks = new Map();
+      blocks.set(file, fileBlocks);
+    }
+    const prev = fileBlocks.get(range);
+    fileBlocks.set(range, {
+      stmts: n,
+      hit: (prev?.hit ?? false) || Number(count) > 0,
+    });
+  }
+  const out = new Map<string, FileCoverage>();
+  for (const [file, fileBlocks] of blocks) {
+    let lines = 0;
+    let covered = 0;
+    for (const b of fileBlocks.values()) {
+      lines += b.stmts;
+      if (b.hit) covered += b.stmts;
+    }
+    if (lines > 0) out.set(file, { lines, covered });
+  }
+  return out;
+}
+
+/** A Go module: its path from go.mod and its repo-relative folder. */
+export interface GoModule {
+  readonly path: string;
+  /** "" for the repository root. */
+  readonly dir: string;
+}
+
+/**
+ * Rewrites a Go profile's import paths to repo-relative ones through the
+ * module that owns each (the longest module path that prefixes it). Paths in
+ * no known module (dependencies under -coverpkg) are dropped and counted.
+ * With no modules known, the paths are left for mapCoverage's suffix rules.
+ */
+export function rebaseGoPaths(
+  report: ReadonlyMap<string, FileCoverage>,
+  modules: readonly GoModule[],
+): { readonly files: Map<string, FileCoverage>; readonly outside: number } {
+  if (modules.length === 0) return { files: new Map(report), outside: 0 };
+  const byLength = [...modules].sort((a, b) => b.path.length - a.path.length);
+  const files = new Map<string, FileCoverage>();
+  let outside = 0;
+  for (const [importPath, coverage] of report) {
+    const owner = byLength.find((m) => importPath.startsWith(`${m.path}/`));
+    if (owner === undefined) {
+      outside++;
+      continue;
+    }
+    const rest = importPath.slice(owner.path.length + 1);
+    files.set(owner.dir === "" ? rest : `${owner.dir}/${rest}`, coverage);
+  }
+  return { files, outside };
+}
+
+const isRooted = (p: string): boolean =>
+  p.startsWith("/") || /^[A-Za-z]:\//.test(p);
+
+/**
+ * A report found in a project folder: its relative paths (and Cobertura
+ * sources) are read from that folder, where the tool ran. Absolute paths
+ * are kept.
+ */
+export function inFolder(
+  report: ReadonlyMap<string, FileCoverage>,
+  sources: readonly string[],
+  folder: string,
+): { report: Map<string, FileCoverage>; sources: string[] } {
+  const from = (p: string) =>
+    folder === "" || isRooted(p) ? p : `${folder}/${p}`;
+  return {
+    report: new Map([...report].map(([p, c]) => [from(p), c])),
+    sources: sources.map(from),
+  };
+}
+
 export interface MappedCoverage {
   /** Repo-relative path -> coverage. */
   readonly files: Map<string, FileCoverage>;
@@ -311,7 +511,7 @@ export function mapCoverage(
         break;
       }
       // A relative report path ending one analyzed file.
-      if (!path.startsWith("/") && !/^[A-Za-z]:\//.test(path)) {
+      if (!isRooted(path)) {
         const ending = options.filter((f) => f.endsWith(`/${path}`));
         if (ending.length === 1) {
           match = ending[0];

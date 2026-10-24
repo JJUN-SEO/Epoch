@@ -63,6 +63,48 @@ export function gitSummary(info: AnalysisInfo | null): {
   }
 }
 
+const FORMAT_NAMES: Readonly<Record<string, string>> = {
+  lcov: "lcov",
+  cobertura: "Cobertura XML",
+  "istanbul-json": "Istanbul JSON",
+  clover: "Clover XML",
+  go: "Go profile",
+};
+
+/** One line on the coverage reports the analysis read (ADR-020), or why there is none. */
+export function coverageSummary(info: AnalysisInfo | null): {
+  text: string;
+  title: string;
+} | null {
+  const c = info?.coverage;
+  if (!c) return null;
+  const [first, ...rest] = c.reports;
+  if (first === undefined) {
+    const problem = c.chosen?.problem;
+    return problem === undefined
+      ? {
+          text: "No test coverage report",
+          title:
+            "Test coverage is the share of a file's lines your tests run. Epoch never runs your tests: it reads the report your test runner wrote (lcov, Cobertura or Clover XML, Istanbul JSON, or a Go profile), in the project folder or a package folder. None was found, so risk judges fragility by file size alone.",
+        }
+      : {
+          text: "Coverage report not read",
+          title: `The chosen report ${c.chosen?.path ?? ""} ${problem === "missing" ? "is missing" : problem === "too-large" ? "is too large to read" : "is not a format Epoch reads"}, so risk judges fragility by file size alone.`,
+        };
+  }
+  const lines = c.reports.map(
+    (r) =>
+      `${r.source} (${FORMAT_NAMES[r.format] ?? r.format}): ${plural(r.files, "file")}${r.unmatched > 0 ? `, ${String(r.unmatched)} not in this project` : ""}`,
+  );
+  return {
+    text:
+      rest.length === 0
+        ? `Test coverage: ${first.source}`
+        : `Test coverage: ${plural(c.reports.length, "report")}`,
+    title: `Coverage from ${lines.join("; ")}. A report may be older than the code.`,
+  };
+}
+
 /** One line on the hint edges (likely relations), and what they rest on. */
 export function hintsSummary(info: AnalysisInfo | null): {
   text: string;
@@ -160,7 +202,7 @@ export function StatusBar(props: {
   const hints = hintsSummary(props.analysis ?? null);
   let hintEdges = 0;
   for (const e of graph.edges) if (isHintEdge(e)) hintEdges++;
-  const coverage = props.analysis?.coverage;
+  const coverage = coverageSummary(props.analysis ?? null);
   const watch = props.watch && watchLabel(props.watch, props.updatedAt);
   return (
     <footer className="bg-chrome border-line text-muted flex h-6 shrink-0 items-center gap-4 border-t px-3 text-[11px] whitespace-nowrap">
@@ -214,18 +256,9 @@ export function StatusBar(props: {
           {hints.text}
         </span>
       )}
-      {props.analysis && (
-        <span
-          data-testid="coverage-status"
-          title={
-            coverage
-              ? `Coverage from ${coverage.source} (${coverage.format}): ${String(coverage.files)} files matched${coverage.unmatched > 0 ? `, ${String(coverage.unmatched)} unmatched` : ""}. The report may be older than the code.`
-              : "Test coverage is the share of a file's lines your tests run. Epoch never runs your tests: it reads a report your test runner already wrote (for example vitest or jest --coverage, pytest --cov), found at coverage/lcov.info, coverage/cobertura-coverage.xml, coverage.xml or lcov.info. None was found, so risk judges fragility by file size alone."
-          }
-        >
-          {coverage
-            ? `Test coverage: ${coverage.source}`
-            : "No test coverage report"}
+      {coverage && (
+        <span data-testid="coverage-status" title={coverage.title}>
+          {coverage.text}
         </span>
       )}
       <span

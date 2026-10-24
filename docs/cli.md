@@ -27,7 +27,7 @@ epoch cache stats | clear | prune [--max-size <MB>]
 epoch auth set | status | remove <provider>
 ```
 
-- `analyze` builds the dependency graph of a project folder. `--json` prints it on stdout; `--since <commit>` also re-reads files changed between that commit and HEAD; `--coverage` points at an lcov or Cobertura report (by default Epoch looks for the usual file names in the project).
+- `analyze` builds the dependency graph of a project folder. `--json` prints it on stdout; `--since <commit>` also re-reads files changed between that commit and HEAD; `--coverage` points at a coverage report: lcov, Cobertura XML, Istanbul JSON, Clover XML or a Go profile. By default Epoch looks for each test tool's usual report in the project folder and in each package folder ([ADR-020](decisions/ADR-020-coverage-reports.md)).
 - `findings` lists likely dead-feature candidates for review: branches that likely never run, possibly stale flags and possibly unused files, each with evidence and caveats. Levels are `high`, `medium` or `low`; the default minimum comes from `findings.minConfidence` in `epoch.config.json`, else `medium`. Findings dismissed in the app stay hidden unless you pass `--include-dismissed`.
 - `cache` shows, clears or prunes Epoch's local cache. It holds only derived data, so clearing it just means the next run parses everything again.
 - `auth` stores or removes your own model provider key in the OS keychain. The key is read from standard input, never from the command line, and `auth status` never prints it.

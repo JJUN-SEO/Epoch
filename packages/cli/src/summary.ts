@@ -87,9 +87,12 @@ export function formatSummary(graph: Graph, meta: AnalysisMeta): string {
         ? "  git          off"
         : `  git          no churn or risk tiers (${git.status})`,
     ...riskLine(graph),
-    meta.coverage === null
-      ? "  coverage     none found"
-      : `  coverage     ${meta.coverage.source} (${meta.coverage.format}): ${String(meta.coverage.files)} files${meta.coverage.unmatched + meta.coverage.ambiguous > 0 ? `, ${String(meta.coverage.unmatched)} unmatched, ${String(meta.coverage.ambiguous)} ambiguous` : ""}`,
+    ...(meta.coverage.reports.length === 0
+      ? ["  coverage     none found"]
+      : meta.coverage.reports.map(
+          (r, i) =>
+            `  ${i === 0 ? "coverage   " : "           "}  ${r.source} (${r.format}): ${String(r.files)} files${r.unmatched + r.ambiguous > 0 ? `, ${String(r.unmatched)} unmatched, ${String(r.ambiguous)} ambiguous` : ""}`,
+        )),
     hintsLine(meta.hints),
   );
 

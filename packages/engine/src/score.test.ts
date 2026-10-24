@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { serializeCanonical } from "@epoch-dev/core";
+import { serializeCanonical, type GraphNode } from "@epoch-dev/core";
 import { analyze } from "./analyze.js";
 import { MemoryCacheStore } from "./cache/memory-store.js";
 import { toPosix } from "./discover.js";
@@ -103,11 +103,15 @@ describe("the Score stage", () => {
       churnSince: HEAD_TIME - 90 * DAY,
     });
     expect(meta.coverage).toEqual({
-      source: "coverage/lcov.info",
-      format: "lcov",
-      files: 2,
-      unmatched: 0,
-      ambiguous: 0,
+      reports: [
+        {
+          source: "coverage/lcov.info",
+          format: "lcov",
+          files: 2,
+          unmatched: 0,
+          ambiguous: 0,
+        },
+      ],
     });
 
     // Incremental equals from scratch, history included.
@@ -128,7 +132,7 @@ describe("the Score stage", () => {
     expect(
       plain.graph.nodes.find((n) => n.id === "src/core.ts")?.metrics.dependents,
     ).toBe(2);
-    expect(plain.meta.coverage).toBeNull();
+    expect(plain.meta.coverage).toEqual({ reports: [] });
     const off = await analyze(dir, { history: false });
     expect(off.meta.git).toEqual({ status: "off" });
   });
@@ -179,10 +183,152 @@ describe("the Score stage", () => {
     expect(graph.nodes.find((n) => n.id === "src/b.ts")?.metrics.coverage).toBe(
       1,
     );
-    expect(meta.coverage).toMatchObject({
-      source: report,
-      format: "cobertura",
-      files: 1,
+    expect(meta.coverage.reports).toMatchObject([
+      { source: report, format: "cobertura", files: 1 },
+    ]);
+  });
+});
+
+/** The profile go test wrote (fixtures/coverage-reports/README.md). */
+const goProfile = fs.readFileSync(
+  new URL("./fixtures/coverage-reports/go/coverage.out", import.meta.url),
+  "utf8",
+);
+
+const WORKSPACE = {
+  "package.json": JSON.stringify({ name: "root", workspaces: ["packages/*"] }),
+  "packages/a/package.json": JSON.stringify({ name: "a" }),
+  "packages/a/src/math.ts": "export const one = 1;\n",
+  "packages/b/package.json": JSON.stringify({ name: "b" }),
+  "packages/b/src/math.ts": "export const two = 2;\n",
+};
+
+describe("coverage reports in the project (ADR-020)", () => {
+  const coverageOf = (graph: { nodes: readonly GraphNode[] }, id: string) =>
+    graph.nodes.find((n) => n.id === id)?.metrics.coverage;
+
+  it("reads a package's own report, its relative paths inside that package", async () => {
+    const dir = project({
+      ...WORKSPACE,
+      // vitest run in packages/a: paths relative to that folder.
+      "packages/a/coverage/lcov.info":
+        "SF:src/math.ts\nDA:1,1\nDA:2,0\nend_of_record\n",
+      // Another reporter of the same run beside it: not read as well.
+      "packages/a/coverage/clover.xml":
+        '<coverage clover="3.2.0"><project><file name="math.ts" path="src/math.ts"><line num="1" count="0" type="stmt"/></file></project></coverage>',
     });
+    const { graph, meta } = await analyze(dir, { history: false });
+    expect(coverageOf(graph, "packages/a/src/math.ts")).toBe(0.5);
+    expect(coverageOf(graph, "packages/b/src/math.ts")).toBeUndefined();
+    expect(meta.coverage).toEqual({
+      reports: [
+        {
+          source: "packages/a/coverage/lcov.info",
+          format: "lcov",
+          files: 1,
+          unmatched: 0,
+          ambiguous: 0,
+        },
+      ],
+    });
+  });
+
+  it("takes each file from the most specific report, never from two", async () => {
+    const dir = project({
+      ...WORKSPACE,
+      "src/root.ts": "export const r = 0;\n",
+      // A merged report at the root covers the package file too...
+      "coverage/lcov.info":
+        "SF:packages/a/src/math.ts\nDA:1,0\nend_of_record\nSF:src/root.ts\nDA:1,1\nend_of_record\n",
+      // ...and the package's own report wins for it.
+      "packages/a/coverage/lcov.info":
+        "SF:src/math.ts\nDA:1,1\nend_of_record\n",
+    });
+    const { graph, meta } = await analyze(dir, { history: false });
+    expect(coverageOf(graph, "packages/a/src/math.ts")).toBe(1);
+    expect(coverageOf(graph, "src/root.ts")).toBe(1);
+    expect(meta.coverage.reports.map((r) => [r.source, r.files])).toEqual([
+      ["packages/a/coverage/lcov.info", 1],
+      ["coverage/lcov.info", 1],
+    ]);
+  });
+
+  it("reads a Go profile through the module that owns each import path", async () => {
+    const dir = project({
+      "go/go.mod": "module example.com/covgo\n\ngo 1.24\n",
+      "go/calc/calc.go":
+        "package calc\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n",
+      "go/internal/util/util.go":
+        "package util\n\nfunc Shout(s string) string {\n\treturn s\n}\n",
+      "go/cover.out": goProfile,
+    });
+    const { graph, meta } = await analyze(dir, { history: false });
+    expect(coverageOf(graph, "pkg:example.com/covgo/calc")).toBe(0.5);
+    expect(coverageOf(graph, "pkg:example.com/covgo/internal/util")).toBe(0);
+    expect(meta.coverage.reports).toEqual([
+      {
+        source: "go/cover.out",
+        format: "go",
+        files: 2,
+        unmatched: 0,
+        ambiguous: 0,
+      },
+    ]);
+  });
+
+  it("uses the report chosen in the app instead, and says why it could not", async () => {
+    const dir = project({
+      ...FILES,
+      "reports/unit.lcov": "SF:src/b.ts\nDA:1,1\nend_of_record\n",
+      "coverage/lcov.info": "SF:src/a.ts\nDA:1,1\nend_of_record\n",
+      "notes.txt": "hello\n",
+    });
+    const chosen = await analyze(dir, {
+      history: false,
+      coverageReport: "reports/unit.lcov",
+    });
+    expect(coverageOf(chosen.graph, "src/b.ts")).toBe(1);
+    expect(coverageOf(chosen.graph, "src/a.ts")).toBeUndefined();
+    expect(chosen.meta.coverage).toEqual({
+      reports: [
+        {
+          source: "reports/unit.lcov",
+          format: "lcov",
+          files: 1,
+          unmatched: 0,
+          ambiguous: 0,
+        },
+      ],
+      chosen: { path: "reports/unit.lcov" },
+    });
+    expect(chosen.coveragePaths).toEqual(["reports/unit.lcov"]);
+
+    for (const [path, problem] of [
+      ["reports/gone.lcov", "missing"],
+      ["notes.txt", "unrecognized"],
+      ["../outside.lcov", "missing"],
+    ] as const) {
+      const { graph, meta } = await analyze(dir, {
+        history: false,
+        coverageReport: path,
+      });
+      expect(meta.coverage).toEqual({ reports: [], chosen: { path, problem } });
+      expect(coverageOf(graph, "src/a.ts")).toBeUndefined();
+    }
+  });
+
+  it("lists the report paths it looked at, in every project folder", async () => {
+    const { coveragePaths } = await analyze(project(WORKSPACE), {
+      history: false,
+    });
+    for (const p of [
+      "coverage/lcov.info",
+      "coverage.xml",
+      "cover.out",
+      "packages/a/coverage/coverage-final.json",
+      "packages/b/coverage/clover.xml",
+      "packages/b/lcov.info",
+    ])
+      expect(coveragePaths).toContain(p);
   });
 });

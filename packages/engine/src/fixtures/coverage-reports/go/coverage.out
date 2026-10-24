@@ -1,0 +1,7 @@
+mode: set
+example.com/covgo/calc/calc.go:5.24,7.2 1 1
+example.com/covgo/calc/calc.go:9.36,10.12 1 1
+example.com/covgo/calc/calc.go:10.12,12.3 1 0
+example.com/covgo/calc/calc.go:13.2,13.19 1 1
+example.com/covgo/calc/calc.go:16.27,19.2 2 0
+example.com/covgo/internal/util/util.go:5.29,7.2 1 0
