@@ -119,7 +119,8 @@ describe("the Score stage", () => {
     await analyze(dir, { cache });
     const again = await analyze(dir, { cache });
     expect(serializeCanonical(again.graph)).toBe(serializeCanonical(graph));
-  });
+    // About twenty git processes (setup, then three analyses): slow on Windows.
+  }, 20_000);
 
   it("gives no churn or risk outside a git repository, or with history off", async () => {
     const dir = project(FILES);
@@ -168,7 +169,7 @@ describe("the Score stage", () => {
       dependents: 2,
       risk: { tier: "moderate", archetype: "fragile-leaf" },
     });
-  });
+  }, 20_000);
 
   it("uses a coverage report the caller names", async () => {
     const dir = project(FILES);
