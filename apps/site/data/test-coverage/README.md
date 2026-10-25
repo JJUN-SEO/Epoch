@@ -1,0 +1,23 @@
+# Test coverage for the demo graphs
+
+The demo repositories commit no coverage reports, so these were made once, on 2026-10-25, by running each project's own tests at its pinned commit (`../repos.json`). `scripts/site-data.mjs` passes each one to `epoch analyze --coverage`. They are inputs to the demo data and are not published with the site. Epoch itself never runs tests ([ADR-020](../../../../docs/decisions/ADR-020-coverage-reports.md)).
+
+**How they were made:**
+
+- **Where:** in a clean export of the pinned commit (`git archive`), never the clone the demo is analyzed from, as an unprivileged user with an empty environment (no credentials, no proxy settings).
+- **Dependencies:** installed from each project's lockfile, with network.
+- **The test run:** in a network namespace with only loopback up.
+- **Files:** kept byte for byte as the tools wrote them. Every path in them is relative to the repository root, or a Go import path.
+
+| File            | Project    | Tools                                                                                                                      | Command                                                                                                               | Result                                                                                                                                                                                                                                                                                                                                     |
+| --------------- | ---------- | -------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `zod.lcov`      | zod        | Node 24.21.0, pnpm 10.18.3, Vitest 4.1.5, @vitest/coverage-v8 4.1.5 (added: zod installs no coverage provider), zshy 0.8.0 | `vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcov --coverage.reportOnFailure`            | 8,334 of 8,336 tests passed. The 2 others need the `attw` tool, which was not installed. 121 source files.                                                                                                                                                                                                                                 |
+| `flask.lcov`    | Flask      | Python 3.13.16, uv 0.9.5 (`uv sync --frozen --group tests`), pytest 9.0.2, coverage.py 7.10.7                              | `coverage run -m pytest`, then `coverage lcov`, with Flask's own `[tool.coverage]` settings (`src/flask` and `tests`) | All 490 tests passed. 58 files.                                                                                                                                                                                                                                                                                                            |
+| `cli.cover.out` | GitHub CLI | Go 1.24.7                                                                                                                  | `go test -coverprofile=cli.cover.out ./...` with `GOCOVERDIR` set                                                     | 210 of 213 packages passed. The failures are environmental: 45 tests compare a helper process's exact output, and a coverage-instrumented helper adds a "GOCOVERDIR not set" warning (their tests give it a fresh environment); 3 tests need an `ssh` client, which was not installed. Coverage of the failing packages is still recorded. |
+
+**Adjustments to make the suites run outside their own tooling:**
+
+- **zod** pins its package manager to Nub, which installs from `pnpm-lock.yaml`.
+  - pnpm read that lockfile after a `pnpm-workspace.yaml` was added, listing the same `packages/*` as zod's `workspaces` field.
+  - pnpm re-encoded the entries Nub writes differently (peer-dependency suffixes, and the workspace's own `zod` as a peer) and dropped two duplicates. Vitest 4.1.5 and TypeScript 5.5.4 stayed at their locked versions.
+  - zod's own build step (`zshy --project tsconfig.build.json` in `packages/zod` and `packages/mini`) ran first, as its CI does.

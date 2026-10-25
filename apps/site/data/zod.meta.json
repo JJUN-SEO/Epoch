@@ -9,12 +9,20 @@
   "copyright": "Copyright (c) 2025 Colin McDonnell",
   "licenseFile": "zod.LICENSE.txt",
   "madeWith": {
-    "epochCommit": "d22a5d44d4baf78066d8489c23c164793f0d4ef2",
-    "command": "epoch --offline analyze <repository> --json"
+    "epochCommit": "128613c1865758a8b4823d034ec4f0f47d4dee7d",
+    "command": "epoch --offline analyze <repository> --json --coverage test-coverage/zod.lcov",
+    "coverage": {
+      "report": "test-coverage/zod.lcov",
+      "ranOn": "2026-10-25",
+      "command": "vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcov --coverage.reportOnFailure",
+      "tools": "Node 24.21.0, Vitest 4.1.5, @vitest/coverage-v8 4.1.5",
+      "tests": "8,334 of 8,336 tests passed; 2 need the attw tool, which was not installed"
+    }
   },
   "counts": {
     "nodes": 526,
     "edges": 1327,
-    "findings": 149
+    "findings": 149,
+    "covered": 103
   }
 }

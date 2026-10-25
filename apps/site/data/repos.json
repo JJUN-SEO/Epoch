@@ -6,7 +6,14 @@
     "url": "https://github.com/colinhacks/zod",
     "commit": "680d19f7d1e042e55934209caeb79bc843b94f44",
     "license": "MIT",
-    "licenseFile": "LICENSE"
+    "licenseFile": "LICENSE",
+    "coverage": {
+      "report": "test-coverage/zod.lcov",
+      "ranOn": "2026-10-25",
+      "command": "vitest run --coverage.enabled --coverage.provider=v8 --coverage.reporter=lcov --coverage.reportOnFailure",
+      "tools": "Node 24.21.0, Vitest 4.1.5, @vitest/coverage-v8 4.1.5",
+      "tests": "8,334 of 8,336 tests passed; 2 need the attw tool, which was not installed"
+    }
   },
   {
     "id": "flask",
@@ -15,7 +22,14 @@
     "url": "https://github.com/pallets/flask",
     "commit": "22d924701a6ae2e4cd01e9a15bbaf3946094af65",
     "license": "BSD-3-Clause",
-    "licenseFile": "LICENSE.txt"
+    "licenseFile": "LICENSE.txt",
+    "coverage": {
+      "report": "test-coverage/flask.lcov",
+      "ranOn": "2026-10-25",
+      "command": "coverage run -m pytest && coverage lcov",
+      "tools": "Python 3.13.16, pytest 9.0.2, coverage.py 7.10.7",
+      "tests": "all 490 tests passed"
+    }
   },
   {
     "id": "cli",
@@ -24,6 +38,13 @@
     "url": "https://github.com/cli/cli",
     "commit": "d2535897fd14a9c9697f3c6f112ce34007a6bf95",
     "license": "MIT",
-    "licenseFile": "LICENSE"
+    "licenseFile": "LICENSE",
+    "coverage": {
+      "report": "test-coverage/cli.cover.out",
+      "ranOn": "2026-10-25",
+      "command": "go test -coverprofile=cli.cover.out ./...",
+      "tools": "Go 1.24.7",
+      "tests": "210 of 213 packages passed; the failures are environmental (see test-coverage/README.md)"
+    }
   }
 ]

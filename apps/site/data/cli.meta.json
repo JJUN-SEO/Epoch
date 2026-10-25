@@ -9,12 +9,20 @@
   "copyright": "Copyright (c) 2019 GitHub Inc.",
   "licenseFile": "cli.LICENSE.txt",
   "madeWith": {
-    "epochCommit": "d22a5d44d4baf78066d8489c23c164793f0d4ef2",
-    "command": "epoch --offline analyze <repository> --json"
+    "epochCommit": "128613c1865758a8b4823d034ec4f0f47d4dee7d",
+    "command": "epoch --offline analyze <repository> --json --coverage test-coverage/cli.cover.out",
+    "coverage": {
+      "report": "test-coverage/cli.cover.out",
+      "ranOn": "2026-10-25",
+      "command": "go test -coverprofile=cli.cover.out ./...",
+      "tools": "Go 1.24.7",
+      "tests": "210 of 213 packages passed; the failures are environmental (see test-coverage/README.md)"
+    }
   },
   "counts": {
     "nodes": 933,
     "edges": 4612,
-    "findings": 0
+    "findings": 0,
+    "covered": 271
   }
 }

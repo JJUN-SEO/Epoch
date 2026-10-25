@@ -4079,6 +4079,7 @@
         "fanOut": 2,
         "dependents": 3,
         "churn90d": 5,
+        "coverage": 1,
         "risk": {
           "tier": "moderate",
           "archetype": "fragile-leaf"
@@ -4196,6 +4197,7 @@
         "fanOut": 3,
         "dependents": 77,
         "churn90d": 3,
+        "coverage": 0.8823529411764706,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -4434,6 +4436,7 @@
         "fanOut": 2,
         "dependents": 77,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -4498,6 +4501,7 @@
         "fanOut": 0,
         "dependents": 78,
         "churn90d": 1,
+        "coverage": 1,
         "risk": {
           "tier": "moderate",
           "archetype": "warm-core"
@@ -4540,6 +4544,7 @@
         "fanOut": 4,
         "dependents": 77,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -4610,6 +4615,7 @@
         "fanOut": 0,
         "dependents": 78,
         "churn90d": 0,
+        "coverage": 0.8208955223880597,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -4655,6 +4661,7 @@
         "fanOut": 2,
         "dependents": 77,
         "churn90d": 0,
+        "coverage": 0.9577464788732394,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -4699,6 +4706,7 @@
         "fanOut": 0,
         "dependents": 4,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low",
           "archetype": "stable-leaf"
@@ -6240,6 +6248,7 @@
         "fanOut": 9,
         "dependents": 77,
         "churn90d": 3,
+        "coverage": 0.9622507122507122,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -6345,6 +6354,7 @@
         "fanOut": 2,
         "dependents": 195,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -6382,6 +6392,7 @@
         "fanOut": 2,
         "dependents": 195,
         "churn90d": 3,
+        "coverage": 0.75,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -6405,6 +6416,7 @@
         "fanOut": 3,
         "dependents": 195,
         "churn90d": 1,
+        "coverage": 1,
         "risk": {
           "tier": "moderate",
           "archetype": "warm-core"
@@ -6433,6 +6445,7 @@
         "fanOut": 2,
         "dependents": 204,
         "churn90d": 3,
+        "coverage": 0.9583333333333334,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -6521,6 +6534,7 @@
         "fanOut": 6,
         "dependents": 195,
         "churn90d": 14,
+        "coverage": 0.8897243107769424,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -6544,6 +6558,7 @@
         "fanOut": 4,
         "dependents": 195,
         "churn90d": 4,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -6596,6 +6611,7 @@
         "fanOut": 2,
         "dependents": 196,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -6634,6 +6650,7 @@
         "fanOut": 2,
         "dependents": 203,
         "churn90d": 3,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -6847,6 +6864,7 @@
         "fanOut": 10,
         "dependents": 202,
         "churn90d": 32,
+        "coverage": 0.9738461538461538,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -9137,6 +9155,7 @@
         "fanOut": 6,
         "dependents": 337,
         "churn90d": 14,
+        "coverage": 0.8297872340425532,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -9233,6 +9252,7 @@
         "fanOut": 5,
         "dependents": 337,
         "churn90d": 11,
+        "coverage": 0.9899497487437185,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -9261,6 +9281,7 @@
         "fanOut": 7,
         "dependents": 337,
         "churn90d": 26,
+        "coverage": 0.9346781940441883,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -9296,6 +9317,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 12,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -9318,6 +9340,7 @@
         "fanOut": 0,
         "dependents": 338,
         "churn90d": 2,
+        "coverage": 0.8636363636363636,
         "risk": {
           "tier": "moderate",
           "archetype": "warm-core"
@@ -9374,6 +9397,7 @@
         "fanOut": 5,
         "dependents": 337,
         "churn90d": 10,
+        "coverage": 0.956140350877193,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -9425,6 +9449,7 @@
         "fanOut": 5,
         "dependents": 337,
         "churn90d": 4,
+        "coverage": 0.6521739130434783,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -9488,6 +9513,7 @@
         "fanOut": 7,
         "dependents": 337,
         "churn90d": 24,
+        "coverage": 0.9755011135857461,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -9546,6 +9572,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 11,
+        "coverage": 0.9931972789115646,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -9608,6 +9635,7 @@
         "fanOut": 4,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -9693,6 +9721,7 @@
         "fanOut": 1,
         "dependents": 337,
         "churn90d": 17,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -9722,6 +9751,7 @@
         "fanOut": 2,
         "dependents": 337,
         "churn90d": 1,
+        "coverage": 0.9642857142857143,
         "risk": {
           "tier": "moderate",
           "archetype": "warm-core"
@@ -10036,6 +10066,7 @@
         "fanOut": 11,
         "dependents": 337,
         "churn90d": 66,
+        "coverage": 0.9653929343907715,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -10747,6 +10778,7 @@
         "fanOut": 6,
         "dependents": 337,
         "churn90d": 16,
+        "coverage": 0.987460815047022,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -10913,6 +10945,7 @@
         "fanOut": 4,
         "dependents": 337,
         "churn90d": 34,
+        "coverage": 0.8055555555555556,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
@@ -10935,6 +10968,7 @@
         "fanOut": 0,
         "dependents": 339,
         "churn90d": 13,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -10959,6 +10993,7 @@
         "fanOut": 2,
         "dependents": 232,
         "churn90d": 5,
+        "coverage": 0.9605263157894737,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11042,9 +11077,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11064,9 +11100,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.35135135135135137,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11086,6 +11123,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.5769230769230769,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11108,9 +11146,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.4222222222222222,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11130,9 +11169,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11152,9 +11192,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11174,9 +11215,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11196,9 +11238,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11218,9 +11261,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11240,9 +11284,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11262,6 +11307,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 5,
+        "coverage": 0.9512195121951219,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11284,6 +11330,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 8,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11306,9 +11353,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11328,6 +11376,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.8780487804878049,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11350,9 +11399,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.32558139534883723,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11372,9 +11422,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.35,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11394,9 +11445,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11416,6 +11468,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 9,
+        "coverage": 0.7804878048780488,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11438,9 +11491,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 5,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11460,6 +11514,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.8409090909090909,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11482,9 +11537,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.35135135135135137,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11504,6 +11560,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.8780487804878049,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11526,9 +11583,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11548,9 +11606,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.2708333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11570,9 +11629,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11676,9 +11736,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11698,9 +11759,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11720,9 +11782,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11742,9 +11805,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.45,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11764,6 +11828,7 @@
         "fanOut": 2,
         "dependents": 337,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -11786,9 +11851,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11808,9 +11874,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11830,9 +11897,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3023255813953488,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11852,9 +11920,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.2692307692307692,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11874,9 +11943,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11896,9 +11966,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11918,9 +11989,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 5,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11940,6 +12012,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.7073170731707317,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -11962,9 +12035,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 8,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -11984,9 +12058,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12006,9 +12081,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12028,9 +12104,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12050,9 +12127,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.32558139534883723,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12072,9 +12150,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 5,
+        "coverage": 0.3181818181818182,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12094,9 +12173,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.32558139534883723,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12116,9 +12196,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 5,
+        "coverage": 0.4594594594594595,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12138,6 +12219,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.5769230769230769,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -12160,9 +12242,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12182,9 +12265,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12204,9 +12288,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.325,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12226,9 +12311,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12248,6 +12334,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 1,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -12270,9 +12357,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12292,6 +12380,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 7,
+        "coverage": 0.8857142857142857,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -12314,6 +12403,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.8648648648648649,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -12336,6 +12426,7 @@
         "fanOut": 2,
         "dependents": 337,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -12358,9 +12449,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12380,9 +12472,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12402,6 +12495,7 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 5,
+        "coverage": 0.8947368421052632,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -12424,9 +12518,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12446,9 +12541,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12468,9 +12564,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.34210526315789475,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12490,9 +12587,10 @@
         "fanOut": 3,
         "dependents": 337,
         "churn90d": 6,
+        "coverage": 0.3333333333333333,
         "risk": {
-          "tier": "high",
-          "archetype": "active-hotspot"
+          "tier": "critical",
+          "archetype": "volatile-core"
         }
       }
     },
@@ -12568,6 +12666,7 @@
         "fanOut": 2,
         "dependents": 40,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -12591,6 +12690,7 @@
         "fanOut": 3,
         "dependents": 40,
         "churn90d": 1,
+        "coverage": 0.5,
         "risk": {
           "tier": "moderate",
           "archetype": "warm-core"
@@ -12673,6 +12773,7 @@
         "fanOut": 4,
         "dependents": 40,
         "churn90d": 4,
+        "coverage": 0.8333333333333334,
         "risk": {
           "tier": "high",
           "archetype": "active-hotspot"
@@ -12724,6 +12825,7 @@
         "fanOut": 2,
         "dependents": 40,
         "churn90d": 0,
+        "coverage": 1,
         "risk": {
           "tier": "low-moderate",
           "archetype": "frozen-core"
@@ -12971,6 +13073,7 @@
         "fanOut": 4,
         "dependents": 44,
         "churn90d": 22,
+        "coverage": 0.9338842975206612,
         "risk": {
           "tier": "critical",
           "archetype": "volatile-core"
