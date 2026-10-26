@@ -9,12 +9,20 @@
   "copyright": "Copyright 2010 Pallets",
   "licenseFile": "flask.LICENSE.txt",
   "madeWith": {
-    "epochCommit": "d22a5d44d4baf78066d8489c23c164793f0d4ef2",
-    "command": "epoch --offline analyze <repository> --json"
+    "epochCommit": "128613c1865758a8b4823d034ec4f0f47d4dee7d",
+    "command": "epoch --offline analyze <repository> --json --coverage test-coverage/flask.lcov",
+    "coverage": {
+      "report": "test-coverage/flask.lcov",
+      "ranOn": "2026-10-25",
+      "command": "coverage run -m pytest && coverage lcov",
+      "tools": "Python 3.13.16, pytest 9.0.2, coverage.py 7.10.7",
+      "tests": "all 490 tests passed"
+    }
   },
   "counts": {
     "nodes": 83,
     "edges": 229,
-    "findings": 0
+    "findings": 0,
+    "covered": 55
   }
 }

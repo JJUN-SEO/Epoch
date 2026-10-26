@@ -13,6 +13,8 @@ interface Repo {
   readonly url: string;
   readonly commit: string;
   readonly license: string;
+  /** A report from the project's own tests, made once (data/test-coverage/README.md). */
+  readonly coverage?: { readonly report: string };
 }
 const repos = JSON.parse(read("repos.json")) as Repo[];
 const findingsReport = fs.readFileSync(
@@ -26,7 +28,8 @@ describe.each(repos)("$name", (repo) => {
     commit: string;
     license: string;
     copyright: string;
-    counts: { nodes: number; edges: number; findings: number };
+    counts: { nodes: number; edges: number; findings: number; covered: number };
+    madeWith: { command: string; coverage?: { report: string } };
   };
 
   it("is the CLI's graph in the current schema", () => {
@@ -36,7 +39,19 @@ describe.each(repos)("$name", (repo) => {
       nodes: graph.nodes.length,
       edges: graph.edges.length,
       findings: graph.findings.length,
+      covered: graph.nodes.filter((n) => n.metrics.coverage !== undefined)
+        .length,
     });
+  });
+
+  it("uses the coverage report made from the project's own tests", () => {
+    if (repo.coverage === undefined) return;
+    expect(meta.madeWith.coverage?.report).toBe(repo.coverage.report);
+    expect(meta.madeWith.command).toContain(
+      `--coverage ${repo.coverage.report}`,
+    );
+    expect(read(repo.coverage.report).length).toBeGreaterThan(0);
+    expect(meta.counts.covered).toBeGreaterThan(0);
   });
 
   it("is canonical: repo-relative ids, no machine paths", () => {

@@ -33,6 +33,15 @@ interface DemoMeta {
   readonly license: string;
   readonly copyright: string;
   readonly licenseFile: string;
+  readonly madeWith: {
+    /** A report from the project's own tests, run once (data/test-coverage/README.md). */
+    readonly coverage?: {
+      readonly ranOn: string;
+      readonly command: string;
+      readonly tools: string;
+      readonly tests: string;
+    };
+  };
 }
 
 const element = document.getElementById("root");
@@ -69,6 +78,14 @@ demos[id]()
             ({meta.commitDate.slice(0, 10)}). {meta.copyright},{" "}
             <a href={`./data/${meta.licenseFile}`}>{meta.license}</a>.
           </span>
+          {meta.madeWith.coverage && (
+            <span
+              data-testid="coverage-source"
+              title={`${meta.madeWith.coverage.command} (${meta.madeWith.coverage.tools}): ${meta.madeWith.coverage.tests}.`}
+            >
+              Coverage from its own tests, run {meta.madeWith.coverage.ranOn}.
+            </span>
+          )}
           <span>No source code or model features in this demo.</span>
           <a className="push" href="./">
             About Epoch

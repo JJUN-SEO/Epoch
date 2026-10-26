@@ -85,3 +85,38 @@ Why nothing showed, from the code at `7d1f1c1`:
 - **Limits:**
   - A report older than the code is used as it is, and the UI says a report may be older than the code.
   - Lines are matched by path, never by content.
+
+## Amendment (2026-10-25): coverage in the static demo
+
+**Why.** None of the three demo repositories (zod, Flask, GitHub CLI) commits a coverage report at its pinned commit, so the demo showed no coverage, and its risk tiers judged fragility by size alone. The maintainer asked for coverage in the demo.
+
+**What.**
+
+- **Made once, by a developer.** Each project's own tests ran once, on 2026-10-25, to write a report: Vitest with v8 for zod, coverage.py for Flask, `go test -coverprofile` for GitHub CLI. Epoch itself still never runs tests. This is a developer running third-party code to make demo data, the way ADR-006 allows reference tools on pinned clones.
+- **Contained.** Each run used:
+  - a clean `git archive` export of the pinned commit, never the clone the demo is analyzed from;
+  - an unprivileged user with an empty environment (no credentials, no proxy settings);
+  - dependencies installed from each project's lockfile;
+  - a network namespace with only loopback up for the test run.
+- **Committed as data.** The reports are kept byte for byte in `apps/site/data/test-coverage/`, with the tools, commands and test results in its README and in `repos.json`. `scripts/site-data.mjs` passes each one to `epoch analyze --coverage`, and `<id>.meta.json` records it. The reports are inputs only and are not published with the site.
+- **Labelled.** The demo's attribution bar says "Coverage from its own tests, run 2026-10-25", with the command, tools and test result in its tooltip.
+
+**Results** (`pnpm site:data`):
+
+| Demo       | Files covered                                                                            | Test run                                                                                                         |
+| ---------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| zod        | 121 files matched, 103 with executable lines                                             | 8,334 of 8,336 tests passed; 2 need the `attw` tool                                                              |
+| Flask      | 55 files (the report's other 3 entries: 2 files with no statements and a Jinja template) | all 490 tests passed                                                                                             |
+| GitHub CLI | 457 Go files in 271 packages                                                             | 210 of 213 packages passed; the failures are environmental (a coverage warning in exact-output checks, no `ssh`) |
+
+**What changed in the demo.** Edges and findings are byte-identical; only risk tiers moved:
+
+- **zod:** 48 locale files (`packages/zod/src/v4/locales/*.ts`) went from high to critical. Each has 337 dependents and 6 commits in the 90-day window, and its tests run 33–42% of its lines, because only the English messages are exercised.
+- **GitHub CLI:** 2 packages moved up: `internal/authflow` (8% covered) and `pkg/cmd/search` (0%).
+- **Flask:** no tier changed.
+
+**Limits.**
+
+- The reports are a snapshot from one run and are not re-run.
+- zod installs no coverage provider of its own, so `@vitest/coverage-v8` 4.1.5 (matching its Vitest) was added for the run.
+- GitHub CLI's failing packages still record coverage, but code reached only by the failing tests counts as uncovered.

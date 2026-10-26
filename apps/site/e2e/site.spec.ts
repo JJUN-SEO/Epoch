@@ -17,6 +17,7 @@ interface Meta {
   readonly license: string;
   readonly copyright: string;
   readonly licenseFile: string;
+  readonly madeWith: { readonly coverage?: { readonly ranOn: string } };
 }
 const demos = ["zod", "flask", "cli"].map((id) => ({
   meta: read(`${id}.meta.json`) as Meta,
@@ -75,6 +76,11 @@ for (const { meta, graph } of demos) {
       attribution.getByRole("link", { name: meta.license }),
     ).toHaveAttribute("href", `./data/${meta.licenseFile}`);
     await expect(attribution).toContainText("No source code or model features");
+    if (meta.madeWith.coverage) {
+      await expect(page.getByTestId("coverage-source")).toHaveText(
+        `Coverage from its own tests, run ${meta.madeWith.coverage.ranOn}.`,
+      );
+    }
     await expect(page.getByTestId("graph-stats")).toContainText(stats(graph));
     expect(await page.evaluate(() => "epoch" in window)).toBe(false);
     expect(outside).toEqual([]);

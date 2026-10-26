@@ -7,7 +7,9 @@
 //    pinned commit, which must be what HEAD resolves to;
 // 2. `epoch --offline analyze <repo> --json`, the built CLI, with no
 //    embedding model (so the result is the same on every machine), and its
-//    stdout written byte for byte to apps/site/data/<id>.graph.json;
+//    stdout written byte for byte to apps/site/data/<id>.graph.json. With
+//    the repository's coverage report (apps/site/data/test-coverage/, made once
+//    from its own tests; see the README there), also `--coverage <report>`;
 // 3. <id>.meta.json (where it came from and how it was made) and
 //    <id>.LICENSE.txt (the repository's license at that commit).
 //
@@ -68,14 +70,21 @@ function checkout(repo) {
   return dir;
 }
 
-function analyze(dir) {
+function analyze(dir, coverage) {
   // A throwaway cache: the output does not depend on it, and the user's own
   // cache stays untouched.
   const cache = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-site-data-"));
   try {
     const r = spawnSync(
       process.execPath,
-      [cli, "--offline", "analyze", dir, "--json"],
+      [
+        cli,
+        "--offline",
+        "analyze",
+        dir,
+        "--json",
+        ...(coverage === undefined ? [] : ["--coverage", coverage]),
+      ],
       {
         encoding: "utf8",
         maxBuffer: 512 * 1024 * 1024,
@@ -104,7 +113,11 @@ function main(ids) {
     if (ids.length > 0 && !ids.includes(repo.id)) continue;
     const dir = checkout(repo);
     process.stderr.write(`site-data: ${repo.id} at ${repo.commit}\n`);
-    const graph = analyze(dir);
+    const coverage =
+      repo.coverage === undefined
+        ? undefined
+        : path.join(dataDir, repo.coverage.report);
+    const graph = analyze(dir, coverage);
     const parsed = JSON.parse(graph);
     fs.writeFileSync(path.join(dataDir, `${repo.id}.graph.json`), graph);
     const license = git(dir, "show", `${repo.commit}:${repo.licenseFile}`);
@@ -124,12 +137,15 @@ function main(ids) {
       licenseFile: `${repo.id}.LICENSE.txt`,
       madeWith: {
         epochCommit,
-        command: "epoch --offline analyze <repository> --json",
+        command: `epoch --offline analyze <repository> --json${repo.coverage === undefined ? "" : ` --coverage ${repo.coverage.report}`}`,
+        ...(repo.coverage === undefined ? {} : { coverage: repo.coverage }),
       },
       counts: {
         nodes: parsed.nodes.length,
         edges: parsed.edges.length,
         findings: parsed.findings.length,
+        covered: parsed.nodes.filter((n) => n.metrics.coverage !== undefined)
+          .length,
       },
     };
     fs.writeFileSync(
