@@ -1,7 +1,7 @@
 {
   "name": "@epoch-dev/app",
   "productName": "Epoch",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Epoch desktop app: Electron main process, preload bridge and analysis host.",
   "license": "MIT",
