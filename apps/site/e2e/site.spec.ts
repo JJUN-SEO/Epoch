@@ -134,3 +134,47 @@ test("zod blast radius matches the core calculation", async ({ page }) => {
     `${String(expected.total)} files`,
   );
 });
+
+test("zod shows which files its tests cover, and why others have no coverage", async ({
+  page,
+}) => {
+  const zod = demos.find((d) => d.meta.id === "zod");
+  if (!zod) throw new Error("no zod demo");
+  const covered = zod.graph.nodes.find(
+    (n) => n.id === "packages/zod/src/v4/locales/ar.ts",
+  );
+  const uncovered = zod.graph.nodes.find(
+    (n) => n.language === "typescript" && n.metrics.coverage === undefined,
+  );
+  if (covered?.metrics.coverage === undefined || !uncovered)
+    throw new Error("the zod demo lost its coverage");
+  await page.goto("./demo.html?repo=zod");
+  await page
+    .getByRole("group", { name: "Color by" })
+    .getByRole("button", { name: "Coverage" })
+    .click();
+  const legend = page.getByTestId("color-legend");
+  await expect(legend).toContainText("Test coverage");
+  await expect(legend).toContainText("Under 50%");
+  await expect(legend).toContainText("No coverage");
+
+  const open = async (id: string) => {
+    await page
+      .getByRole("button", { name: "Search files and commands" })
+      .click();
+    await page
+      .getByRole("combobox", { name: "Search files and commands" })
+      .fill(id);
+    await page.getByRole("option", { name: id, exact: true }).click();
+  };
+  await open(covered.id);
+  await expect(page.getByTestId("coverage-value")).toContainText(
+    `${(covered.metrics.coverage * 100).toFixed(0)}%`,
+  );
+  await expect(page.getByTestId("coverage-note")).toHaveCount(0);
+  await open(uncovered.id);
+  await expect(page.getByTestId("coverage-value")).toContainText("—");
+  await expect(page.getByTestId("coverage-note")).toHaveText(
+    "Not in the coverage report: its tests may not load this file, or the report is older than it.",
+  );
+});

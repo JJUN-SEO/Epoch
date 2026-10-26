@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import type { AnalysisInfo } from "@epoch-dev/core";
-import { coverageLines, coverageSummary } from "./coverage";
+import {
+  coverageLines,
+  coverageSummary,
+  fileCoverage,
+  hasCoverage,
+} from "./coverage";
+import { graph, node } from "../graph/test-graph";
 
 const report = {
   source: "coverage/lcov.info",
@@ -65,5 +71,36 @@ describe("coverageLines", () => {
     expect(
       coverageLines({ reports: [{ ...report, files: 1, format: "go" }] }),
     ).toEqual(["coverage/lcov.info (Go profile): 1 file"]);
+  });
+});
+
+describe("fileCoverage", () => {
+  it("gives the share of lines run, or why there is none", () => {
+    const app = { reportRead: false, desktop: true };
+    expect(fileCoverage(0.333, app)).toEqual({
+      value: "33%",
+      note: "Tests run 33% of its lines.",
+    });
+    expect(fileCoverage(undefined, { ...app, reportRead: true }).note).toBe(
+      "Not in the coverage report: its tests may not load this file, or the report is older than it.",
+    );
+    expect(fileCoverage(undefined, app).note).toMatch(
+      /^No coverage report found\. Epoch never runs your tests: run them with coverage/,
+    );
+    expect(
+      fileCoverage(undefined, { reportRead: false, desktop: false }).note,
+    ).toBe("This demo has no coverage report for this project.");
+  });
+
+  it("knows whether a report was read from the graph alone", () => {
+    const g = graph(["a.ts", "b.ts"]);
+    expect(hasCoverage(g)).toBe(false);
+    const withOne = {
+      ...g,
+      nodes: [
+        { ...node("a.ts"), metrics: { fanIn: 0, fanOut: 0, coverage: 0 } },
+      ],
+    };
+    expect(hasCoverage(withOne)).toBe(true);
   });
 });

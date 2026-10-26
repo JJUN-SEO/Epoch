@@ -73,6 +73,7 @@ import { ResizeHandle } from "./ResizeHandle";
 import { isTyping, matches, shortcutLabel, type Shortcut } from "./shortcuts";
 import { Sidebar, type View } from "./Sidebar";
 import { StatusBar } from "./StatusBar";
+import { hasCoverage } from "./coverage";
 import { TitleBar } from "./TitleBar";
 
 /** The 3D overview (three.js) is its own chunk, loaded on first use. */
@@ -108,7 +109,8 @@ const ECHO_MS = 150;
 const NEXT_COLOR_BY: Readonly<Record<ColorBy, ColorBy>> = {
   folder: "language",
   language: "risk",
-  risk: "folder",
+  risk: "coverage",
+  coverage: "folder",
 };
 const VIEW_COMMANDS: Readonly<Record<View, CommandId>> = {
   graph: "view.graph",
@@ -119,6 +121,7 @@ const COLOR_BY_NAMES: Readonly<Record<ColorBy, string>> = {
   folder: "Folder",
   language: "Language",
   risk: "Risk",
+  coverage: "Coverage",
 };
 
 /**
@@ -230,6 +233,7 @@ export function Workspace({
     () => nodeColors(graph, prefs.colorBy),
     [graph, prefs.colorBy],
   );
+  const reportRead = useMemo(() => hasCoverage(graph), [graph]);
   const visible = useMemo(
     () => aggregate(graph, { expanded, ...display }),
     [graph, expanded, display],
@@ -961,6 +965,38 @@ export function Workspace({
                 }}
               />
             )}
+          {view !== "findings" &&
+            !(view === "graph" && !mode3d && visibleImpact) &&
+            (prefs.colorBy === "risk" || prefs.colorBy === "coverage") && (
+              <div
+                data-testid="color-legend"
+                className="bg-raised/90 border-line text-muted pointer-events-none absolute top-3 left-3 flex max-w-56 flex-col gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] backdrop-blur"
+              >
+                <span className="text-fg font-medium">
+                  {prefs.colorBy === "risk" ? "Risk" : "Test coverage"}
+                </span>
+                {colors.legend.map(({ label, color }) => (
+                  <span
+                    key={label}
+                    className="inline-flex items-center gap-1.5"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 rounded-full"
+                      style={{ backgroundColor: color }}
+                    />
+                    {label}
+                  </span>
+                ))}
+                {prefs.colorBy === "coverage" && !reportRead && (
+                  <span className="text-fg">
+                    {shell
+                      ? "No report yet: run your tests with coverage (see Test coverage below)"
+                      : "No coverage report in this demo"}
+                  </span>
+                )}
+              </div>
+            )}
           {view === "graph" && !mode3d && visibleImpact && (
             <div
               data-testid="impact-legend"
@@ -1114,6 +1150,7 @@ export function Workspace({
                     }
                     onToggleFolder={toggleDir}
                     summary={summaryProps}
+                    desktop={shell !== undefined}
                   />
                 )
               }

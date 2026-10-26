@@ -45,6 +45,13 @@ async function dialogAnswers(file: string): Promise<void> {
   }, file);
 }
 
+/** Selects a node through its accessible button, as a keyboard user does. */
+async function selectNode(id: string): Promise<void> {
+  const button = epoch.page.locator(`button[data-node-id="${id}"]`);
+  await button.focus();
+  await button.press("Enter");
+}
+
 /** Opens a folder the way a user does: File > Open Project…, then the dialog. */
 async function open(dir: string): Promise<void> {
   await dialogAnswers(dir);
@@ -73,6 +80,12 @@ test("coverage reports: found live, chosen in the panel, remembered and cleared"
     { timeout: 20_000 },
   );
   await expect(status).toHaveText("No test coverage report");
+  // A file says why it has no coverage, and what to do.
+  await selectNode("src/b.ts");
+  await expect(page.getByTestId("coverage-value")).toContainText("—");
+  await expect(page.getByTestId("coverage-note")).toContainText(
+    "No coverage report found. Epoch never runs your tests",
+  );
 
   // A test run writes its report (and an HTML report beside it).
   write(dir, "coverage/lcov-report/index.html", "<html></html>");
@@ -80,6 +93,11 @@ test("coverage reports: found live, chosen in the panel, remembered and cleared"
   await expect(status).toHaveText("Test coverage: coverage/lcov.info", {
     timeout: 20_000,
   });
+  await expect(page.getByTestId("coverage-value")).toContainText("100%");
+  await selectNode("src/a.ts");
+  await expect(page.getByTestId("coverage-note")).toHaveText(
+    "Not in the coverage report: its tests may not load this file, or the report is older than it.",
+  );
 
   await status.click();
   const panel = page.getByRole("dialog", { name: "Test coverage" });
