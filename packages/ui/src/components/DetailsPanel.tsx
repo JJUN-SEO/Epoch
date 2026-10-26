@@ -15,6 +15,7 @@ import {
 import { ancestors, dirPath, isDirId } from "../graph/aggregate";
 import { RISK_TIER_LABELS, riskColor } from "../graph/colors";
 import { languageName } from "../languages";
+import { fileCoverage, hasCoverage } from "../shell/coverage";
 import { gitSummary } from "../shell/StatusBar";
 import {
   SummarySection,
@@ -36,6 +37,8 @@ export interface DetailsPanelProps {
   readonly onToggleFolder: (id: string) => void;
   /** Model summaries (the desktop app); absent in the static demo. */
   readonly summary?: Omit<SummarySectionProps, "subject"> | undefined;
+  /** The desktop app, which reads coverage reports from the project; not the static demo. */
+  readonly desktop?: boolean;
 }
 
 function EdgeList(props: {
@@ -172,10 +175,21 @@ function LikelyList(props: {
   );
 }
 
-function Stat(props: { readonly label: string; readonly value: string }) {
+function Stat(props: {
+  readonly label: string;
+  readonly value: string;
+  readonly title?: string;
+  readonly testId?: string;
+}) {
   return (
-    <div className="bg-sunken rounded-md px-2 py-1.5">
-      <dt className="text-muted text-[11px]">{props.label}</dt>
+    <div
+      className="bg-sunken min-w-fit flex-1 rounded-md px-2 py-1.5"
+      title={props.title}
+      data-testid={props.testId}
+    >
+      <dt className="text-muted text-[11px] whitespace-nowrap">
+        {props.label}
+      </dt>
       <dd className="text-[15px] font-semibold tabular-nums">{props.value}</dd>
     </div>
   );
@@ -253,6 +267,8 @@ const plural = (n: number, one: string) =>
 function RiskSection(props: {
   readonly node: GraphNode;
   readonly analysis: AnalysisInfo | null;
+  /** Whether a coverage report was read (some file has coverage). */
+  readonly reportRead: boolean;
 }) {
   const { node } = props;
   if (!isScoredNode(node)) return null;
@@ -290,7 +306,7 @@ function RiskSection(props: {
       label: a.fragility === "fragile" ? "Fragile" : "Sturdy",
       text:
         m.coverage === undefined
-          ? `${plural(node.loc, "line")} (fragile above ${String(t.fragileAboveLoc)}); judged by size, since no test coverage report was found`
+          ? `${plural(node.loc, "line")} (fragile above ${String(t.fragileAboveLoc)}); judged by size, since ${props.reportRead ? "the coverage report has no lines for it" : "no test coverage report was found"}`
           : `${plural(node.loc, "line")}, ${(m.coverage * 100).toFixed(0)}% covered (fragile above ${String(t.fragileAboveLoc)} lines or below ${String(t.fragileBelowCoverage * 100)}% coverage)`,
     },
   ];
@@ -331,6 +347,7 @@ export function DetailsPanel({
   folderOpen,
   onToggleFolder,
   summary,
+  desktop = false,
 }: DetailsPanelProps) {
   if (selected === undefined) {
     return (
@@ -402,6 +419,11 @@ export function DetailsPanel({
   );
   const unresolved = graph.unresolved.filter((u) => u.from === node.id);
   const tier = LANGUAGE_TIERS[node.language];
+  const reportRead = hasCoverage(graph);
+  // Source files only: assets (JSON, CSS, images) have no tests to run them.
+  const covered = isScoredNode(node)
+    ? fileCoverage(node.metrics.coverage, { reportRead, desktop })
+    : undefined;
 
   return (
     <div data-testid="details" className="pb-4">
@@ -419,15 +441,31 @@ export function DetailsPanel({
           </Button>
         }
       />
-      <dl className="grid grid-cols-3 gap-1.5 px-3 pt-3">
+      <dl className="flex flex-wrap gap-1.5 px-3 pt-3">
         <Stat label="Lines" value={String(node.loc)} />
         <Stat label="Imported by" value={String(node.metrics.fanIn)} />
         <Stat label="Imports" value={String(node.metrics.fanOut)} />
+        {covered && (
+          <Stat
+            label="Covered"
+            value={covered.value}
+            title={covered.note}
+            testId="coverage-value"
+          />
+        )}
       </dl>
+      {covered && node.metrics.coverage === undefined && (
+        <p
+          data-testid="coverage-note"
+          className="text-muted px-3 pt-1.5 text-[12px]"
+        >
+          {covered.note}
+        </p>
+      )}
       {summary && (
         <SummarySection key={node.id} subject={node.id} {...summary} />
       )}
-      <RiskSection node={node} analysis={analysis} />
+      <RiskSection node={node} analysis={analysis} reportRead={reportRead} />
       {node.exports.length > 0 && (
         <section>
           <SectionTitle>Exports ({node.exports.length})</SectionTitle>

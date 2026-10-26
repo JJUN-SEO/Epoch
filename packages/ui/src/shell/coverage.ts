@@ -1,4 +1,4 @@
-import type { AnalysisInfo } from "@epoch-dev/core";
+import type { AnalysisInfo, Graph } from "@epoch-dev/core";
 
 /*
  * What the status bar and the coverage panel say about test coverage
@@ -75,5 +75,36 @@ export function coverageSummary(info: AnalysisInfo | null): {
         ? `Test coverage: ${first.source}`
         : `Test coverage: ${plural(c.reports.length, "report")}`,
     title: `Coverage from ${coverageLines(c).join("; ")}. A report may be older than the code.`,
+  };
+}
+
+/** Whether any file in the graph has coverage, i.e. a report was read. */
+export const hasCoverage = (graph: Graph): boolean =>
+  graph.nodes.some((n) => n.metrics.coverage !== undefined);
+
+/**
+ * One file's coverage as the details panel shows it: the share of its lines
+ * tests run, or why there is none. `desktop`: the app, which can look for
+ * reports again; the static demo cannot.
+ */
+export function fileCoverage(
+  coverage: number | undefined,
+  context: { readonly reportRead: boolean; readonly desktop: boolean },
+): { readonly value: string; readonly note: string } {
+  if (coverage !== undefined) {
+    const pct = (coverage * 100).toFixed(0);
+    return { value: `${pct}%`, note: `Tests run ${pct}% of its lines.` };
+  }
+  if (context.reportRead) {
+    return {
+      value: "—",
+      note: "Not in the coverage report: its tests may not load this file, or the report is older than it.",
+    };
+  }
+  return {
+    value: "—",
+    note: context.desktop
+      ? "No coverage report found. Epoch never runs your tests: run them with coverage, and the report shows up here (see Test coverage in the status bar)."
+      : "This demo has no coverage report for this project.",
   };
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  COVERAGE_COLORS,
   RISK_TIER_COLORS,
+  coverageColor,
   languageColor,
   nodeColors,
   riskColor,
@@ -71,6 +73,43 @@ describe("node colors", () => {
       "No tier",
     ]);
     expect(riskColor(undefined)).toBe(languageColor(undefined));
+  });
+
+  it("colors by coverage, folders by their files' covered lines, uncovered nodes neutral", () => {
+    const covered = (id: string, coverage: number, loc: number) => ({
+      ...node(id),
+      loc,
+      metrics: { fanIn: 0, fanOut: 0, coverage },
+    });
+    const g = {
+      ...graph([]),
+      nodes: [
+        covered("src/a.ts", 0.9, 100),
+        covered("src/b.ts", 0.2, 300),
+        covered("lib/c.ts", 0.6, 10),
+        node("lib/d.ts"),
+      ],
+    };
+    const c = nodeColors(g, "coverage");
+    expect(c.colorOf("src/a.ts", "typescript")).toBe(coverageColor(0.9));
+    expect(coverageColor(0.9)).toBe(COVERAGE_COLORS.high);
+    expect(c.colorOf("src/b.ts", "typescript")).toBe(COVERAGE_COLORS.low);
+    expect(c.colorOf("lib/c.ts", "typescript")).toBe(COVERAGE_COLORS.medium);
+    expect(c.colorOf("lib/d.ts", "typescript")).toBe(languageColor(undefined));
+    // src: (90 + 60) of 400 lines run = 37.5%; lib counts only its covered file.
+    expect(c.colorOf("src", undefined)).toBe(COVERAGE_COLORS.low);
+    expect(c.colorOf("lib", undefined)).toBe(COVERAGE_COLORS.medium);
+    expect(c.colorOf("docs", undefined)).toBe(languageColor(undefined));
+    expect(c.legend.map((l) => l.label)).toEqual([
+      "80% or more",
+      "50–79%",
+      "Under 50%",
+      "No coverage",
+    ]);
+    // The boundaries: 50% is where a file stops being fragile.
+    expect(coverageColor(0.5)).toBe(COVERAGE_COLORS.medium);
+    expect(coverageColor(0.8)).toBe(COVERAGE_COLORS.high);
+    expect(coverageColor(undefined)).toBe(languageColor(undefined));
   });
 
   it("finds the top-level folder", () => {

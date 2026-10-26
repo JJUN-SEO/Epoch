@@ -1,12 +1,17 @@
-import { RISK_TIERS, type Graph, type RiskTier } from "@epoch-dev/core";
+import {
+  RISK_DEFAULTS,
+  RISK_TIERS,
+  type Graph,
+  type RiskTier,
+} from "@epoch-dev/core";
 
 /*
  * Node colors. By folder (the default: most repositories are one language,
- * so folders say more), by language, or by risk tier (ADR-015). Pure, for
- * the tests.
+ * so folders say more), by language, by risk tier (ADR-015), or by test
+ * coverage (ADR-020). Pure, for the tests.
  */
 
-export type ColorBy = "folder" | "language" | "risk";
+export type ColorBy = "folder" | "language" | "risk" | "coverage";
 
 export const RISK_TIER_LABELS: Readonly<Record<RiskTier, string>> = {
   critical: "Critical",
@@ -28,6 +33,24 @@ export const RISK_TIER_COLORS: Readonly<Record<RiskTier, string>> = {
 /** The color for a risk tier; neutral for a node without one. */
 export function riskColor(tier: RiskTier | undefined): string {
   return tier === undefined ? NEUTRAL : RISK_TIER_COLORS[tier];
+}
+
+/** Coverage buckets: under 50% is where a file counts as fragile (ADR-015). */
+export const COVERAGE_COLORS = {
+  high: "#3f9b6b",
+  medium: "#c9a227",
+  low: "#d64545",
+} as const;
+
+const GOOD_COVERAGE = 0.8;
+
+/** The color for a share of lines run by tests; neutral without coverage. */
+export function coverageColor(coverage: number | undefined): string {
+  if (coverage === undefined) return NEUTRAL;
+  if (coverage >= GOOD_COVERAGE) return COVERAGE_COLORS.high;
+  return coverage >= RISK_DEFAULTS.fragileBelowCoverage
+    ? COVERAGE_COLORS.medium
+    : COVERAGE_COLORS.low;
 }
 
 /** The riskier of two tiers (undefined when neither has one). */
@@ -85,6 +108,37 @@ export interface NodeColors {
 }
 
 export function nodeColors(graph: Graph, by: ColorBy): NodeColors {
+  if (by === "coverage") {
+    const ids = new Set(graph.nodes.map((n) => n.id));
+    const covered = new Map<string, { coverage: number; loc: number }>();
+    for (const n of graph.nodes) {
+      if (n.metrics.coverage !== undefined)
+        covered.set(n.id, { coverage: n.metrics.coverage, loc: n.loc });
+    }
+    return {
+      by,
+      // Folders show the share of their covered files' lines that tests run.
+      colorOf: (id, language) => {
+        if (language !== undefined || ids.has(id)) {
+          return coverageColor(covered.get(id)?.coverage);
+        }
+        let lines = 0;
+        let run = 0;
+        for (const [nid, c] of covered) {
+          if (!nid.startsWith(`${id}/`)) continue;
+          lines += c.loc;
+          run += c.coverage * c.loc;
+        }
+        return coverageColor(lines > 0 ? run / lines : undefined);
+      },
+      legend: [
+        { label: "80% or more", color: COVERAGE_COLORS.high },
+        { label: "50–79%", color: COVERAGE_COLORS.medium },
+        { label: "Under 50%", color: COVERAGE_COLORS.low },
+        { label: "No coverage", color: NEUTRAL },
+      ],
+    };
+  }
   if (by === "risk") {
     const tiers = new Map(
       graph.nodes.map((n) => [n.id, n.metrics.risk?.tier] as const),

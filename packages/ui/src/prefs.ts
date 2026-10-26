@@ -75,7 +75,10 @@ export function parsePrefs(raw: unknown): Prefs {
     sidebarWidth: clampWidth(r.sidebarWidth, d.sidebarWidth),
     inspectorWidth: clampWidth(r.inspectorWidth, d.inspectorWidth),
     colorBy:
-      r.colorBy === "language" || r.colorBy === "folder" || r.colorBy === "risk"
+      r.colorBy === "language" ||
+      r.colorBy === "folder" ||
+      r.colorBy === "risk" ||
+      r.colorBy === "coverage"
         ? r.colorBy
         : d.colorBy,
     hops: r.hops === 1 || r.hops === 2 || r.hops === 3 ? r.hops : d.hops,

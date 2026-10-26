@@ -30,6 +30,15 @@ In a monorepo, each package's own report covers that package. When reports overl
 
 A report written while the project is open shows up at once: the app watches these files, but not the HTML report next to them.
 
+## Seeing coverage
+
+- **At a glance:** choose **Coverage** under "Color by" in the graph toolbar. Files are green at 80% or more, amber from 50% to 79%, red under 50% (where a file counts as fragile), and gray with no coverage. A folder takes the share of its covered files' lines that tests run. The legend sits in the top-left corner.
+- **One file:** select it. The details panel's **Covered** tile gives the share of its lines that tests run, and the Risk section shows how that feeds the tier.
+- **No coverage on a file:** the panel says why:
+  - no report was found: run your tests with coverage, and the file updates as soon as the report is written;
+  - or the report has no lines for that file: its tests may not load it, or the report is older than the file.
+- **Which reports were read:** the status bar's coverage item (the desktop app). Click it for the list, the commands that write a report, and **Choose report…**.
+
 ## Choosing a report by hand
 
 If your report has another name or lives somewhere else, click the coverage item in the status bar and choose **Choose report…**. Pick a file inside the project folder; Epoch refuses anything outside it. The choice is remembered for the project, in Epoch's own app data (never in your project), and replaces looking. **Look for reports again** forgets it.
