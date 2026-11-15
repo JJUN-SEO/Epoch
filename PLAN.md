@@ -44,6 +44,7 @@ You are the build agent. Work in plan mode first, then implement, one milestone 
 | Hint edges, scorers, evaluation | M6 | RelationScorer, Edge traversal policy |
 | Keys, cost guardrails, summaries, offline | M7 | Privacy and data flow, Bring your own keys |
 | Installers, release, demo site, README | M8 | Distribution, Definition of done for MVP |
+| Post-MVP: agent access and change impact | M9 | Graph queries, Privacy and data flow, CI use, Commands, Distribution |
 
 ## ADR register
 
@@ -71,6 +72,7 @@ Write each ADR in `docs/decisions/` as `ADR-00N-title.md` (context, options, mea
 | ADR-018 | M8 | Distribution: size trims, Electron fuses (inspector off in installers, on only in the CI e2e build), installers per OS, the release workflow, the update check |
 | ADR-019 | M7 | OpenAI and Gemini as summary providers: plain fetch through the network module, keys in headers, `store: false`, consent per provider, shipped default-model prices; `bench:summaries --provider` |
 | ADR-020 | M4 | Coverage reports: Istanbul JSON, Clover XML and Go profiles added, coverage.py's SQLite file not read, reports found in every project folder (the most specific wins), live refresh, a report chosen in the app; a CLAUDE.md change |
+| ADR-021 | M9 | Agent access and change impact: dependency path, change impact and clusters as pure functions in `core`; `epoch impact`, `path`, `explain`, `export`; a read-only MCP server on stdio with the v2 server SDK, facts only, always offline, nothing installed into the project; a CLAUDE.md change |
 
 ## Questions to ask me
 
@@ -373,6 +375,33 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Acceptance:** CI-built installers for macOS and Windows (Linux if time) from a tag; clean-machine smoke test passes; every README number traces to a script.
 
 **Release gate:** the tag run passed and drafted `v0.1.0`. Still open: review and publish the draft, enable the GitHub Actions source in Pages, and merge to `main`, since `site.yml` deploys only from `main`. No Pages URL is claimed live before its first deploy.
+
+---
+
+## M9: Agent access and change impact (post-MVP, approved 2026-11-15)
+
+**Goal:** an AI agent and a pull request can ask Epoch what a change touches, how risky it is, and how two files connect, without Epoch writing into the project or opening a port.
+**Spec refs:** Graph queries, Privacy and data flow, CI use, Commands, Distribution. ADR-021.
+
+**Tasks**
+- [ ] **Pure functions in `core`** (tests first): `dependencyPath`, `changeImpact`, `clusters` (Louvain, deterministic), and the most depended-on nodes.
+- [ ] **CLI:** `epoch impact` (`--base` or `--files`, `--json`, `--markdown`, `--fail-on <tier>`), `epoch path`, `epoch explain`, `epoch export` (GraphML, Mermaid, DOT).
+- [ ] **Agent server `epoch mcp`:** MCP on stdio with `@modelcontextprotocol/server` (pinned); eight read-only tools (`overview`, `find`, `explain`, `blast_radius`, `impact`, `path`, `risk`, `findings`); facts only, capped lists; always offline; incremental re-check before answering.
+- [ ] **App and demo site:** "Path to…" in the details panel, "Color by: Cluster" with a legend, a "Most depended-on" list, all from the `core` functions in the renderer.
+- [ ] **npm package `@epoch-dev/cli`:** workspace packages bundled, third-party dependencies declared, version from the app; CI installs the packed tarball on macOS, Windows and Linux and runs an analysis and an agent round trip; a publish step that runs only once the maintainer has set up npm (ADR-018 amendment).
+- [ ] **Docs:** `docs/agents.md` (the line to add for Claude Code, Cursor and Codex, each from that client's current docs), `docs/cli.md`, `docs/privacy.md`, a README section, and `docs/comparison.md` (a dated, sourced table against GitNexus and Graphify).
+
+**Tests**
+- Unit tests for each function and each tool handler.
+- A protocol test: start `epoch mcp` on a fixture and call every tool through the official client.
+- No source in results: a marker in the fixture's file bodies appears in no tool result.
+- Read-only: the fixture folder is byte-identical after a session.
+- The zero-network test covers an agent session and the new commands.
+- e2e: path and cluster legend in the app and on the zod demo.
+
+**Acceptance:** an agent started with one documented line answers all eight tools on zod; `epoch impact --base` fails a CI job at the chosen tier; the tarball installs and runs on all three systems; no test above is skipped.
+
+**Gate:** I review. Publishing to npm waits for the maintainer's npm organisation and token.
 
 ---
 

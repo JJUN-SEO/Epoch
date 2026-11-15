@@ -36,6 +36,9 @@ Precedence: CLAUDE.md > ADRs > PLAN.md. If they conflict, stop and ask. A change
 7. **[M7]** Bring-your-own keys, cost guardrails, opt-in summaries, offline mode.
 8. **[M8]** Installers, release pipeline, static demo site, README.
 
+### Post-MVP, approved (each item is tagged with its milestone in PLAN.md)
+1. **[M9]** Agent access and change impact: dependency path, change impact and clusters in `core`; `epoch impact`, `path`, `explain` and `export`; a read-only agent server over MCP on stdio (`epoch mcp`); the CLI on npm (ADR-021).
+
 ### Language support tiers
 
 **Tier A: precise resolution.** Imports resolved the way the language really resolves them (module system, config files, workspace layout). Rollout order: TypeScript/JavaScript, Python, Go, then Java/Kotlin, C#, Rust.
@@ -76,7 +79,7 @@ Epoch (Electron)
 Optional outbound: opt-in model providers, update check
 ```
 
-The UI is written against an `EpochApi` interface. Implementations: IPC (the app) and static JSON (the demo site, which supports only the read-only subset). Pure algorithms (blast radius, reachability, risk, finding rubric) live in `core`/`findings` so the analysis host, the CLI, and the static demo all run the same code. The CLI and the app share the `engine` package, so behavior is identical headless and in the UI.
+The UI is written against an `EpochApi` interface. Implementations: IPC (the app) and static JSON (the demo site, which supports only the read-only subset). Pure algorithms (blast radius, reachability, risk, finding rubric) live in `core`/`findings` so the analysis host, the CLI, and the static demo all run the same code. The CLI and the app share the `engine` package, so behavior is identical headless and in the UI. The CLI also answers AI agents over MCP on stdio (`epoch mcp`, ADR-021): the same read-only results, and still no HTTP server.
 
 ```ts
 interface EpochApi {
@@ -392,6 +395,8 @@ JSON at the project root, validated by zod (size-capped, unknown keys produce a 
 ### CI use
 `epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]`. Exit codes: 0 success, 1 error, 2 findings at or above `--fail-on`.
 
+`epoch impact <path> (--base <ref> | --files <file>...) [--json] [--markdown] [--likely] [--fail-on <tier>]`: what a change touches (see "Graph queries"). Exit codes: 0 success, 1 error, 2 a changed file at or above the `--fail-on` risk tier.
+
 ## Local cache
 
 Everything is cached locally. The cache is derived data and always safe to delete.
@@ -423,6 +428,7 @@ Document this table in `docs/privacy.md` and the README, and keep it accurate. A
 | Jev scorer | Code snippets and context sent to TypeSafe AI | Opt-in |
 | LLM summaries / LLM scorer | File source and neighbor summaries sent to the model provider | Opt-in |
 | Update check | Request to the release host for the latest version. No project data | On; can be disabled |
+| Agent access (`epoch mcp`) | Nothing is sent by Epoch. The agent that started it receives graph facts over stdio (file paths, metrics, risk tiers, findings); what that agent sends to its model provider is the agent's | Opt-in |
 
 With no keys configured and update checks disabled, Epoch makes no network requests.
 
@@ -432,6 +438,7 @@ Rules:
 - Respect `.gitignore` and `.epochignore`. Never send files matching secret patterns (`.env*`, keys, credentials) to any remote model, even if the user opts in.
 - No telemetry. No crash reporting that includes paths or code.
 - Sharing is explicit: Export writes a static HTML/JSON file locally that the user can share themselves.
+- **Agent access** (`epoch mcp`, ADR-021) is a stdio server the user's own agent starts. It returns graph facts only: never file contents, code excerpts, summaries or keys. It always runs offline, and it never writes into the project or the agent's configuration (no `AGENTS.md`, hooks or skills); the docs show the line the user adds.
 
 ### Bring your own keys
 
@@ -512,6 +519,14 @@ Rules, first match wins:
 - Report: total affected nodes, max depth, grouping by directory and by language, and how many results depend on hint edges.
 - Implemented as a pure function in `core` so the analysis host, CLI, and static demo share it.
 
+## Graph queries (M9, ADR-021)
+
+Pure functions in `core`, beside blast radius, shared by the CLI, the agent server, the app's renderer and the static demo. None is stored in the `Graph`.
+
+- **Dependency path:** the shortest chain of edges from one node to a node it depends on, over blast radius's edge kinds, with each hop's kind and evidence. A chain of fact edges is preferred; in likely mode a chain that needs hint edges is given only when no fact chain exists, and each hop says whether it is a hint.
+- **Change impact:** for a set of changed files, each changed node's risk tier and candidates, and their combined blast radius (one reverse BFS from all of them, with blast radius's modes and report). Changed paths that are not nodes are listed, not dropped.
+- **Clusters:** groups of nodes that depend mostly on each other (Louvain over the certain edge set, deterministic), each named after its most depended-on node. A view only: never a fact edge, a finding, or an input to risk.
+
 ## App UX basics
 
 - Open Project via native folder dialog, drag-and-drop a folder onto the window, and a recent-projects list. One project per window.
@@ -591,6 +606,11 @@ pnpm e2e                       # Playwright against the built app
 pnpm lint && pnpm typecheck
 epoch analyze <path> [--json] [--since <commit>]   # headless CLI
 epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]
+epoch impact <path> (--base <ref> | --files <file>...) [--json] [--markdown] [--likely] [--fail-on <tier>]
+epoch path <path> <from> <to> [--json] [--likely]
+epoch explain <path> <file> [--json]
+epoch export <path> --format graphml|mermaid|dot [--out <file>]
+epoch mcp [<path>]             # read-only agent server over stdio (MCP)
 epoch cache stats | clear | prune
 epoch --offline ...            # hard-block all outbound network
 pnpm bench <path>              # parse time, incremental time
