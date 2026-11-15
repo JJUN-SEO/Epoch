@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   COVERAGE_COLORS,
   RISK_TIER_COLORS,
+  clusterName,
   coverageColor,
   languageColor,
   nodeColors,
@@ -110,6 +111,65 @@ describe("node colors", () => {
     expect(coverageColor(0.5)).toBe(COVERAGE_COLORS.medium);
     expect(coverageColor(0.8)).toBe(COVERAGE_COLORS.high);
     expect(coverageColor(undefined)).toBe(languageColor(undefined));
+  });
+
+  it("colors by cluster: files that depend on each other share a color", () => {
+    const edge = (source: string, target: string) => ({
+      source,
+      target,
+      kind: "import" as const,
+      provenance: "resolver" as const,
+      confidence: 1,
+      evidence: [],
+    });
+    const g = {
+      ...graph([
+        "api/a.ts",
+        "api/b.ts",
+        "api/c.ts",
+        "api/d.ts",
+        "ui/x.ts",
+        "ui/y.ts",
+        "ui/z.ts",
+        "alone.ts",
+      ]),
+      edges: [
+        edge("api/a.ts", "api/b.ts"),
+        edge("api/b.ts", "api/c.ts"),
+        edge("api/c.ts", "api/a.ts"),
+        edge("api/d.ts", "api/a.ts"),
+        edge("ui/x.ts", "ui/y.ts"),
+        edge("ui/y.ts", "ui/z.ts"),
+        edge("ui/z.ts", "ui/x.ts"),
+        edge("api/a.ts", "ui/x.ts"),
+      ],
+    };
+    const c = nodeColors(g, "cluster");
+    const api = c.colorOf("api/a.ts", "typescript");
+    const ui = c.colorOf("ui/x.ts", "typescript");
+    expect(c.colorOf("api/d.ts", "typescript")).toBe(api);
+    expect(c.colorOf("ui/z.ts", "typescript")).toBe(ui);
+    expect(api).not.toBe(ui);
+    // A file with no import edge is in no cluster.
+    expect(c.colorOf("alone.ts", "typescript")).toBe(languageColor(undefined));
+    // A folder takes the cluster most of its files are in.
+    expect(c.colorOf("api", undefined)).toBe(api);
+    expect(c.colorOf("docs", undefined)).toBe(languageColor(undefined));
+    expect(c.legend).toEqual([
+      { label: "api/a.ts · 4", color: api },
+      { label: "ui/x.ts · 3", color: ui },
+      { label: "Not clustered", color: languageColor(undefined) },
+    ]);
+  });
+
+  it("names a cluster by the end of its node's path", () => {
+    expect(clusterName("packages/zod/src/v4/core/util.ts")).toBe(
+      "core/util.ts",
+    );
+    expect(clusterName("pkg:github.com/cli/cli/v2/internal/gh")).toBe(
+      "internal/gh",
+    );
+    expect(clusterName("main.ts")).toBe("main.ts");
   });
 
   it("finds the top-level folder", () => {

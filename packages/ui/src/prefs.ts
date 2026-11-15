@@ -78,7 +78,8 @@ export function parsePrefs(raw: unknown): Prefs {
       r.colorBy === "language" ||
       r.colorBy === "folder" ||
       r.colorBy === "risk" ||
-      r.colorBy === "coverage"
+      r.colorBy === "coverage" ||
+      r.colorBy === "cluster"
         ? r.colorBy
         : d.colorBy,
     hops: r.hops === 1 || r.hops === 2 || r.hops === 3 ? r.hops : d.hops,

@@ -130,6 +130,7 @@ export function CanvasToolbar(props: {
           { value: "language", label: "Language" },
           { value: "risk", label: "Risk" },
           { value: "coverage", label: "Coverage" },
+          { value: "cluster", label: "Cluster" },
         ]}
         value={props.colorBy}
         onChange={props.onColorBy}

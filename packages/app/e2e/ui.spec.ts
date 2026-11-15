@@ -110,6 +110,28 @@ test("selecting a node shows its details, and links lead to its neighbors", asyn
   await expect(details(epoch.page)).toContainText("Imported by (1)");
 });
 
+test("the path to another file is listed, and clusters color the graph", async () => {
+  const { page } = epoch;
+  await selectNode(page, "src/a.ts");
+  await page.getByTestId("path-input").fill("b.ts");
+  await page
+    .getByTestId("path")
+    .getByRole("button", { name: "src/b.ts" })
+    .click();
+  const result = page.getByTestId("path-result");
+  await expect(result).toContainText(
+    "This file depends on it through 1 import.",
+  );
+  await result.getByRole("button", { name: "Clear the path" }).click();
+  await expect(page.getByTestId("path-input")).toHaveValue("");
+
+  const colorBy = page.getByRole("group", { name: "Color by" });
+  await colorBy.getByRole("button", { name: "Cluster" }).click();
+  await expect(page.getByTestId("color-legend")).toContainText("Clusters");
+  await colorBy.getByRole("button", { name: "Folder" }).click();
+  await expect(page.getByTestId("color-legend")).toHaveCount(0);
+});
+
 test("the command palette finds a file and shows it", async () => {
   await epoch.page.keyboard.press("ControlOrMeta+K");
   const palette = epoch.page.getByRole("dialog", { name: "Command palette" });

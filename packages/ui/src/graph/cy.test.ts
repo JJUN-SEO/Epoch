@@ -1,6 +1,6 @@
 import cytoscape, { type StylesheetJson } from "cytoscape";
 import { describe, expect, it } from "vitest";
-import { highlightNeighbors, wheelZoomFactor } from "./cy";
+import { highlightNeighbors, highlightPath, wheelZoomFactor } from "./cy";
 import { graphStylesheet } from "./style";
 import type { CanvasTheme } from "./theme";
 
@@ -87,5 +87,39 @@ describe("graphStylesheet", () => {
     expect(minZoomed(large, "node.center, node:selected")).toBe(0);
     // A small graph still names a hovered file's neighbors at any zoom.
     expect(minZoomed(graphStylesheet(theme), "node.hl")).toBe(0);
+  });
+});
+
+describe("highlightPath", () => {
+  it("keeps the chain and the edges along it, and fades the rest", () => {
+    const cy = cytoscape({
+      headless: true,
+      elements: [
+        { data: { id: "a" } },
+        { data: { id: "b" } },
+        { data: { id: "c" } },
+        { data: { id: "x" } },
+        { data: { id: "ab", source: "a", target: "b" } },
+        { data: { id: "bc", source: "b", target: "c" } },
+        { data: { id: "ba", source: "b", target: "a" } },
+        { data: { id: "ax", source: "a", target: "x" } },
+      ],
+    });
+    highlightPath(cy, ["a", "b", "c"]);
+    expect(cy.$id("a").hasClass("center")).toBe(true);
+    for (const id of ["a", "b", "c"]) {
+      expect(cy.$id(id).hasClass("hl")).toBe(true);
+      expect(cy.$id(id).hasClass("faded")).toBe(false);
+    }
+    expect(cy.$id("x").hasClass("faded")).toBe(true);
+    for (const id of ["ab", "bc"]) {
+      expect(cy.$id(id).hasClass("out")).toBe(true);
+      expect(cy.$id(id).hasClass("faded")).toBe(false);
+    }
+    // An edge against the direction of the chain, and one leaving it, stay faded.
+    expect(cy.$id("ba").hasClass("faded")).toBe(true);
+    expect(cy.$id("ax").hasClass("faded")).toBe(true);
+    highlightNeighbors(cy, undefined);
+    expect(cy.elements(".faded, .hl, .out, .center").length).toBe(0);
   });
 });

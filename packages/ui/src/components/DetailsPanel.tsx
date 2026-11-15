@@ -1,11 +1,14 @@
-import { Crosshair, FolderOpen, FolderClosed } from "lucide-react";
+import { Crosshair, FolderOpen, FolderClosed, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
+  HINT_DEFAULTS,
   LANGUAGE_TIERS,
   RISK_DEFAULTS,
   assessRisk,
   hintSourceLabel,
   isHintEdge,
   isScoredNode,
+  mostDependedOn,
   type AnalysisInfo,
   type Graph,
   type GraphEdge,
@@ -14,14 +17,16 @@ import {
 } from "@epoch-dev/core";
 import { ancestors, dirPath, isDirId } from "../graph/aggregate";
 import { RISK_TIER_LABELS, riskColor } from "../graph/colors";
+import { connect, connectionSentence } from "../graph/connect";
 import { languageName } from "../languages";
 import { fileCoverage, hasCoverage } from "../shell/coverage";
+import { fuzzyFilter } from "../shell/fuzzy";
 import { gitSummary } from "../shell/StatusBar";
 import {
   SummarySection,
   type SummarySectionProps,
 } from "../summaries/SummarySection";
-import { Button, PathLabel, SectionTitle } from "./ui";
+import { Button, IconButton, PathLabel, SectionTitle } from "./ui";
 
 export interface DetailsPanelProps {
   readonly graph: Graph;
@@ -39,6 +44,211 @@ export interface DetailsPanelProps {
   readonly summary?: Omit<SummarySectionProps, "subject"> | undefined;
   /** The desktop app, which reads coverage reports from the project; not the static demo. */
   readonly desktop?: boolean;
+  /** The least confidence of a likely relation a path may use (the user's setting). */
+  readonly hintThreshold?: number;
+  /** The dependency path being shown, for the canvas; undefined when none is. */
+  readonly onPath?: (nodes: readonly string[] | undefined) => void;
+}
+
+const HUBS_SHOWN = 10;
+
+/** The files most of the project depends on, offered while nothing is selected. */
+function MostDependedOn(props: {
+  readonly graph: Graph;
+  readonly onShow: (id: string) => void;
+}) {
+  const hubs = useMemo(
+    () => mostDependedOn(props.graph, HUBS_SHOWN),
+    [props.graph],
+  );
+  if (hubs.length === 0) return null;
+  return (
+    <section data-testid="hubs">
+      <SectionTitle>Most depended-on</SectionTitle>
+      <p className="text-muted px-3 pb-1 text-[11px]">
+        The files the most others depend on, directly or through other files. A
+        change in one of these reaches furthest.
+      </p>
+      <ul className="px-1.5">
+        {hubs.map((n) => (
+          <li key={n.id}>
+            <button
+              type="button"
+              className="hover:bg-hover flex w-full items-baseline justify-between gap-3 rounded-md px-1.5 py-1 text-left text-[13px]"
+              onClick={() => {
+                props.onShow(n.id);
+              }}
+            >
+              <PathLabel id={n.id} />
+              <span className="text-muted shrink-0 text-[11px] tabular-nums">
+                {n.metrics.dependents ?? n.metrics.fanIn}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+const SUGGESTIONS = 6;
+
+/**
+ * How the selected file and another are connected: type a file's name, pick
+ * it, and the chain of imports is listed (and drawn on the graph).
+ */
+function PathSection(props: {
+  readonly graph: Graph;
+  readonly id: string;
+  readonly hintThreshold: number;
+  readonly onShow: (id: string) => void;
+  readonly onPath?:
+    ((nodes: readonly string[] | undefined) => void) | undefined;
+}) {
+  const { graph, id, hintThreshold, onPath } = props;
+  const [query, setQuery] = useState("");
+  const [target, setTarget] = useState<string | undefined>(undefined);
+  const others = useMemo(
+    () => graph.nodes.filter((n) => n.id !== id).map((n) => n.id),
+    [graph, id],
+  );
+  const suggestions = useMemo(
+    () =>
+      target !== undefined || query.trim() === ""
+        ? []
+        : fuzzyFilter(others, query.trim(), (f) => f, SUGGESTIONS),
+    [others, query, target],
+  );
+  // A live update can remove the other file; the path goes with it.
+  const connection = useMemo(
+    () =>
+      target !== undefined && others.includes(target)
+        ? connect(graph, id, target, hintThreshold)
+        : undefined,
+    [graph, id, target, others, hintThreshold],
+  );
+  const nodes =
+    connection && connection.kind !== "none"
+      ? connection.path.nodes
+      : undefined;
+  useEffect(() => {
+    onPath?.(nodes);
+    return () => {
+      onPath?.(undefined);
+    };
+  }, [nodes, onPath]);
+
+  return (
+    <section data-testid="path">
+      <SectionTitle>Path to another file</SectionTitle>
+      {target === undefined ? (
+        <div className="px-3">
+          <input
+            data-testid="path-input"
+            type="text"
+            className="border-line bg-sunken w-full rounded-md border px-2 py-1 text-[13px]"
+            aria-label="Path to another file"
+            placeholder="Type a file name…"
+            value={query}
+            onChange={(e) => {
+              setQuery(e.target.value);
+            }}
+          />
+          {suggestions.length > 0 && (
+            <ul className="mt-1">
+              {suggestions.map((s) => (
+                <li key={s}>
+                  <button
+                    type="button"
+                    className="hover:bg-hover block w-full rounded-md px-1.5 py-0.5 text-left text-[13px]"
+                    onClick={() => {
+                      setTarget(s);
+                    }}
+                  >
+                    <PathLabel id={s} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {query.trim() !== "" && suggestions.length === 0 && (
+            <p className="text-muted mt-1 text-[12px]">No file matches.</p>
+          )}
+        </div>
+      ) : (
+        <div data-testid="path-result" className="px-3">
+          <div className="flex items-start justify-between gap-2">
+            <button
+              type="button"
+              className="hover:bg-hover min-w-0 rounded-md text-left text-[13px]"
+              onClick={() => {
+                props.onShow(target);
+              }}
+            >
+              <PathLabel id={target} />
+            </button>
+            <IconButton
+              icon={X}
+              label="Clear the path"
+              onClick={() => {
+                setTarget(undefined);
+                setQuery("");
+              }}
+            />
+          </div>
+          {connection && (
+            <p className="text-muted mt-1 text-[12px]">
+              {connectionSentence(connection)}
+            </p>
+          )}
+          {connection && connection.kind !== "none" && (
+            <ol className="mt-1.5 space-y-1">
+              {connection.path.hops.map((h) => (
+                <li key={`${h.source}>${h.target}`} className="text-[13px]">
+                  <button
+                    type="button"
+                    className="hover:bg-hover block w-full rounded-md text-left"
+                    onClick={() => {
+                      props.onShow(h.source);
+                    }}
+                  >
+                    <PathLabel id={h.source} />
+                  </button>
+                  <div className="text-muted flex flex-wrap items-center gap-1.5 pl-3 text-[11px]">
+                    <span
+                      className={`rounded px-1 ${h.hint ? "border-strong-line border border-dashed" : "bg-sunken"}`}
+                    >
+                      {h.hint
+                        ? `likely ${h.confidence.toFixed(2)} · ${h.kind}`
+                        : h.kind === "import"
+                          ? "imports"
+                          : h.kind}
+                    </span>
+                    {h.evidence.map((ev) => (
+                      <span key={ev} className="selectable">
+                        {ev}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+              <li className="text-[13px]">
+                <button
+                  type="button"
+                  className="hover:bg-hover block w-full rounded-md text-left"
+                  onClick={() => {
+                    props.onShow(connection.path.to);
+                  }}
+                >
+                  <PathLabel id={connection.path.to} />
+                </button>
+              </li>
+            </ol>
+          )}
+        </div>
+      )}
+    </section>
+  );
 }
 
 function EdgeList(props: {
@@ -348,13 +558,18 @@ export function DetailsPanel({
   onToggleFolder,
   summary,
   desktop = false,
+  hintThreshold = HINT_DEFAULTS.threshold,
+  onPath,
 }: DetailsPanelProps) {
   if (selected === undefined) {
     return (
-      <p className="text-muted px-4 py-6 text-center text-[13px]">
-        Select a file or folder to see its imports, exports and dependents.
-        Double-click a file to focus on it.
-      </p>
+      <div className="pb-4">
+        <p className="text-muted px-4 py-6 text-center text-[13px]">
+          Select a file or folder to see its imports, exports and dependents.
+          Double-click a file to focus on it.
+        </p>
+        <MostDependedOn graph={graph} onShow={onShow} />
+      </div>
     );
   }
 
@@ -466,6 +681,14 @@ export function DetailsPanel({
         <SummarySection key={node.id} subject={node.id} {...summary} />
       )}
       <RiskSection node={node} analysis={analysis} reportRead={reportRead} />
+      <PathSection
+        key={node.id}
+        graph={graph}
+        id={node.id}
+        hintThreshold={hintThreshold}
+        onShow={onShow}
+        onPath={onPath}
+      />
       {node.exports.length > 0 && (
         <section>
           <SectionTitle>Exports ({node.exports.length})</SectionTitle>

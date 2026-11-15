@@ -1,17 +1,18 @@
 import {
   RISK_DEFAULTS,
   RISK_TIERS,
+  clusters,
   type Graph,
   type RiskTier,
 } from "@epoch-dev/core";
 
 /*
  * Node colors. By folder (the default: most repositories are one language,
- * so folders say more), by language, by risk tier (ADR-015), or by test
- * coverage (ADR-020). Pure, for the tests.
+ * so folders say more), by language, by risk tier (ADR-015), by test
+ * coverage (ADR-020), or by cluster (ADR-021). Pure, for the tests.
  */
 
-export type ColorBy = "folder" | "language" | "risk" | "coverage";
+export type ColorBy = "folder" | "language" | "risk" | "coverage" | "cluster";
 
 export const RISK_TIER_LABELS: Readonly<Record<RiskTier, string>> = {
   critical: "Critical",
@@ -107,7 +108,64 @@ export interface NodeColors {
   }[];
 }
 
+/** A cluster's name in the legend: the end of its most depended-on node's path. */
+export function clusterName(label: string): string {
+  const path = label.startsWith("pkg:") ? label.slice(4) : label;
+  return path.split("/").slice(-2).join("/");
+}
+
+/** The largest clusters get a color each; the rest share one. */
+const CLUSTERS_SHOWN = FOLDER_PALETTE.length - 1;
+const SMALLER_CLUSTERS = "#56617a";
+
 export function nodeColors(graph: Graph, by: ColorBy): NodeColors {
+  if (by === "cluster") {
+    const { clusters: all, of } = clusters(graph);
+    const ids = new Set(graph.nodes.map((n) => n.id));
+    const color = (index: number | undefined): string =>
+      index === undefined
+        ? NEUTRAL
+        : index < CLUSTERS_SHOWN
+          ? (FOLDER_PALETTE[index] ?? NEUTRAL)
+          : SMALLER_CLUSTERS;
+    const smaller = all.length - CLUSTERS_SHOWN;
+    return {
+      by,
+      // Folders show the cluster most of their files are in.
+      colorOf: (id, language) => {
+        if (language !== undefined || ids.has(id)) return color(of.get(id));
+        const counts = new Map<number, number>();
+        for (const [nid, c] of of) {
+          if (nid.startsWith(`${id}/`)) counts.set(c, (counts.get(c) ?? 0) + 1);
+        }
+        let best: number | undefined;
+        for (const [c, n] of counts) {
+          const top = best === undefined ? -1 : (counts.get(best) ?? 0);
+          if (n > top || (n === top && best !== undefined && c < best)) {
+            best = c;
+          }
+        }
+        return color(best);
+      },
+      legend: [
+        ...all.slice(0, CLUSTERS_SHOWN).map((c) => ({
+          label: `${clusterName(c.label)} · ${String(c.members.length)}`,
+          color: color(c.index),
+        })),
+        ...(smaller > 0
+          ? [
+              {
+                label: `${String(smaller)} smaller ${smaller === 1 ? "cluster" : "clusters"}`,
+                color: color(CLUSTERS_SHOWN),
+              },
+            ]
+          : []),
+        ...(of.size < graph.nodes.length
+          ? [{ label: "Not clustered", color: NEUTRAL }]
+          : []),
+      ],
+    };
+  }
   if (by === "coverage") {
     const ids = new Set(graph.nodes.map((n) => n.id));
     const covered = new Map<string, { coverage: number; loc: number }>();

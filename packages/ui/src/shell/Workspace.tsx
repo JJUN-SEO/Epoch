@@ -110,7 +110,8 @@ const NEXT_COLOR_BY: Readonly<Record<ColorBy, ColorBy>> = {
   folder: "language",
   language: "risk",
   risk: "coverage",
-  coverage: "folder",
+  coverage: "cluster",
+  cluster: "folder",
 };
 const VIEW_COMMANDS: Readonly<Record<View, CommandId>> = {
   graph: "view.graph",
@@ -122,6 +123,13 @@ const COLOR_BY_NAMES: Readonly<Record<ColorBy, string>> = {
   language: "Language",
   risk: "Risk",
   coverage: "Coverage",
+  cluster: "Cluster",
+};
+/** The color modes whose legend is drawn on the canvas. */
+const LEGEND_TITLES: Readonly<Partial<Record<ColorBy, string>>> = {
+  risk: "Risk",
+  coverage: "Test coverage",
+  cluster: "Clusters",
 };
 
 /**
@@ -350,6 +358,20 @@ export function Workspace({
     put(impact.nodeId, 0);
     return depth;
   }, [impactOn, impact, expanded, graph]);
+  // The dependency path the details panel is showing, drawn on the graph.
+  const [pathNodes, setPathNodes] = useState<readonly string[] | undefined>(
+    undefined,
+  );
+  /** Its drawn nodes, in order: a closed folder stands for the files in it. */
+  const visiblePath = useMemo(() => {
+    if (!pathNodes) return undefined;
+    const drawn: string[] = [];
+    for (const id of pathNodes) {
+      const rep = representative(id, expanded, graph);
+      if (drawn[drawn.length - 1] !== rep) drawn.push(rep);
+    }
+    return drawn;
+  }, [pathNodes, expanded, graph]);
   const toggleImpact = () => {
     setImpactOn((on) => {
       if (!on) updatePrefs({ inspector: true, inspectorTab: "impact" });
@@ -882,6 +904,7 @@ export function Workspace({
               colors={colors}
               selected={selected}
               impact={visibleImpact}
+              path={visiblePath}
               findingRings={visibleRings}
               findingsOnly={findingsOnly}
               reveal={reveal}
@@ -967,14 +990,20 @@ export function Workspace({
             )}
           {view !== "findings" &&
             !(view === "graph" && !mode3d && visibleImpact) &&
-            (prefs.colorBy === "risk" || prefs.colorBy === "coverage") && (
+            LEGEND_TITLES[prefs.colorBy] !== undefined && (
               <div
                 data-testid="color-legend"
                 className="bg-raised/90 border-line text-muted pointer-events-none absolute top-3 left-3 flex max-w-56 flex-col gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] backdrop-blur"
               >
                 <span className="text-fg font-medium">
-                  {prefs.colorBy === "risk" ? "Risk" : "Test coverage"}
+                  {LEGEND_TITLES[prefs.colorBy]}
                 </span>
+                {prefs.colorBy === "cluster" && (
+                  <span>
+                    Files that depend mostly on each other, each group named
+                    after its most depended-on file
+                  </span>
+                )}
                 {colors.legend.map(({ label, color }) => (
                   <span
                     key={label}
@@ -1151,6 +1180,8 @@ export function Workspace({
                     onToggleFolder={toggleDir}
                     summary={summaryProps}
                     desktop={shell !== undefined}
+                    hintThreshold={prefs.hintThreshold}
+                    onPath={setPathNodes}
                   />
                 )
               }

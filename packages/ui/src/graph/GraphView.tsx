@@ -21,6 +21,7 @@ import {
   fitWithin,
   highlightImpact,
   highlightNeighbors,
+  highlightPath,
   type CanvasControls,
 } from "./cy";
 import { LayoutClient } from "./layout";
@@ -38,6 +39,8 @@ export interface GraphViewProps {
   readonly selected: string | undefined;
   /** Blast radius to draw: drawn node -> distance from the changed node. */
   readonly impact?: ReadonlyMap<string, number> | undefined;
+  /** A dependency path to draw: its drawn nodes, in order. Shown instead of the blast radius. */
+  readonly path?: readonly string[] | undefined;
   /** Drawn node -> highest confidence of the open findings it holds. */
   readonly findingRings?: ReadonlyMap<string, Confidence> | undefined;
   /** Fade nodes without open findings. */
@@ -367,13 +370,19 @@ export function GraphView(props: GraphViewProps) {
     if (!cy) return;
     cy.$(":selected").unselect();
     if (props.selected !== undefined) cy.$id(props.selected).select();
-    if (props.impact) highlightImpact(cy, props.impact);
+    if (props.path) highlightPath(cy, props.path);
+    else if (props.impact) highlightImpact(cy, props.impact);
     else highlightNeighbors(cy, props.selected, { fade: !large });
     const rings = props.findingRings;
     cy.batch(() => {
       cy.nodes().removeData("finding");
       for (const [id, level] of rings ?? []) cy.$id(id).data("finding", level);
-      if (props.findingsOnly && !props.impact && props.selected === undefined) {
+      if (
+        props.findingsOnly &&
+        !props.impact &&
+        !props.path &&
+        props.selected === undefined
+      ) {
         cy.nodes(":childless")
           .filter(
             (n) => n.data("frame") !== true && rings?.has(n.id()) !== true,
@@ -385,6 +394,7 @@ export function GraphView(props: GraphViewProps) {
   }, [
     props.selected,
     props.impact,
+    props.path,
     props.findingRings,
     props.findingsOnly,
     laidOut,

@@ -192,6 +192,30 @@ export function highlightImpact(
 }
 
 /**
+ * A dependency path on the canvas (ADR-021): fades everything except the
+ * drawn nodes of the chain, in order, and the edges from each to the next.
+ * The first node is marked `center`.
+ */
+export function highlightPath(cy: Core, ids: readonly string[]): void {
+  cy.batch(() => {
+    clearHighlight(cy);
+    styledAll.add(cy);
+    cy.elements().addClass("faded");
+    let kept = cy.collection();
+    for (const id of ids) kept = kept.union(cy.$id(id));
+    kept.union(kept.ancestors()).removeClass("faded");
+    kept.addClass("hl");
+    cy.$id(ids[0] ?? "").addClass("center");
+    for (let i = 0; i + 1 < ids.length; i++) {
+      cy.$id(ids[i] ?? "")
+        .edgesTo(cy.$id(ids[i + 1] ?? ""))
+        .removeClass("faded")
+        .addClass("out");
+    }
+  });
+}
+
+/**
  * Fades everything except `id`, its direct neighbors and the edges between
  * them; outgoing edges (its imports) and incoming ones (its dependents) get
  * their direction colors, and the node itself is marked `center`. For an

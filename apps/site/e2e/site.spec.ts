@@ -1,4 +1,10 @@
-import { Graph, blastRadius } from "@epoch-dev/core";
+import {
+  Graph,
+  blastRadius,
+  clusters,
+  dependencyPath,
+  mostDependedOn,
+} from "@epoch-dev/core";
 import { expect, test } from "@playwright/test";
 import fs from "node:fs";
 
@@ -177,4 +183,55 @@ test("zod shows which files its tests cover, and why others have no coverage", a
   await expect(page.getByTestId("coverage-note")).toHaveText(
     "Not in the coverage report: its tests may not load this file, or the report is older than it.",
   );
+});
+
+test("zod: the most depended-on files, clusters, and the path between two files", async ({
+  page,
+}) => {
+  const zod = demos.find((d) => d.meta.id === "zod");
+  if (!zod) throw new Error("no zod demo");
+  const hubs = mostDependedOn(zod.graph, 10);
+  const [hub] = hubs;
+  const [largest] = clusters(zod.graph).clusters;
+  const from = "packages/zod/src/v4/classic/schemas.ts";
+  const to = "packages/zod/src/v4/core/versions.ts";
+  const path = dependencyPath(zod.graph, from, to, {
+    mode: "certain",
+    includeTypeOnly: true,
+  });
+  if (!hub || !largest || !path) throw new Error("the zod demo changed");
+
+  await page.goto("./demo.html?repo=zod");
+  // Nothing is selected yet: the panel offers the files most others depend on.
+  const list = page.getByTestId("hubs");
+  await expect(list.getByRole("button")).toHaveCount(hubs.length);
+  await expect(list.getByRole("button").first()).toHaveText(
+    `${hub.id}${String(hub.metrics.dependents)}`,
+  );
+
+  await page
+    .getByRole("group", { name: "Color by" })
+    .getByRole("button", { name: "Cluster" })
+    .click();
+  const legend = page.getByTestId("color-legend");
+  await expect(legend).toContainText("Clusters");
+  await expect(legend).toContainText(
+    `${largest.label.split("/").slice(-2).join("/")} · ${String(largest.members.length)}`,
+  );
+
+  await page.getByRole("button", { name: "Search files and commands" }).click();
+  await page
+    .getByRole("combobox", { name: "Search files and commands" })
+    .fill(from);
+  await page.getByRole("option", { name: from, exact: true }).click();
+  await page.getByTestId("path-input").fill("core/versions.ts");
+  await page.getByTestId("path").getByRole("button", { name: to }).click();
+  const result = page.getByTestId("path-result");
+  await expect(result).toContainText(
+    `This file depends on it through ${String(path.hops.length)} imports.`,
+  );
+  for (const id of path.nodes) await expect(result).toContainText(id);
+
+  await result.getByRole("button", { name: "Clear the path" }).click();
+  await expect(page.getByTestId("path-input")).toHaveValue("");
 });
