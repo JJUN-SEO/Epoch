@@ -682,7 +682,8 @@ export function DetailsPanel({
       )}
       <RiskSection node={node} analysis={analysis} reportRead={reportRead} />
       <PathSection
-        key={node.id}
+        // Not the summary's key: siblings must not share one.
+        key={`path:${node.id}`}
         graph={graph}
         id={node.id}
         hintThreshold={hintThreshold}
