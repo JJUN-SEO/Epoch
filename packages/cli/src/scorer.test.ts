@@ -19,14 +19,18 @@ vi.setConfig({ testTimeout: 60_000 });
 const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-cli-scorer-"));
 process.env.EPOCH_CACHE_DIR = cacheDir;
 const savedKey = process.env.ANTHROPIC_API_KEY;
+const savedJevKey = process.env.JEV_API_KEY;
 beforeEach(() => {
   delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.JEV_API_KEY;
 });
 afterEach(() => {
   delete process.env.ANTHROPIC_API_KEY;
+  delete process.env.JEV_API_KEY;
 });
 afterAll(() => {
   if (savedKey !== undefined) process.env.ANTHROPIC_API_KEY = savedKey;
+  if (savedJevKey !== undefined) process.env.JEV_API_KEY = savedJevKey;
   fs.rmSync(cacheDir, { recursive: true, force: true });
 });
 
