@@ -59,16 +59,17 @@ Beside `blastRadius`, shared by the CLI, the agent server, the renderer and the 
 ### 2. CLI commands
 
 ```
-epoch impact <path> (--base <ref> | --files <file>...) [--json] [--markdown] [--likely] [--fail-on <tier>]
+epoch impact <path> (--base <ref> | --files <file>...) [--json | --markdown] [--likely] [--fail-on <tier>]
 epoch path <path> <from> <to> [--json] [--likely]
 epoch explain <path> <file> [--json]
-epoch export <path> --format graphml|mermaid|dot [--out <file>]
+epoch export <path> --format graphml|mermaid|dot [--scope <folder>] [--likely] [--out <file>]
 epoch mcp [<path>]
 ```
 
 - `impact --base` compares two commits' trees through the existing `changedSince` (`packages/engine/src/git.ts`), which never reads the working tree or the index. `--files` takes paths directly, for "what would changing these affect".
 - `--fail-on <tier>` exits with code 2 when a changed node is at or above the tier, like `epoch findings`.
-- `export` prints to stdout, or writes the file the user names with `--out`: an explicit export (principle 2).
+- `export` prints to stdout, or writes the file the user names with `--out`: an explicit export (principle 2). `--scope` keeps one folder, since a whole project is too large for a Mermaid or DOT picture; hint edges are exported only with `--likely`, marked as such.
+- `path` and `explain` take a file by its path or by any ending that fits exactly one file. A name that fits several is refused with the candidates, never guessed.
 
 ### 3. The agent server
 

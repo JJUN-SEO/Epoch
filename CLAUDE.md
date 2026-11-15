@@ -395,7 +395,7 @@ JSON at the project root, validated by zod (size-capped, unknown keys produce a 
 ### CI use
 `epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]`. Exit codes: 0 success, 1 error, 2 findings at or above `--fail-on`.
 
-`epoch impact <path> (--base <ref> | --files <file>...) [--json] [--markdown] [--likely] [--fail-on <tier>]`: what a change touches (see "Graph queries"). Exit codes: 0 success, 1 error, 2 a changed file at or above the `--fail-on` risk tier.
+`epoch impact <path> (--base <ref> | --files <file>...) [--json | --markdown] [--likely] [--fail-on <tier>]`: what a change touches (see "Graph queries"). Exit codes: 0 success, 1 error, 2 a changed file at or above the `--fail-on` risk tier.
 
 ## Local cache
 
@@ -606,10 +606,10 @@ pnpm e2e                       # Playwright against the built app
 pnpm lint && pnpm typecheck
 epoch analyze <path> [--json] [--since <commit>]   # headless CLI
 epoch findings <path> [--json] [--min-confidence <level>] [--fail-on <level>] [--include-dismissed]
-epoch impact <path> (--base <ref> | --files <file>...) [--json] [--markdown] [--likely] [--fail-on <tier>]
+epoch impact <path> (--base <ref> | --files <file>...) [--json | --markdown] [--likely] [--fail-on <tier>]
 epoch path <path> <from> <to> [--json] [--likely]
 epoch explain <path> <file> [--json]
-epoch export <path> --format graphml|mermaid|dot [--out <file>]
+epoch export <path> --format graphml|mermaid|dot [--scope <folder>] [--likely] [--out <file>]
 epoch mcp [<path>]             # read-only agent server over stdio (MCP)
 epoch cache stats | clear | prune
 epoch --offline ...            # hard-block all outbound network
