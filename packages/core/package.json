@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "graphology": "0.26.0",
+    "graphology-communities-louvain": "2.0.2",
     "graphology-components": "1.5.4",
     "zod": "catalog:"
   }

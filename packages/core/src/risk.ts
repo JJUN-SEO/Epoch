@@ -39,6 +39,23 @@ export type RiskThresholds = {
 /** Most to least risky. */
 export const RISK_TIERS: readonly RiskTier[] = RiskTier.options;
 
+/**
+ * The order wherever nodes are listed by risk (CLAUDE.md "Risk tiers"): by
+ * tier, then dependents, then churn, then id. Nodes with no tier come last.
+ */
+export function compareByRisk(a: GraphNode, b: GraphNode): number {
+  const rank = (n: GraphNode) =>
+    n.metrics.risk
+      ? RISK_TIERS.indexOf(n.metrics.risk.tier)
+      : RISK_TIERS.length;
+  return (
+    rank(a) - rank(b) ||
+    (b.metrics.dependents ?? 0) - (a.metrics.dependents ?? 0) ||
+    (b.metrics.churn90d ?? 0) - (a.metrics.churn90d ?? 0) ||
+    (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+  );
+}
+
 export interface RiskFacts {
   readonly dependents: number;
   readonly churn90d: number;

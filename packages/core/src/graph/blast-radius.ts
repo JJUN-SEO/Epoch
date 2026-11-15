@@ -12,6 +12,33 @@ import type { Graph, GraphEdge } from "../schemas/index.js";
 
 type Reverse = ReadonlyMap<string, readonly string[]>;
 
+/**
+ * The edges an analysis follows (CLAUDE.md "Edge traversal policy", the
+ * blast radius rows): `fact` in certain mode, `followed` in the mode asked
+ * for. Likely mode adds hint edges at or above the threshold.
+ */
+export function edgeFilters(
+  opts: Pick<BlastRadiusOptions, "mode" | "includeTypeOnly" | "hintThreshold">,
+): {
+  readonly fact: (e: GraphEdge) => boolean;
+  readonly followed: (e: GraphEdge) => boolean;
+} {
+  const kinds = opts.includeTypeOnly
+    ? CERTAIN_EDGE_KINDS
+    : CERTAIN_EDGE_KINDS_WITHOUT_TYPES;
+  const fact = (e: GraphEdge) => !isHintEdge(e) && kinds.has(e.kind);
+  if (opts.mode !== "likely") return { fact, followed: fact };
+  const threshold = opts.hintThreshold;
+  if (threshold === undefined) {
+    throw new Error("Likely mode needs a hint threshold.");
+  }
+  const hint = (e: GraphEdge) =>
+    isHintEdge(e) &&
+    e.confidence >= threshold &&
+    (HINT_EDGE_KINDS.has(e.kind) || kinds.has(e.kind));
+  return { fact, followed: (e) => fact(e) || hint(e) };
+}
+
 /** Dependents of each node over the edges `follow` accepts. */
 function reverseAdjacency(
   graph: Graph,
@@ -27,14 +54,17 @@ function reverseAdjacency(
   return rev;
 }
 
-/** Breadth-first depth of every node that transitively depends on `start`. */
+/**
+ * Breadth-first depth of every node that transitively depends on one of
+ * `starts`, each at its shortest distance from any of them.
+ */
 function depths(
   rev: Reverse,
-  start: string,
+  starts: readonly string[],
   maxDepth: number,
 ): Map<string, number> {
-  const depth = new Map<string, number>([[start, 0]]);
-  let frontier = [start];
+  const depth = new Map<string, number>(starts.map((s) => [s, 0]));
+  let frontier = [...starts];
   for (let d = 1; d <= maxDepth && frontier.length > 0; d++) {
     const next: string[] = [];
     for (const node of frontier) {
@@ -46,7 +76,7 @@ function depths(
     }
     frontier = next;
   }
-  depth.delete(start);
+  for (const s of starts) depth.delete(s);
   return depth;
 }
 
@@ -62,42 +92,24 @@ const increment = (counts: Record<string, number>, key: string) => {
 };
 
 /**
- * The nodes that transitively depend on `nodeId` (CLAUDE.md "Blast radius"):
- * a reverse breadth-first search over the edge kinds of the traversal
- * policy, cycle-safe. Certain mode follows fact edges; likely mode adds hint
- * edges at or above the threshold and marks what only they reach. Pure, so
- * the analysis host, the CLI, the app's renderer and the static demo share it.
+ * What changing `starts` reaches: one reverse breadth-first search from all
+ * of them over the edges of the traversal policy, cycle-safe, with the
+ * report blast radius gives. The start nodes are never listed.
  */
-export function blastRadius(
+export function reverseImpact(
   graph: Graph,
-  nodeId: string,
+  starts: readonly string[],
   opts: BlastRadiusOptions,
-): BlastRadiusResult {
+): Omit<BlastRadiusResult, "nodeId"> {
   const nodes = new Map(graph.nodes.map((n) => [n.id, n]));
-  if (!nodes.has(nodeId)) throw new Error(`No node ${nodeId} in the graph.`);
-  const kinds = opts.includeTypeOnly
-    ? CERTAIN_EDGE_KINDS
-    : CERTAIN_EDGE_KINDS_WITHOUT_TYPES;
-  const fact = (e: GraphEdge) => !isHintEdge(e) && kinds.has(e.kind);
+  const { fact, followed } = edgeFilters(opts);
   const maxDepth = opts.maxDepth ?? Number.POSITIVE_INFINITY;
 
-  const certain = depths(reverseAdjacency(graph, fact), nodeId, maxDepth);
-  let reached = certain;
-  if (opts.mode === "likely") {
-    const threshold = opts.hintThreshold;
-    if (threshold === undefined) {
-      throw new Error("Likely mode needs a hint threshold.");
-    }
-    const hint = (e: GraphEdge) =>
-      isHintEdge(e) &&
-      e.confidence >= threshold &&
-      (HINT_EDGE_KINDS.has(e.kind) || kinds.has(e.kind));
-    reached = depths(
-      reverseAdjacency(graph, (e) => fact(e) || hint(e)),
-      nodeId,
-      maxDepth,
-    );
-  }
+  const certain = depths(reverseAdjacency(graph, fact), starts, maxDepth);
+  const reached =
+    opts.mode === "likely"
+      ? depths(reverseAdjacency(graph, followed), starts, maxDepth)
+      : certain;
 
   const affected = [...reached.entries()]
     .map(([id, depth]) => ({ id, depth, viaHint: !certain.has(id) }))
@@ -115,7 +127,6 @@ export function blastRadius(
     byKind[node.kind]++;
   }
   return {
-    nodeId,
     affected,
     total: affected.length,
     maxDepth: affected.reduce((m, a) => Math.max(m, a.depth), 0),
@@ -124,4 +135,22 @@ export function blastRadius(
     byKind,
     viaHints: affected.filter((a) => a.viaHint).length,
   };
+}
+
+/**
+ * The nodes that transitively depend on `nodeId` (CLAUDE.md "Blast radius"):
+ * a reverse breadth-first search over the edge kinds of the traversal
+ * policy, cycle-safe. Certain mode follows fact edges; likely mode adds hint
+ * edges at or above the threshold and marks what only they reach. Pure, so
+ * the analysis host, the CLI, the app's renderer and the static demo share it.
+ */
+export function blastRadius(
+  graph: Graph,
+  nodeId: string,
+  opts: BlastRadiusOptions,
+): BlastRadiusResult {
+  if (!graph.nodes.some((n) => n.id === nodeId)) {
+    throw new Error(`No node ${nodeId} in the graph.`);
+  }
+  return { nodeId, ...reverseImpact(graph, [nodeId], opts) };
 }
