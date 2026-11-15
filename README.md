@@ -14,6 +14,8 @@ Before changing a file in an unfamiliar codebase, you want to know three things:
 - **Risk tiers:** a tier built from three facts you can check (how many files depend on it, how often it changed in the last 90 days, and its size or test coverage), never an opaque score.
 - **Candidate findings:** branches that likely never run, possibly stale feature flags, and files no entry point reaches, each with its evidence and caveats.
 
+It also shows how one file comes to depend on another, which files most of the project depends on, and clusters of files that depend mostly on each other.
+
 Edges a resolver proved are facts and drawn solid; anything inferred is a hint, drawn dashed with its evidence. Each language says how precisely it is resolved.
 
 ## Try Epoch
@@ -33,6 +35,16 @@ The builds are **unsigned**, a deliberate choice for now ([ADR-018](docs/decisio
 - **Linux:** on Ubuntu 24.04, prefer the `.deb`; the AppImage may need FUSE and a compatible AppArmor configuration. Never turn off Chromium's sandbox to run it.
 
 Want Epoch in a script or a CI check instead? See [the command line](docs/cli.md).
+
+## From an AI agent or a pull request
+
+The same engine answers without a window:
+
+- **AI coding agents.** `epoch mcp` lets Claude Code, Cursor or Codex ask what depends on a file, what a change touches, how risky a file is and which code is likely unused. It is a read-only server over standard input and output: no port, always offline, graph facts only, never file contents, and nothing written into your project. [docs/agents.md](docs/agents.md) has the line to add.
+- **Pull requests.** `epoch impact . --base origin/main` lists each changed file with its risk tier and everything that depends on the change, as text, JSON or Markdown for a job summary, and `--fail-on critical` fails the check ([docs/cli.md](docs/cli.md)).
+- **One file.** `epoch explain` gives a file's facts, and `epoch path` shows how one file comes to depend on another.
+
+The command line is packaged for npm as `@epoch-dev/cli` and tested on all three systems, but not published yet; until then it is built from a clone.
 
 ## Explore the demos
 
@@ -121,6 +133,7 @@ Requirements, running the app, the end-to-end tests, benchmarks, the static site
 
 - [docs/cli.md](docs/cli.md): the `epoch` command line, for scripts and CI.
 - [docs/agents.md](docs/agents.md): using Epoch from an AI coding agent (Claude Code, Cursor, Codex).
+- [docs/comparison.md](docs/comparison.md): Epoch next to GitNexus and Graphify, from each project's own documentation.
 - [docs/results.md](docs/results.md): every measured table.
 - [docs/architecture.md](docs/architecture.md): processes, pipeline, network policy and release flow.
 - [docs/privacy.md](docs/privacy.md): what leaves the machine, feature by feature.

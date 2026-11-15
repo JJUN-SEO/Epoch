@@ -389,7 +389,7 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 - [x] **Agent server `epoch mcp`:** MCP on stdio with `@modelcontextprotocol/server` (pinned); eight read-only tools (`overview`, `find`, `explain`, `blast_radius`, `impact`, `path`, `risk`, `findings`); facts only, capped lists; always offline; kept fresh by the app's watcher, and a call waits for a re-analysis in flight.
 - [x] **App and demo site:** "Path to another file" in the details panel (listed hop by hop and drawn on the graph), "Color by: Cluster" with a legend, and a "Most depended-on" list while nothing is selected, all from the `core` functions in the renderer.
 - [x] **npm package `@epoch-dev/cli`:** workspace packages bundled, third-party dependencies declared, version from the app; CI installs the packed tarball on macOS, Windows and Linux and runs an analysis and an agent round trip; `npm.yml` publishes a release tag when the maintainer runs it (ADR-018 amendment). Not published yet: it waits for the npm organisation and token.
-- [ ] **Docs:** `docs/agents.md` (the line to add for Claude Code, Cursor and Codex, each from that client's current docs), `docs/cli.md`, `docs/privacy.md`, a README section, and `docs/comparison.md` (a dated, sourced table against GitNexus and Graphify).
+- [x] **Docs:** `docs/agents.md` (the line to add for Claude Code, Cursor and Codex, each from that client's current docs; the Codex pages could only be read in part, and the guide says so), `docs/cli.md`, `docs/privacy.md`, a README section, and `docs/comparison.md` (a dated, sourced table against GitNexus and Graphify).
 
 **Tests**
 - Unit tests for each function and each tool handler.
