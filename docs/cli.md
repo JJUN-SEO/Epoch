@@ -6,6 +6,7 @@ The CLI runs the same engine as the desktop app, without a window: the same pars
   - `epoch findings --fail-on <level>` exits with code 2 when candidates at or above that confidence remain. Once a project's existing candidates are resolved or listed under `findings.ignore` in `epoch.config.json`, a pull request that adds a file no entry point reaches, or a branch that likely never runs, fails the check.
   - `epoch impact --base <ref>` says what a pull request touches: each changed file's risk tier and candidates, and every file that depends on them. `--fail-on <tier>` exits with code 2 when a changed file is at or above that risk tier.
 - **Questions about one file.** `epoch explain` gives a file's facts, and `epoch path` shows how one file depends on another.
+- **AI coding agents.** `epoch mcp` lets an agent ask the same questions while it works ([agents.md](agents.md)).
 - **Scripts and other tools.** `epoch analyze --json` prints the canonical graph (nodes, edges with provenance and confidence, entry points, findings, unresolved imports) for other tools to read.
 - **Reproducing the numbers.** The benchmarks in [results.md](results.md) and the demo site's graphs are produced with it, so anyone can rerun them without the app.
 
@@ -30,6 +31,7 @@ epoch impact <path> (--base <ref> | --files <file>...) [--json | --markdown] [--
 epoch path <path> <from> <to> [--json] [--likely]
 epoch explain <path> <file> [--json]
 epoch export <path> --format graphml|mermaid|dot [--scope <folder>] [--likely] [--out <file>]
+epoch mcp [<path>]
 epoch cache stats | clear | prune [--max-size <MB>]
 epoch auth set | status | remove <provider>
 ```
@@ -45,6 +47,7 @@ epoch auth set | status | remove <provider>
 - `export` writes the graph as GraphML, a Mermaid flowchart or Graphviz DOT, to stdout or to the file given with `--out`. `--scope <folder>` keeps one folder's files.
 - For `path` and `explain`, a file can be named by its path in the project or by any ending that fits one file (`schemas.ts`). A name that fits several is refused, with the candidates listed.
 - `--likely` (impact, path, export) also follows likely relations, the hint edges, and marks what depends on them. Without it only proven imports count.
+- `mcp` answers an AI coding agent's questions about the project over standard input and output: read-only, always offline, graph facts only. Your agent starts it; [agents.md](agents.md) has the line to add for Claude Code, Cursor and Codex.
 - `cache` shows, clears or prunes Epoch's local cache. It holds only derived data, so clearing it just means the next run parses everything again.
 - `auth` stores or removes your own model provider key in the OS keychain. The key is read from standard input, never from the command line, and `auth status` never prints it.
 

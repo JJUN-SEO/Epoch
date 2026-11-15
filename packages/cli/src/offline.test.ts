@@ -4,13 +4,16 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
+import { Client } from "@modelcontextprotocol/client";
+import { StdioClientTransport } from "@modelcontextprotocol/client/stdio";
 
 /*
  * The zero-network test (PLAN.md M7 acceptance): the built CLI runs a full
  * analysis and findings on a git repository, with the local embedding
  * model, under scripts/no-network.mjs, which logs every network attempt in
  * every thread. The canary proves the log catches attempts, in the main
- * thread and in a worker (the parse workers are threads).
+ * thread and in a worker (the parse workers are threads). The query
+ * commands and a whole agent session (ADR-021) run under it too.
  */
 
 const repo = fileURLToPath(new URL("../../../", import.meta.url));
@@ -122,6 +125,83 @@ describe("zero network (the built CLI under the tripwire)", () => {
         expect(r.status).toBe(0);
         expect(r.attempts).toEqual([]);
       }
+    },
+    SPAWNS_MS,
+  );
+
+  it(
+    "attempts nothing during impact, path, explain and export",
+    () => {
+      const project = gitProject();
+      for (const args of [
+        ["impact", project, "--base", "HEAD~1", "--likely"],
+        [
+          "path",
+          project,
+          "apps/web/src/main.tsx",
+          "packages/core/src/index.ts",
+        ],
+        ["explain", project, "apps/web/src/main.tsx"],
+        ["export", project, "--format", "graphml"],
+      ]) {
+        const r = underTripwire(args);
+        expect(r.stderr).not.toContain("epoch:");
+        expect(r.status).toBe(0);
+        expect(r.attempts).toEqual([]);
+      }
+    },
+    SPAWNS_MS,
+  );
+
+  it(
+    "attempts nothing during an agent session (epoch mcp)",
+    async () => {
+      const project = gitProject();
+      const home = temp("no-network");
+      const log = path.join(home, "network.log");
+      fs.writeFileSync(log, "");
+      const client = new Client({ name: "epoch-test", version: "0.0.0" });
+      await client.connect(
+        new StdioClientTransport({
+          command: process.execPath,
+          args: ["--import", preload, bin, "mcp", project],
+          stderr: "pipe",
+          env: {
+            ...(Object.fromEntries(
+              Object.entries(process.env).filter(([, v]) => v !== undefined),
+            ) as Record<string, string>),
+            EPOCH_CACHE_DIR: path.join(home, "cache"),
+            EPOCH_DATA_DIR: path.join(home, "data"),
+            EPOCH_NETWORK_LOG: log,
+          },
+        }),
+      );
+      const { tools } = await client.listTools();
+      const args: Record<string, Record<string, unknown>> = {
+        find: { query: "main" },
+        explain: { file: "apps/web/src/main.tsx" },
+        blast_radius: { file: "packages/core/src/index.ts", likely: true },
+        impact: { base: "HEAD~1", likely: true },
+        path: {
+          from: "apps/web/src/main.tsx",
+          to: "packages/core/src/index.ts",
+        },
+      };
+      for (const t of tools) {
+        const r = await client.callTool({
+          name: t.name,
+          arguments: args[t.name] ?? {},
+        });
+        expect(r.isError, t.name).not.toBe(true);
+      }
+      await client.close();
+      expect(tools).toHaveLength(8);
+      expect(
+        fs
+          .readFileSync(log, "utf8")
+          .split("\n")
+          .filter((l) => l !== ""),
+      ).toEqual([]);
     },
     SPAWNS_MS,
   );

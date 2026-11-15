@@ -64,16 +64,17 @@ No account, backend or telemetry. Source and the graph stay on your machine; rem
 
 <!-- BEGIN GENERATED:privacy -->
 
-| Feature                                                       | What leaves the machine                                                             | Default             |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ------------------- |
-| Parsing, graph, blast radius, risk tiers, git analysis        | Nothing                                                                             | On                  |
-| Dead-feature detection (reachability, constants, git history) | Nothing                                                                             | On                  |
-| Heuristic scorer, co-change and shared-string hints           | Nothing                                                                             | On                  |
-| Embeddings similarity                                         | Nothing (a small local model bundled with the app)                                  | On                  |
-| Local-model scorer and summaries (e.g. Ollama)                | Nothing (the model server runs on this machine)                                     | Opt-in              |
-| Jev scorer (CLI only)                                         | File excerpts and their context, sent to TypeSafe AI with your key                  | Opt-in              |
-| LLM summaries and LLM scorer                                  | File source and neighbor summaries, sent with your key to the provider you choose   | Opt-in              |
-| Update check                                                  | One request a day to GitHub Releases for the latest version number; no project data | On; can be disabled |
+| Feature                                                       | What leaves the machine                                                                                                                         | Default             |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------- |
+| Parsing, graph, blast radius, risk tiers, git analysis        | Nothing                                                                                                                                         | On                  |
+| Dead-feature detection (reachability, constants, git history) | Nothing                                                                                                                                         | On                  |
+| Heuristic scorer, co-change and shared-string hints           | Nothing                                                                                                                                         | On                  |
+| Embeddings similarity                                         | Nothing (a small local model bundled with the app)                                                                                              | On                  |
+| Local-model scorer and summaries (e.g. Ollama)                | Nothing (the model server runs on this machine)                                                                                                 | Opt-in              |
+| Jev scorer (CLI only)                                         | File excerpts and their context, sent to TypeSafe AI with your key                                                                              | Opt-in              |
+| LLM summaries and LLM scorer                                  | File source and neighbor summaries, sent with your key to the provider you choose                                                               | Opt-in              |
+| Update check                                                  | One request a day to GitHub Releases for the latest version number; no project data                                                             | On; can be disabled |
+| Agent access (`epoch mcp`)                                    | Nothing is sent by Epoch. The AI agent you connect receives graph facts over stdio, and what it sends to its model provider is up to that agent | Opt-in              |
 
 <!-- END GENERATED:privacy -->
 
@@ -119,6 +120,7 @@ Requirements, running the app, the end-to-end tests, benchmarks, the static site
 ## Documentation
 
 - [docs/cli.md](docs/cli.md): the `epoch` command line, for scripts and CI.
+- [docs/agents.md](docs/agents.md): using Epoch from an AI coding agent (Claude Code, Cursor, Codex).
 - [docs/results.md](docs/results.md): every measured table.
 - [docs/architecture.md](docs/architecture.md): processes, pipeline, network policy and release flow.
 - [docs/privacy.md](docs/privacy.md): what leaves the machine, feature by feature.

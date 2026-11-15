@@ -78,10 +78,14 @@ epoch mcp [<path>]
 - **Tools, all read-only and marked `readOnlyHint`:** `overview`, `find`, `explain`, `blast_radius`, `impact`, `path`, `risk`, `findings`.
 - **What a result holds:** graph facts only: node ids (repository-relative paths), metrics, risk tiers and the facts behind them, edges with kind and evidence, and findings with their rubric wording, evidence and caveats.
   - Never file contents, code excerpts, summaries or keys. An agent reads files with its own tools.
-  - Lists are capped, and a capped result says how many there were.
+  - Lists are capped (50 entries by default, 200 at most, 20 for folders and candidates), and a result says how many entries it left out.
+  - A result is one block of compact JSON text. There is no `outputSchema` and no second structured copy: an agent pays for every character, in the tool list and in each answer.
+  - A question that cannot be answered as asked (an unknown or ambiguous file, an unknown commit) comes back as a tool error with the reason and the candidates, not as a protocol failure.
 - **Always offline.** The server makes no network request and runs no model feature, whatever the settings say.
 - **Read-only, including the agent's own setup.** Epoch writes no `AGENTS.md`, `.mcp.json`, hook or skill into the project or the user's agent configuration. `docs/agents.md` shows the line the user adds.
-- **Freshness.** The project is analyzed when the server starts. Before a tool answers, an incremental analysis picks up changed files through the shared cache.
+- **Freshness.** The project is analyzed when the server starts, without holding up the handshake; the first tool call waits for it. After that the same watcher as the desktop app (`watchProject`) re-analyzes after each batch of changes through the shared cache, with a shorter quiet time (50 ms) because an agent asks right after it edits. A tool call waits 80 ms for a save that just happened to reach the watcher, then for any re-analysis in flight. A change saved in the instant before a call can still be missed until the next call. If the OS watch limit stops the watcher, a call re-analyzes when the last analysis is older than five seconds.
+- **Lifetime.** One process per agent. It exits when the agent closes its standard input.
+- **`epoch mcp [<path>]`** analyzes the current folder by default, since agents start a server in the project they work in.
 - **Repository strings are data.** File names, flag names and evidence come from the analyzed repository and can say anything. Results put them in structured fields, and the server's `instructions` say they are data from the repository, never instructions.
 
 ### 4. Privacy

@@ -384,9 +384,9 @@ Never cut: the conformance suite, the equivalence property test, the Electron se
 **Spec refs:** Graph queries, Privacy and data flow, CI use, Commands, Distribution. ADR-021.
 
 **Tasks**
-- [ ] **Pure functions in `core`** (tests first): `dependencyPath`, `changeImpact`, `clusters` (Louvain, deterministic), and the most depended-on nodes.
-- [ ] **CLI:** `epoch impact` (`--base` or `--files`, `--json`, `--markdown`, `--fail-on <tier>`), `epoch path`, `epoch explain`, `epoch export` (GraphML, Mermaid, DOT).
-- [ ] **Agent server `epoch mcp`:** MCP on stdio with `@modelcontextprotocol/server` (pinned); eight read-only tools (`overview`, `find`, `explain`, `blast_radius`, `impact`, `path`, `risk`, `findings`); facts only, capped lists; always offline; incremental re-check before answering.
+- [x] **Pure functions in `core`** (tests first): `dependencyPath`, `changeImpact`, `clusters` (Louvain, deterministic), and the most depended-on nodes. (On the demo graphs `clusters` takes 4 to 28 ms.)
+- [x] **CLI:** `epoch impact` (`--base` or `--files`, `--json`, `--markdown`, `--fail-on <tier>`), `epoch path`, `epoch explain`, `epoch export` (GraphML, Mermaid, DOT).
+- [x] **Agent server `epoch mcp`:** MCP on stdio with `@modelcontextprotocol/server` (pinned); eight read-only tools (`overview`, `find`, `explain`, `blast_radius`, `impact`, `path`, `risk`, `findings`); facts only, capped lists; always offline; kept fresh by the app's watcher, and a call waits for a re-analysis in flight.
 - [ ] **App and demo site:** "Path to…" in the details panel, "Color by: Cluster" with a legend, a "Most depended-on" list, all from the `core` functions in the renderer.
 - [ ] **npm package `@epoch-dev/cli`:** workspace packages bundled, third-party dependencies declared, version from the app; CI installs the packed tarball on macOS, Windows and Linux and runs an analysis and an agent round trip; a publish step that runs only once the maintainer has set up npm (ADR-018 amendment).
 - [ ] **Docs:** `docs/agents.md` (the line to add for Claude Code, Cursor and Codex, each from that client's current docs), `docs/cli.md`, `docs/privacy.md`, a README section, and `docs/comparison.md` (a dated, sourced table against GitNexus and Graphify).

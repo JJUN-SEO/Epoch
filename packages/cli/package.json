@@ -22,6 +22,7 @@
     "test": "vitest run --dir src"
   },
   "devDependencies": {
+    "@modelcontextprotocol/client": "2.4.0",
     "@types/node": "catalog:",
     "eslint": "catalog:",
     "typescript": "catalog:",
@@ -30,7 +31,9 @@
   "dependencies": {
     "@epoch-dev/core": "workspace:*",
     "@epoch-dev/engine": "workspace:*",
-    "@epoch-dev/scorers": "workspace:*"
+    "@epoch-dev/scorers": "workspace:*",
+    "@modelcontextprotocol/server": "2.4.0",
+    "zod": "catalog:"
   },
   "optionalDependencies": {
     "@napi-rs/keyring": "2.1.0"

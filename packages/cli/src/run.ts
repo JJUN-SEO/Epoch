@@ -47,6 +47,7 @@ import {
   type ExportFormat,
 } from "./export-graph.js";
 import { formatFindings } from "./findings.js";
+import { serveAgent } from "./mcp/server.js";
 import {
   formatExplain,
   formatImpact,
@@ -108,6 +109,7 @@ export const USAGE = `Usage:
   epoch explain <path> <file> [--json]
   epoch export <path> --format graphml|mermaid|dot [--scope <folder>]
                       [--likely] [--out <file>]
+  epoch mcp [<path>]
   epoch cache stats | clear | prune [--max-size <MB>]
   epoch auth set | status | remove <provider>
 
@@ -127,6 +129,10 @@ Commands:
                    importers, coverage and candidates
   export <path>    The graph as GraphML, Mermaid or Graphviz DOT, on stdout
                    or in the file given with --out
+  mcp [<path>]     Answer an AI agent's questions about the project (default:
+                   the current folder) over MCP on stdio: read-only, always
+                   offline, graph facts only, never file contents. Your
+                   agent starts it; see docs/agents.md
   cache stats      Show where the cache is and what it holds
   cache clear      Delete everything in the cache (it is derived data)
   cache prune      Evict least-recently-used entries down to --max-size
@@ -744,6 +750,22 @@ async function exportCommand(
   return EXIT_OK;
 }
 
+async function mcpCommand(args: readonly string[], io: CliIo): Promise<number> {
+  const { positionals } = parseArgs({
+    args: [...args],
+    options: {},
+    allowPositionals: true,
+    strict: true,
+  });
+  if (positionals.length > 1) {
+    throw new UsageError("mcp takes at most one <path>");
+  }
+  const target = targetOf("mcp", [positionals[0] ?? "."]);
+  // stdout belongs to the protocol from here on; Epoch speaks on stderr.
+  await serveAgent(target, (line) => io.stderr.write(line));
+  return EXIT_OK;
+}
+
 function cacheCommand(args: readonly string[], io: CliIo): number {
   const [sub, ...rest] = args;
   // strict parsing rejects unknown options and stray positionals
@@ -814,8 +836,9 @@ export async function run(
   // --offline goes before or after the command. It turns the network off in
   // this process (the tripwire), and keeps only a model on this machine,
   // through the fetch from before the tripwire.
-  const offline = argv.includes("--offline");
   const [command, ...rest] = argv.filter((a) => a !== "--offline");
+  // The agent server is always offline (ADR-021).
+  const offline = argv.includes("--offline") || command === "mcp";
   const wire = offline ? installTripwire() : undefined;
   const network: ScorerNetwork = wire
     ? { offline, fetch: wire.passthrough }
@@ -834,6 +857,7 @@ export async function run(
     if (command === "path") return await pathCommand(rest, io);
     if (command === "explain") return await explainCommand(rest, io);
     if (command === "export") return await exportCommand(rest, io);
+    if (command === "mcp") return await mcpCommand(rest, io);
     if (command === "cache") return cacheCommand(rest, io);
     if (command === "auth")
       return await authCommand(rest, io, {
