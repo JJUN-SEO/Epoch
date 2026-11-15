@@ -1,6 +1,5 @@
 import {
   DismissalStore,
-  ParsePool,
   analyze,
   changedSince,
   openCache,
@@ -10,6 +9,7 @@ import {
   type ProjectWatcher,
   type SqliteCacheStore,
 } from "@epoch-dev/engine";
+import { parsePool } from "../pool.js";
 import type { ToolContext } from "./tools.js";
 
 /*
@@ -49,7 +49,7 @@ export function openSession(
     const message = err instanceof Error ? err.message : String(err);
     log(`epoch: cache unavailable (${message}); analyzing without it\n`);
   }
-  const pool = new ParsePool();
+  const pool = parsePool();
   const options: AnalyzeOptions = { pool, ...(cache ? { cache } : {}) };
 
   let latest: AnalyzeResult | undefined;

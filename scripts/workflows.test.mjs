@@ -22,6 +22,7 @@ const workflows = fs
 
 /** The only write permissions any job may have: file, job, scope. */
 const WRITES = new Set([
+  "npm.yml publish id-token",
   "release.yml publish contents",
   "site.yml deploy pages",
   "site.yml deploy id-token",

@@ -31,3 +31,6 @@ apps/site/test-results/
 
 # Clones of the demo repositories, made by scripts/site-data.mjs
 /.cache/
+
+# The npm package of the CLI, built by scripts/pack-cli.mjs.
+packages/cli/npm/

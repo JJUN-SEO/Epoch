@@ -1,9 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { serveStdio } from "@modelcontextprotocol/server/stdio";
 import type { z } from "zod";
-import manifest from "../../package.json" with { type: "json" };
 import { openSession, type AgentSession } from "./session.js";
 import { INSTRUCTIONS, TOOLS, ToolError, type ToolContext } from "./tools.js";
+import { cliVersion } from "../version.js";
 
 /*
  * `epoch mcp`: the agent server (ADR-021). MCP over stdio and nothing else:
@@ -59,7 +59,7 @@ function register(server: McpServer, session: AgentSession, spec: Spec): void {
 
 export function createServer(session: AgentSession): McpServer {
   const server = new McpServer(
-    { name: "epoch", version: manifest.version },
+    { name: "epoch", version: cliVersion() },
     { instructions: INSTRUCTIONS },
   );
   for (const spec of TOOLS) register(server, session, spec);

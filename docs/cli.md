@@ -12,7 +12,7 @@ The CLI runs the same engine as the desktop app, without a window: the same pars
 
 ## Getting it
 
-The CLI is not published to npm yet. Build it from a clone of this repository (requirements in [development.md](development.md)):
+The CLI is packaged for npm as `@epoch-dev/cli`, and CI installs and runs that package on macOS, Windows and Linux on every push, but it is **not published yet** ([ADR-018](decisions/ADR-018-distribution.md)). Once it is, `npx @epoch-dev/cli <command>` will run it with Node 24 or later. Until then, build it from a clone of this repository (requirements in [development.md](development.md)):
 
 ```sh
 pnpm install
@@ -65,7 +65,7 @@ epoch impact . --base origin/main --fail-on critical
 
 The second line puts the change-impact report on the job's summary page in GitHub Actions. `--base` compares two commits, so the job needs both: fetch the base branch as well as the pull request's head.
 
-Dismissals made in the app live on your machine, not in the repository, so a CI run doesn't see them; use `findings.ignore` for anything the check should skip. Clone with full history (for example `fetch-depth: 0` in `actions/checkout`). With a shallow clone Epoch skips stale-flag findings, and churn, and so the risk tiers, counts only the commits the clone has. Until the CLI is on npm, the job has to check out and build Epoch first.
+Dismissals made in the app live on your machine, not in the repository, so a CI run doesn't see them; use `findings.ignore` for anything the check should skip. Clone with full history (for example `fetch-depth: 0` in `actions/checkout`). With a shallow clone Epoch skips stale-flag findings, and churn, and so the risk tiers, counts only the commits the clone has. Until the CLI is on npm, the job has to check out and build Epoch first. The npm package has no embedding model, so similarity hints are off there; everything else is the same.
 
 ## Hints and models (optional)
 

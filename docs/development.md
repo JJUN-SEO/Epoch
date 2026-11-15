@@ -79,6 +79,8 @@ node scripts/site-size.mjs apps/site/dist    # gzip budgets per page and chunk
 
 `packages/app/package.json` is the version source. A matching `v<version>` tag builds and smoke-tests installers on macOS, Windows and Ubuntu runners, then creates a **draft** GitHub Release with all four installers and checksums. The maintainer checks the draft and publishes it. The site deploys from `main` through GitHub Actions when Pages uses **GitHub Actions** as its source. [ADR-018](decisions/ADR-018-distribution.md) records the distribution choices.
 
+The CLI goes to npm as `@epoch-dev/cli` separately, when the maintainer runs the **npm** workflow with the release's tag (Actions → npm → Run workflow). It checks the tag, builds one bundled package with `node scripts/pack-cli.mjs`, installs and runs that tarball (`node scripts/cli-smoke.mjs <tarball>`), then publishes it with provenance. It needs the `@epoch-dev` organisation on npm and a repository secret `NPM_TOKEN`. To try the package locally: `node scripts/pack-cli.mjs --pack /tmp/epoch-cli`, then install the tarball it prints in an empty folder.
+
 ## Windows notes
 
 - If `prettier --check` reports line-ending problems in a file you just created, run `pnpm format`. The repository stores LF everywhere (`.gitattributes`).

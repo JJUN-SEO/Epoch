@@ -1,8 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "noEmit": true,
-    "resolveJsonModule": true
+    "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "vite.npm.config.ts"]
 }

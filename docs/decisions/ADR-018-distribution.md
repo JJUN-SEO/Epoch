@@ -81,3 +81,29 @@ The [installer size report](../benchmarks/installers.md) is generated from the s
 Early releases are unsigned. macOS uses only an ad hoc signature for Apple silicon, with no Developer ID certificate or notarization. Windows has no code-signing certificate. Linux packages are unsigned. The README and release notes give checksum verification and first-run steps. No signing purchase or credential is assumed.
 
 **Signing status (maintainer decision, 2026-10-22):** stay unsigned. Each user clicks through one first-run warning (Gatekeeper's "Open Anyway", SmartScreen's "Run anyway"), which the README, the landing page and the release notes explain, with checksums to verify the download. Signing would need a paid Apple Developer membership with notarization, and a Windows code-signing certificate or signing service. Revisit before a launch to a wider, non-technical audience; the release workflow would then take the credentials as secrets, and `electron-updater` (decision 3) could be reconsidered for macOS.
+
+## Amendment (2026-11-15): the CLI on npm
+
+CLAUDE.md ("Distribution") always said the CLI is also published to npm; until now it could only be built from a clone. The agent server (ADR-021) made that a blocker: an agent, or a CI job, has to start Epoch with one command. The maintainer decided the CLI ships on npm as **`@epoch-dev/cli`** (the unscoped names are taken, ADR-001).
+
+Sources (read 2026-11-15): npm's [provenance statements](https://docs.npmjs.com/generating-provenance-statements) and [trusted publishing](https://docs.npmjs.com/trusted-publishers) pages.
+
+- A first publish of a scoped package needs `--access public`; provenance needs `id-token: write`, a GitHub-hosted runner and `--provenance`; the package's `repository` must match the GitHub repository it is published from.
+- Trusted publishing (no token) is set up per package on npmjs.com and needs npm 11.5.1 or later. The pages do not say a package that was never published can use it.
+
+Decisions:
+
+1. **One package, bundled.** The workspace packages are private, so `scripts/pack-cli.mjs` builds one package: the CLI and all workspace code bundled by Vite (`packages/cli/vite.npm.config.ts`), and every third-party package left as an import and declared as a dependency at the exact version the workspace pins. The script refuses two different pins of one dependency. The tarball is about 116 kB.
+2. **The parse worker is its own entry,** next to the bundle, so the pool finds it inside the installed package as it does in the build tree. Like the desktop app's, it refuses any network use.
+3. **No embedding runtime in the package.** `onnxruntime-node` is about 290 MB on disk and only serves similarity hints, which need a model the package does not carry either. It and `@huggingface/tokenizers` are loaded lazily and left out; without them Epoch reports the model unavailable and everything else works.
+4. **The version is the release's.** The published manifest carries `packages/app/package.json`'s version, and the CLI reads its own manifest at run time (`epoch --version`, and the agent server's name and version).
+5. **Tested as a user gets it.** On every push, CI packs the tarball on macOS, Windows and Ubuntu, installs it in an empty folder with `npm install`, and runs it there (`scripts/cli-smoke.mjs`): the version, a small analysis, an analysis large enough to start the parse workers, and a conversation with the agent server in plain JSON-RPC, with no MCP library on the test's side.
+6. **The maintainer publishes.** A tag still only drafts the GitHub Release. `npm.yml` runs when the maintainer starts it with a tag: it checks the tag against the version, builds, packs, runs the same smoke test, and publishes that tarball with `--provenance --access public`. It needs the npm organisation `@epoch-dev` and a repository secret `NPM_TOKEN`. A version on npm cannot be replaced, which is why nothing publishes by itself.
+
+Rejected:
+
+- **Publishing every workspace package.** Eight packages to version and keep in step, for code nobody else is meant to import.
+- **Publishing from the tag workflow.** It would publish before the maintainer has looked at the release.
+- **Trusted publishing from the start.** It is configured on a package that already exists; the first publish needs a token either way. Moving to it later means adding the trusted publisher on npmjs.com and dropping the secret.
+
+Not yet done: the package is not on npm until the maintainer creates the organisation, adds the token and runs the workflow. The docs say so until then.

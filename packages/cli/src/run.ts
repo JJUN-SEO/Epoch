@@ -13,7 +13,6 @@ import {
 import {
   DEFAULT_MAX_CACHE_BYTES,
   DismissalStore,
-  ParsePool,
   analyze,
   changedSince,
   localEmbedder,
@@ -48,6 +47,7 @@ import {
 } from "./export-graph.js";
 import { formatFindings } from "./findings.js";
 import { serveAgent } from "./mcp/server.js";
+import { parsePool } from "./pool.js";
 import {
   formatExplain,
   formatImpact,
@@ -64,6 +64,7 @@ import {
 } from "./query.js";
 import { chooseScorer } from "./scorer.js";
 import { formatSummary } from "./summary.js";
+import { cliVersion } from "./version.js";
 
 /** Where the CLI writes; the real bin passes process.stdout and process.stderr. */
 export interface CliIo {
@@ -172,6 +173,7 @@ Options:
   --out <file>       export: write this file instead of stdout
   --max-size <MB>    Cache size cap for prune (default ${String(DEFAULT_MAX_CACHE_BYTES / MIB)})
   -h, --help         Show this help
+  -v, --version      Show Epoch's version
 
 Hint options (likely relations, never facts; computed on this machine):
   --no-hints         Skip hint edges (co-change, shared strings, similarity)
@@ -405,7 +407,7 @@ async function analyzeWithCache(
     );
   }
   // Workers start only for a large batch of cache misses (DEFAULT_MIN_BATCH).
-  const pool = new ParsePool();
+  const pool = parsePool();
   try {
     const result = await analyze(target, {
       onProgress: progressReporter(io.stderr),
@@ -849,6 +851,10 @@ export async function run(
   try {
     if (command === "-h" || command === "--help" || command === "help") {
       io.stdout.write(USAGE);
+      return EXIT_OK;
+    }
+    if (command === "-v" || command === "--version") {
+      io.stdout.write(`${cliVersion()}\n`);
       return EXIT_OK;
     }
     if (command === "analyze") return await analyzeCommand(rest, runIo);

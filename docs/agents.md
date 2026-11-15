@@ -20,7 +20,7 @@ The decisions behind this page are in [ADR-021](decisions/ADR-021-agent-access-a
 
 ## Getting the command
 
-The CLI is not published to npm yet. Build it from a clone of this repository ([cli.md](cli.md)), then use the full path of the built file:
+The CLI is packaged for npm as `@epoch-dev/cli` but not published yet. Once it is, the command is `npx -y @epoch-dev/cli mcp /path/to/your/project`, with nothing to build. Until then, build the CLI from a clone of this repository ([cli.md](cli.md)) and use the full path of the built file:
 
 ```sh
 node /path/to/Epoch/packages/cli/dist/bin.js mcp /path/to/your/project

@@ -1,0 +1,68 @@
+name: npm
+
+# Publishes the CLI to npm as @epoch-dev/cli, from a release tag, when the
+# maintainer runs it (ADR-018). Nothing publishes by itself: a tag only
+# drafts the GitHub Release (release.yml), and a version on npm cannot be
+# replaced. Run it after publishing that release.
+#
+# Needs the npm organisation @epoch-dev and a repository secret NPM_TOKEN: a
+# granular access token allowed to publish that package.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The release tag to publish (for example v0.2.0)"
+        required: true
+        type: string
+
+concurrency:
+  group: npm-${{ inputs.tag }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    name: publish @epoch-dev/cli
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      # npm's provenance statement: the registry records which commit and
+      # workflow built the package (docs.npmjs.com/generating-provenance-statements).
+      id-token: write
+    env:
+      TAG: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.tag }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      # No dependency cache in a release build; registry-url makes npm read
+      # the token from NODE_AUTH_TOKEN.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          registry-url: https://registry.npmjs.org
+      - name: The package version matches the tag
+        run: node scripts/release-version.mjs check "$TAG"
+      - run: pnpm install --frozen-lockfile
+      - run: node scripts/turbo.mjs run build --filter=@epoch-dev/cli...
+      - name: Pack the npm package
+        run: node scripts/pack-cli.mjs --pack "$RUNNER_TEMP/epoch-cli"
+      - name: Install the tarball in an empty folder and run it
+        run: node scripts/cli-smoke.mjs "$RUNNER_TEMP"/epoch-cli/*.tgz
+      - name: Publish the tarball that was just tested
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish "$RUNNER_TEMP"/epoch-cli/*.tgz --provenance --access public

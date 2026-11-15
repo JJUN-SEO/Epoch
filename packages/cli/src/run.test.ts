@@ -258,6 +258,13 @@ describe("epoch errors", () => {
     expect(r.code).toBe(EXIT_OK);
     expect(r.stdout).toContain("epoch analyze <path> [--json]");
   });
+
+  it("prints its own package's version", async () => {
+    const r = await cli("--version");
+    expect(r.code).toBe(EXIT_OK);
+    expect(r.stdout).toMatch(/^\d+\.\d+\.\d+\n$/);
+    expect((await cli("-v")).stdout).toBe(r.stdout);
+  });
 });
 
 describe("the built bin", () => {

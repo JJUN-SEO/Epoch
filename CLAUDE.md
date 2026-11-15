@@ -542,7 +542,7 @@ Pure functions in `core`, beside blast radius, shared by the CLI, the agent serv
 - **Update check:** once a day main asks the release host (GitHub Releases) for the latest version through its egress and shows a notice linking to the release page; the user downloads and installs it. Opt-out, never in offline mode, listed in the data-flow table (ADR-018).
 - **Code signing:** macOS notarization needs a paid Apple Developer account and Windows signing needs a certificate. Ship early builds unsigned with documented first-run steps, and decide on signing before a public launch. Be upfront about this in the README.
 - **Static site:** landing page, download links, and an in-browser demo viewer with precomputed graphs and findings of well-known public OSS repos (reuses the UI via the static `EpochApi`). No backend, no user code, no model features.
-- **CLI:** also published to npm for headless and CI use (`epoch analyze --json`, `epoch findings`). We host nothing.
+- **CLI:** also published to npm as `@epoch-dev/cli`, for headless and CI use and for AI agents (`epoch analyze --json`, `epoch findings`, `epoch impact`, `epoch mcp`): one package with the workspace code bundled, published by the maintainer from a release tag (ADR-018). We host nothing.
 
 ## Tech stack (defaults, change via ADR)
 
