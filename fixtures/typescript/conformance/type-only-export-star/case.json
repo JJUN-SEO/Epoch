@@ -1,0 +1,6 @@
+{
+  "description": "`export type * from` and `export type * as ns from` (TS 5.0) produce type-only edges, the file is not reported as having syntax errors, and names imported through it trace to their declaring files.",
+  "adapters": [
+    "typescript"
+  ]
+}

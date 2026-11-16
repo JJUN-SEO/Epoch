@@ -51,6 +51,21 @@ These are single measurements on one machine to show the order of magnitude, not
 - Trees live in WASM memory: the engine deletes each tree after extraction.
 - Packaging (M3, M8): the `.wasm` files and the tree-sitter queries in `queries/` must ship unpacked (`asarUnpack` in Electron, copied for the npm CLI). Today they are found through package-relative paths.
 
+## Amendment (2026-11-16): `export type *` is read in full
+
+**Why.** A file containing `export type * from` was listed under "Files with syntax errors", so barrel tracing through it stayed conservative, although the extractor read the whole statement. Epoch's own `packages/core/src/index.ts` was one. A grammar upgrade is not available: `@vscode/tree-sitter-wasm` 0.3.1 and `tree-sitter-typescript` 0.23.2 are still the latest releases (`npm view`, 2026-11-16).
+
+**What changed.**
+
+- **The adapter says which errors it reads.** `AdapterRegistration.hasSyntaxErrors` (optional, beside the CLAUDE.md adapter contract) decides whether a file counts as having syntax errors. Without it, any error in the tree counts, as before.
+- **TypeScript passes over exactly one shape.** `export`, an error node holding only the `type` keyword, `*` or `* as name`, `from`, a string, and no other error in the statement. That is what the TypeScript and TSX grammars produce for `export type * from "x"` and `export type * as ns from "x"`. Every other error or missing token still counts, also in the same file.
+- **Not in JavaScript files.** The JavaScript grammar puts an identifier in the error node, so the statement stays a syntax error there, which it is.
+- **The cached unit changed, so the adapter version did (10).** The fingerprint guard now covers the syntax-error flag as well as the facts.
+
+**Found on the way.** The graph gave every re-export the kind `reexport`, type-only ones included. A type-only re-export is now a `type-only` edge, like a type-only import: `export type * from`, `export type { T } from`, `export { type T } from`, and a Python `__init__.py` re-export under `if TYPE_CHECKING:`. Barrel tracing reads the facts, not the edge kind, so it is unchanged.
+
+**Still gaps.** The generic call signature above, and `export type * from "x" with { … }` (import attributes), which the grammar recovers from differently.
+
 ## Sources
 
 - web-tree-sitter 0.27.1 typings (`Language.load`, `new Query(language, source)`, `LANGUAGE_VERSION`, `MIN_COMPATIBLE_VERSION`), read from the installed package.

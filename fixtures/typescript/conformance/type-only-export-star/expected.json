@@ -1,0 +1,62 @@
+{
+  "nodes": [
+    "src/app.ts",
+    "src/index.ts",
+    "src/shapes.ts",
+    "src/types.ts",
+    "src/values.ts"
+  ],
+  "edges": [
+    {
+      "source": "src/app.ts",
+      "target": "src/index.ts",
+      "kind": "via-barrel",
+      "evidence": []
+    },
+    {
+      "source": "src/app.ts",
+      "target": "src/shapes.ts",
+      "kind": "type-only",
+      "evidence": [
+        "via barrel src/index.ts"
+      ]
+    },
+    {
+      "source": "src/app.ts",
+      "target": "src/types.ts",
+      "kind": "type-only",
+      "evidence": [
+        "via barrel src/index.ts"
+      ]
+    },
+    {
+      "source": "src/app.ts",
+      "target": "src/values.ts",
+      "kind": "import",
+      "evidence": [
+        "via barrel src/index.ts"
+      ]
+    },
+    {
+      "source": "src/index.ts",
+      "target": "src/shapes.ts",
+      "kind": "type-only",
+      "evidence": []
+    },
+    {
+      "source": "src/index.ts",
+      "target": "src/types.ts",
+      "kind": "type-only",
+      "evidence": []
+    },
+    {
+      "source": "src/index.ts",
+      "target": "src/values.ts",
+      "kind": "reexport",
+      "evidence": []
+    }
+  ],
+  "externals": {},
+  "unresolved": [],
+  "parseErrors": []
+}

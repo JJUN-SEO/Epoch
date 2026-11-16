@@ -106,4 +106,11 @@ export interface AdapterRegistration<TTree = unknown> {
     path: string,
     ctx: ResolveContext,
   ): { readonly id: string; readonly member: boolean } | undefined;
+  /**
+   * Whether the parser recovered from a syntax error in a way that leaves the
+   * file's facts best-effort (AnalysisMeta.parseErrors). Absent: any error in
+   * the tree counts. An adapter supplies it to pass over a known gap in its
+   * grammar that its extract reads in full (ADR-002). Pure, like the adapter.
+   */
+  hasSyntaxErrors?(tree: TTree): boolean;
 }

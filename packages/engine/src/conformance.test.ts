@@ -13,13 +13,14 @@ import { analyze } from "./analyze.js";
  * The shared conformance suite (CLAUDE.md "Language adapter interface"):
  * every case under fixtures/<language>/conformance/<case>/ is a mini repo
  * with an expected.json. node ids, edges (with evidence), externals and
- * unresolved imports are compared exactly. Each language adds its own case
- * folders; the harness stays the same.
+ * unresolved imports are compared exactly, and so are the files reported as
+ * having syntax errors (none, unless the case says so). Each language adds
+ * its own case folders; the harness stays the same.
  */
 const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REGISTERED_ADAPTERS = new Set(["typescript", "python", "go"]);
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
-  typescript: 22,
+  typescript: 23,
   python: 17,
   go: 15,
 };
@@ -29,6 +30,8 @@ interface Expected {
   edges: Pick<GraphEdge, "source" | "target" | "kind" | "evidence">[];
   externals: Record<string, string[]>;
   unresolved: UnresolvedImport[];
+  /** AnalysisMeta.parseErrors; absent means none. */
+  parseErrors?: string[];
 }
 
 interface Case {
@@ -76,7 +79,7 @@ describe("conformance suite", () => {
     const applies = c.adapters.some((a) => REGISTERED_ADAPTERS.has(a));
     it.runIf(applies)(`${c.language}/${c.name}`, async () => {
       const expected = readJson<Expected>(path.join(c.dir, "expected.json"));
-      const { graph } = await analyze(c.dir);
+      const { graph, meta } = await analyze(c.dir);
 
       expect(graph.nodes.map((n) => n.id)).toEqual(
         [...expected.nodes].sort(compareCodeUnits),
@@ -103,6 +106,7 @@ describe("conformance suite", () => {
         );
       }
       expect(graph.unresolved).toEqual(expected.unresolved);
+      expect(meta.parseErrors).toEqual(expected.parseErrors ?? []);
     });
   }
 });

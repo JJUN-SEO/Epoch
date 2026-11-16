@@ -36,7 +36,11 @@ import {
 import { nowNs, scanChanges } from "./changes.js";
 import { extractorConfigOf, loadConfig, type LoadedConfig } from "./config.js";
 import { discover, toPosix } from "./discover.js";
-import { extractFile, type ExtractedFile } from "./extract-file.js";
+import {
+  extractFile,
+  extractorOf,
+  type ExtractedFile,
+} from "./extract-file.js";
 import { runFindings } from "@epoch-dev/findings";
 import { frameworksOf } from "./frameworks.js";
 import { readHeadCommit, type GitRunner } from "./git.js";
@@ -340,7 +344,7 @@ export async function analyze(
           results.push(
             extractFile(
               parsers,
-              (file, cfg) => w.reg.adapter.extract(file, cfg),
+              extractorOf(w.reg),
               w.rel,
               w.grammar,
               w.bytes,

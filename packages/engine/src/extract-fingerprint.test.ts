@@ -13,6 +13,7 @@ import { DEFAULT_FLAG_PATTERNS } from "@epoch-dev/findings";
 import { goRegistration } from "@epoch-dev/adapter-go";
 import { pythonRegistration } from "@epoch-dev/adapter-python";
 import { typescriptRegistration } from "@epoch-dev/adapter-typescript";
+import { extractFile, extractorOf } from "./extract-file.js";
 import { Parsers } from "./parse.js";
 
 /**
@@ -22,7 +23,9 @@ import { Parsers } from "./parse.js";
  * output over every fixture file of its language; when it changes, bump the
  * adapter version and record the new fingerprint here in the same commit.
  * The extractor config turns on every flag detection, so flag extraction is
- * covered too.
+ * covered too. The cached unit also says whether the file has syntax errors,
+ * which an adapter can decide (AdapterRegistration.hasSyntaxErrors), so a
+ * file that has them adds a line to the fingerprint.
  */
 const CONFIG: ExtractorConfig = {
   flagPatterns: [...DEFAULT_FLAG_PATTERNS],
@@ -50,6 +53,7 @@ const ADAPTERS: readonly {
       "7": "49ed8c3030d1bdea668a8a2ed616d04df1a683e9796fa3e5f1ee450a36481675",
       "8": "238faa421ecaa0b478ad416ed44f29b93c8db6ecb9e1f551b0ba7c63208dcc62",
       "9": "8a66b12b5391d1f91609d583c3ae23c64f0bee7eba4f447824cc25fdcd1dc0d7",
+      "10": "371fd2f9f4f5696b6c03cf5bc66c72b17ebba799aaa6b0be8002cafd03e83a76",
     },
   },
   {
@@ -93,16 +97,18 @@ describe("extract output is versioned", () => {
       const parsers = await Parsers.load(a.grammars);
       const hash = createHash("sha256");
       try {
+        const extractor = extractorOf(a.registration);
         for (const f of files) {
-          const text = fs.readFileSync(path.join(dir, f), "utf8");
-          const tree = parsers.parse(a.registration.grammarFor(f) ?? "", text);
-          try {
-            hash.update(
-              `${f}\n${canonicalJson(adapter.extract({ path: f, text, tree }, CONFIG))}\n`,
-            );
-          } finally {
-            tree.delete();
-          }
+          const { facts, syntaxErrors } = extractFile(
+            parsers,
+            extractor,
+            f,
+            a.registration.grammarFor(f) ?? "",
+            fs.readFileSync(path.join(dir, f)),
+            CONFIG,
+          );
+          hash.update(`${f}\n${canonicalJson(facts)}\n`);
+          if (syntaxErrors) hash.update("syntax errors\n");
         }
       } finally {
         parsers.dispose();

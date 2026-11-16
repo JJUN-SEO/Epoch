@@ -35,8 +35,8 @@ function parsersFor(grammar: string): Promise<Parsers> {
 export default async function parseTask(
   task: ParseTask,
 ): Promise<ExtractedFile[]> {
-  const extract = EXTRACTORS[task.adapterId];
-  if (extract === undefined) {
+  const extractor = EXTRACTORS[task.adapterId];
+  if (extractor === undefined) {
     throw new Error(`Unknown adapter: ${task.adapterId}`);
   }
   const out: ExtractedFile[] = [];
@@ -44,7 +44,7 @@ export default async function parseTask(
     out.push(
       extractFile(
         await parsersFor(f.grammar),
-        extract,
+        extractor,
         f.rel,
         f.grammar,
         f.bytes,

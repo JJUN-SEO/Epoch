@@ -194,6 +194,54 @@ function declaredNames(decl: Node): string[] {
   return name ? [nameText(name) ?? name.text] : [];
 }
 
+/**
+ * `export type * from "x"` or `export type * as ns from "x"` (TS 5.0), as
+ * the pinned grammar parses it (ADR-002). It has no rule for the form: it
+ * wraps the `type` keyword in an ERROR node and parses the rest as the
+ * statement without `type`. True only for exactly that: the keyword alone
+ * in the error node, then the star, `from` and the specifier, and no other
+ * error in the statement. exportStatement reads all of it, so
+ * hasSyntaxErrors passes over the error node.
+ */
+function isTypeStarExport(n: Node): boolean {
+  if (n.type !== "export_statement") return false;
+  const [exp, type, star, from, source, end, ...rest] = n.children.filter(
+    (c) => c.type !== "comment",
+  );
+  const keyword = type?.firstChild;
+  return (
+    exp?.type === "export" &&
+    type?.type === "ERROR" &&
+    type.childCount === 1 &&
+    keyword?.type === "type" &&
+    !keyword.isNamed && // the JavaScript grammar has an identifier here
+    (star?.type === "*" || star?.type === "namespace_export") &&
+    !star.hasError &&
+    from?.type === "from" &&
+    !from.isMissing &&
+    stringValue(source) !== undefined &&
+    source?.hasError === false &&
+    (end === undefined || (end.type === ";" && !end.isMissing)) &&
+    rest.length === 0
+  );
+}
+
+/**
+ * Whether the parser recovered from a syntax error that extract does not
+ * read in full, so the file's facts are best-effort. Every error counts
+ * except the `type` keyword of `export type *` (isTypeStarExport).
+ */
+export function hasSyntaxErrors(tree: Tree): boolean {
+  // An explicit stack: the path to an error can be as deep as the code nests.
+  const stack: Node[] = [tree.rootNode];
+  for (let n = stack.pop(); n !== undefined; n = stack.pop()) {
+    if (!n.hasError || isTypeStarExport(n)) continue;
+    if (n.isError || n.isMissing) return true;
+    for (const c of n.children) stack.push(c);
+  }
+  return false;
+}
+
 function exportStatement(
   n: Node,
   topLevel: boolean,
@@ -202,11 +250,7 @@ function exportStatement(
 ): Pending[] {
   const line = lineOf(n);
   const column = n.startPosition.column;
-  // The grammar has no rule for `export type * from` (TS 5.0) and wraps the
-  // `type` keyword in an ERROR node; the rest of the statement parses normally.
-  const typeOnly =
-    hasToken(n, "type") ||
-    n.children.some((c) => c.type === "ERROR" && c.text === "type");
+  const typeOnly = hasToken(n, "type") || isTypeStarExport(n);
   const specifier = stringValue(n.childForFieldName("source"));
 
   if (specifier !== undefined) {

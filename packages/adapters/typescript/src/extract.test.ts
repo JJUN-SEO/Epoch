@@ -2,9 +2,9 @@ import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { Language, Parser } from "web-tree-sitter";
+import { Language, Parser, type Tree } from "web-tree-sitter";
 import { EMPTY_EXTRACTOR_CONFIG, type FileFacts } from "@epoch-dev/core";
-import { countLoc, extract } from "./extract.js";
+import { countLoc, extract, hasSyntaxErrors } from "./extract.js";
 import { grammarFor, isTestFile, languageFor } from "./files.js";
 
 await Parser.init();
@@ -26,7 +26,7 @@ for (const g of ["typescript", "tsx", "javascript"]) {
   );
 }
 
-function facts(file: string, text: string): FileFacts {
+function parsed<T>(file: string, text: string, read: (tree: Tree) => T): T {
   const grammar = grammarFor(file);
   if (!grammar) throw new Error(`no grammar for ${file}`);
   const parser = new Parser();
@@ -34,12 +34,21 @@ function facts(file: string, text: string): FileFacts {
   const tree = parser.parse(text);
   if (!tree) throw new Error("parse failed");
   try {
-    return extract({ path: file, text, tree }, EMPTY_EXTRACTOR_CONFIG);
+    return read(tree);
   } finally {
     tree.delete();
     parser.delete();
   }
 }
+
+const facts = (file: string, text: string): FileFacts =>
+  parsed(file, text, (tree) =>
+    extract({ path: file, text, tree }, EMPTY_EXTRACTOR_CONFIG),
+  );
+
+/** [the grammar reported an error, the adapter counts the file as having syntax errors]. */
+const errors = (file: string, text: string): [boolean, boolean] =>
+  parsed(file, text, (tree) => [tree.rootNode.hasError, hasSyntaxErrors(tree)]);
 
 describe("extract: imports", () => {
   const src = [
@@ -397,12 +406,78 @@ describe("extract: exports and re-exports", () => {
     ]);
   });
 
+  it("reads `export type *` as type-only only in that exact form", () => {
+    const typeOnly = (text: string) =>
+      facts("src/types.ts", text).imports.map((i) => i.typeOnly);
+    expect(
+      typeOnly(
+        'export /* a */ type /* b */ * /* c */ from "./a";\nexport type\n  * as ns\n  from "./b"\n',
+      ),
+    ).toEqual([true, true]);
+    // `type type` is not that form: the statement is read as far as it parses.
+    expect(typeOnly('export type type * from "./a";\n')).toEqual([false]);
+  });
+
   it("handles `export =` and ignores exports inside ambient module blocks", () => {
     const g = facts(
       "types/legacy.d.ts",
       'declare module "x" {\n  export function inner(): void;\n}\nexport = Legacy;\n',
     );
     expect(g.exports).toEqual([{ name: "export=" }]);
+  });
+});
+
+describe("hasSyntaxErrors", () => {
+  const STAR = 'export type * from "./a";\n';
+  const NAMESPACE = 'export type * as ns from "./b";\n';
+
+  it("is false for a file that parses cleanly", () => {
+    expect(
+      errors("a.ts", 'export * from "./a";\nexport const b = 1;\n'),
+    ).toEqual([false, false]);
+  });
+
+  it("passes over `export type *`, which the grammar reports as an error and extract reads in full", () => {
+    for (const file of ["index.ts", "index.tsx", "index.mts", "index.d.ts"]) {
+      expect(errors(file, STAR), file).toEqual([true, false]);
+      expect(errors(file, NAMESPACE), file).toEqual([true, false]);
+    }
+    const variants = [
+      `const x = 1\n${STAR}${NAMESPACE}export const y = 2\n`,
+      "export type * from './a'\nexport type * as ns from './b'\n", // no semicolons
+      'export type * as default from "./a";\n',
+      'export type * as "a name" from "./a";\n',
+      'export /* a */ type /* b */ * /* c */ from /* d */ "./a"; // e\n',
+      'export type\n  *\n  from "./a";\n',
+      `declare module "m" {\n  ${STAR}}\n`,
+    ];
+    for (const text of variants) {
+      expect(errors("index.ts", text), text).toEqual([true, false]);
+    }
+  });
+
+  it("still reports every other syntax error, also beside an `export type *`", () => {
+    const broken = [
+      "export const b = ;\n",
+      `${STAR}export const b = ;\n`,
+      `export const = 2\n${NAMESPACE}`,
+      `${STAR}const a = (1 + 2;\n`, // a missing token, not an error node
+      "export type *;\n",
+      "export type * from x;\n",
+      'export type * as from "./a";\n',
+      'export type type * from "./a";\n',
+      'export type * as ns. from "./a";\n',
+    ];
+    for (const text of broken) {
+      expect(errors("index.ts", text), text).toEqual([true, true]);
+    }
+  });
+
+  it("reports `export type *` in a JavaScript file, where it is not valid", () => {
+    for (const file of ["index.js", "index.mjs", "index.jsx"]) {
+      expect(errors(file, STAR), file).toEqual([true, true]);
+      expect(errors(file, NAMESPACE), file).toEqual([true, true]);
+    }
   });
 });
 

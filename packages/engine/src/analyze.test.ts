@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AnalysisMeta, Graph, serializeCanonical } from "@epoch-dev/core";
 import { analyze } from "./analyze.js";
+import { MemoryCacheStore } from "./cache/memory-store.js";
 
 const fixture = (name: string): string =>
   fileURLToPath(
@@ -133,7 +134,7 @@ describe("analyze: monorepo fixture", async () => {
     expect(first.meta.counts.edges).toBe(first.graph.edges.length);
     expect(first.meta.cycles).toEqual([]);
     expect(first.meta.adapters).toEqual([
-      { id: "typescript", version: "9", tier: "A" },
+      { id: "typescript", version: "10", tier: "A" },
       { id: "python", version: "4", tier: "A" },
       { id: "go", version: "4", tier: "A" },
     ]);
@@ -158,6 +159,35 @@ describe("analyze: syntax errors", () => {
       expect(graph.edges.map((e) => `${e.source}>${e.target}`)).toEqual([
         "ok.ts>broken.ts",
       ]);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("does not report `export type *`, a grammar gap the adapter reads in full (ADR-002)", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "epoch-type-star-"));
+    try {
+      const star = 'export type * from "./types";\n';
+      fs.writeFileSync(path.join(dir, "types.ts"), "export type T = string;\n");
+      fs.writeFileSync(path.join(dir, "index.ts"), star);
+      fs.writeFileSync(
+        path.join(dir, "broken.ts"),
+        `${star}export const b = ;\n`,
+      );
+      const cache = new MemoryCacheStore();
+      const cold = await analyze(dir, { cache });
+      expect(cold.meta.parseErrors).toEqual(["broken.ts"]);
+      expect(cold.meta.counts.parseErrors).toBe(1);
+      expect(
+        cold.graph.edges.map((e) => `${e.source}>${e.target}:${e.kind}`),
+      ).toEqual([
+        "broken.ts>types.ts:type-only",
+        "index.ts>types.ts:type-only",
+      ]);
+      // The cached unit carries the same answer.
+      const warm = await analyze(dir, { cache });
+      expect(warm.meta.counts.cacheMisses).toBe(0);
+      expect(warm.meta.parseErrors).toEqual(cold.meta.parseErrors);
     } finally {
       fs.rmSync(dir, { recursive: true, force: true });
     }

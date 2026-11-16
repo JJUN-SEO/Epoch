@@ -10,7 +10,7 @@
 import type { Tree } from "web-tree-sitter";
 import type { AdapterRegistration, LanguageAdapter } from "@epoch-dev/core";
 import { detectEntryPoints } from "./entry-points.js";
-import { extract } from "./extract.js";
+import { extract, hasSyntaxErrors } from "./extract.js";
 import { EXTENSIONS, grammarFor, isTestFile, languageFor } from "./files.js";
 import { resolveImport } from "./resolve.js";
 import { detectProjectRoots } from "./roots.js";
@@ -19,7 +19,7 @@ export const typescriptAdapter: LanguageAdapter<Tree> = {
   id: "typescript",
   tier: "A",
   extensions: EXTENSIONS,
-  version: "9", // bump whenever extract output can change (cache keys include it)
+  version: "10", // bump whenever extract or hasSyntaxErrors output can change (cache keys include it)
   detectProjectRoots,
   extract,
   resolveImport,
@@ -31,6 +31,7 @@ export const typescriptRegistration: AdapterRegistration<Tree> = {
   adapter: typescriptAdapter,
   grammarFor,
   languageFor,
+  hasSyntaxErrors,
 };
 
 export { countLoc } from "./extract.js";

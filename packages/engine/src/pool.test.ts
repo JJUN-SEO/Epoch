@@ -72,15 +72,20 @@ describe("ParsePool", () => {
 });
 
 describe("EXTRACTORS", () => {
-  it("has exactly the built-in adapters' extract functions", async () => {
+  it("has exactly the built-in adapters' extract and syntax-error functions", async () => {
     const { EXTRACTORS } = await import("./extractors.js");
+    const { anySyntaxError } = await import("./extract-file.js");
     const { DEFAULT_REGISTRATIONS } = await import("./registrations.js");
     expect(Object.keys(EXTRACTORS).sort()).toEqual(
       DEFAULT_REGISTRATIONS.map((r) => r.adapter.id).sort(),
     );
     for (const r of DEFAULT_REGISTRATIONS) {
+      const extractor = EXTRACTORS[r.adapter.id];
       // eslint-disable-next-line @typescript-eslint/unbound-method -- identity check only; never called
-      expect(EXTRACTORS[r.adapter.id]).toBe(r.adapter.extract);
+      expect(extractor?.extract).toBe(r.adapter.extract);
+      // eslint-disable-next-line @typescript-eslint/unbound-method -- identity check only; never called
+      const hasSyntaxErrors = r.hasSyntaxErrors ?? anySyntaxError;
+      expect(extractor?.hasSyntaxErrors).toBe(hasSyntaxErrors);
     }
   });
 });
