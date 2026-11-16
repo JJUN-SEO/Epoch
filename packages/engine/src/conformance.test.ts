@@ -20,7 +20,7 @@ const FIXTURES = fileURLToPath(new URL("../../../fixtures/", import.meta.url));
 const REGISTERED_ADAPTERS = new Set(["typescript", "python", "go"]);
 const REQUIRED_CASES: Readonly<Record<string, number>> = {
   typescript: 22,
-  python: 16,
+  python: 17,
   go: 15,
 };
 

@@ -41,10 +41,11 @@ function reexport(
   specifier: string,
   target: string,
   imported = name,
+  opts: { typeOnly?: boolean } = {},
 ) {
   return {
     exp: { name, from: { specifier, imported } } satisfies ExportInfo,
-    imp: imp("reexport", specifier, file(target), [imported]),
+    imp: imp("reexport", specifier, file(target), [imported], opts),
   };
 }
 
@@ -358,6 +359,33 @@ describe("barrel tracing", () => {
       "A.ts -> b.ts : via-barrel",
       "A.ts -> t.ts : type-only [via barrel b.ts]",
       "b.ts -> t.ts : reexport",
+    ]);
+  });
+
+  it("gives type-only re-exports the type-only kind, and still traces through them", () => {
+    // b.ts: export type { T } from "./t"; export { v } from "./t";
+    expect(
+      edgesOf([
+        input("A.ts", {
+          imports: [
+            imp("static", "./b", file("b.ts"), ["T"], { typeOnly: true }),
+            imp("static", "./b", file("b.ts"), ["v"]),
+          ],
+        }),
+        input("b.ts", {
+          reexports: [
+            reexport("T", "./t", "t.ts", "T", { typeOnly: true }),
+            reexport("v", "./t", "t.ts"),
+          ],
+        }),
+        leaf("t.ts", "T", "v"),
+      ]),
+    ).toEqual([
+      "A.ts -> b.ts : via-barrel",
+      "A.ts -> t.ts : import [via barrel b.ts]",
+      "A.ts -> t.ts : type-only [via barrel b.ts]",
+      "b.ts -> t.ts : reexport",
+      "b.ts -> t.ts : type-only",
     ]);
   });
 });

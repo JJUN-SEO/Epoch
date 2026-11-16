@@ -61,7 +61,7 @@ const ADAPTERS: readonly {
       "1": "8f37d071cfb040a5f4e5e86e0ce58876756d4aa5460edab29f98cb2dcbcb54dc",
       "2": "68db627cf3d3a9726d5a25b8f83617a058562415c2d81e4f7e6312dc7349e730",
       "3": "68db627cf3d3a9726d5a25b8f83617a058562415c2d81e4f7e6312dc7349e730",
-      "4": "d1957cbee7582f7bcd4c26c06eb64e7ae4134dc49b47ea97d8323f00ef969614",
+      "4": "4bfe3db03eedb7eb8bdc5a3eff63876d2e123b1c559d7023c95def3c353aec29",
     },
   },
   {

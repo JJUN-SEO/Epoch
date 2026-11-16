@@ -1,0 +1,6 @@
+{
+  "description": "An `__init__.py` re-export under `if TYPE_CHECKING:` is a type-only edge; its other re-exports stay `reexport`, and names imported through the package still trace to their modules.",
+  "adapters": [
+    "python"
+  ]
+}

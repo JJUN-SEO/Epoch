@@ -99,6 +99,7 @@ function indexFile(f: FileInput): FileIndex {
  * (CLAUDE.md): an import of named exports through a barrel B becomes an edge
  * to each declaring file C (`via barrel B`), plus one `via-barrel` edge to B.
  * Anything that cannot be traced conservatively stays a direct edge to B.
+ * A type-only import or re-export gives a `type-only` edge.
  * Package members (ADR-013) fold into one package node: their edges start
  * at the package, self-loops are dropped, and their unresolved imports keep
  * the member file. Fan-in and fan-out count distinct direct neighbours over
@@ -220,7 +221,9 @@ export function buildGraph(
       // A file inside a package stands for its package.
       const target = targetFile ? nodeOf(targetFile) : res.target;
       if (imp.kind === "reexport") {
-        addEdge(source, target, "reexport");
+        // `export type ... from` is erased like `import type`: a type-only
+        // dependency. Barrel tracing reads the facts, not this edge's kind.
+        addEdge(source, target, imp.typeOnly ? "type-only" : "reexport");
         continue;
       }
       if (imp.kind === "dynamic") {
